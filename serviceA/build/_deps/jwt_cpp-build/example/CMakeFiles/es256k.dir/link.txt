@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/es256k.dir/link.d CMakeFiles/es256k.dir/es256k.cpp.o -o es256k  /usr/lib/libssl.so /usr/lib/libcrypto.so

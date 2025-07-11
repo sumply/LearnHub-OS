@@ -1,0 +1,68 @@
+[
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/nlohmann_json-src/include -std=gnu++20 -o CMakeFiles/serviceA.dir/src/main.cxx.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/src/main.cxx",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/src/main.cxx",
+  "output": "CMakeFiles/serviceA.dir/src/main.cxx.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/print-claims.dir/print-claims.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/print-claims.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/print-claims.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/print-claims.dir/print-claims.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/private-claims.dir/private-claims.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/private-claims.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/private-claims.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/private-claims.dir/private-claims.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/rsa-create.dir/rsa-create.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/rsa-create.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/rsa-create.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/rsa-create.dir/rsa-create.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/rsa-verify.dir/rsa-verify.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/rsa-verify.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/rsa-verify.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/rsa-verify.dir/rsa-verify.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/jwks-verify.dir/jwks-verify.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/jwks-verify.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/jwks-verify.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/jwks-verify.dir/jwks-verify.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/es256k.dir/es256k.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/es256k.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/es256k.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/es256k.dir/es256k.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/nlohmann_json-src/include -std=gnu++20 -o CMakeFiles/partial-claim-verifier.dir/partial-claim-verifier.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/partial-claim-verifier.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/partial-claim-verifier.cpp",
+  "output": "_deps/jwt_cpp-build/example/CMakeFiles/partial-claim-verifier.dir/partial-claim-verifier.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example/traits",
+  "command": "/usr/bin/c++ -DBOOST_JSON_STANDALONE  -std=gnu++20 -o CMakeFiles/boost_json.dir/private-boost-json.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example/traits/private-boost-json.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example/traits/private-boost-json.cpp",
+  "output": "_deps/jwt_cpp-build/example/traits/CMakeFiles/boost_json.dir/private-boost-json.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example/traits",
+  "command": "/usr/bin/c++ -DBOOST_JSON_STANDALONE -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/boost-json.dir/boost-json.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/traits/boost-json.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/traits/boost-json.cpp",
+  "output": "_deps/jwt_cpp-build/example/traits/CMakeFiles/boost-json.dir/boost-json.cpp.o"
+},
+{
+  "directory": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-build/example/traits",
+  "command": "/usr/bin/c++  -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/nlohmann_json-src/include -I/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/include -std=gnu++20 -o CMakeFiles/nlohmann-json.dir/nlohmann-json.cpp.o -c /home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/traits/nlohmann-json.cpp",
+  "file": "/home/manjaro/Projects/LearnHub-OS/serviceA/build/_deps/jwt_cpp-src/example/traits/nlohmann-json.cpp",
+  "output": "_deps/jwt_cpp-build/example/traits/CMakeFiles/nlohmann-json.dir/nlohmann-json.cpp.o"
+}
+]
