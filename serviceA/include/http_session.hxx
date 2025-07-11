@@ -1,9 +1,5 @@
-#include <boost/beast.hpp>
-#include <boost/asio.hpp>
-#include <boost/beast/core/error.hpp>
-#include <boost/beast/core/tcp_stream.hpp>
-#include <boost/beast/http/string_body_fwd.hpp>
 #include <memory>
+#include "beast.hxx"
 
 namespace service_a {
 
@@ -15,12 +11,12 @@ private:
     void fail(boost::beast::error_code ec, std::string_view what);
     void do_read();
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);
-    void do_write(boost::beast::http::response<boost::beast::http::string_body>&& response);
-    void on_write(boost::beast::error_code const& ec, std::size_t bytes_transferred);
+    void do_write(http_response&& response);
+    void on_write(bool keep_alive, boost::beast::error_code const& ec, std::size_t bytes_transferred);
     void do_close();
 
     boost::beast::tcp_stream stream_;
-    std::optional<boost::beast::http::response_parser<boost::beast::http::string_body>> request_parser_;
+    std::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> request_parser_;
     boost::beast::flat_buffer buffer_;
 };
 

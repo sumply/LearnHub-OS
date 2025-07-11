@@ -10,24 +10,24 @@ class response_builder {
 public:
 	explicit response_builder(http_request const& request);
 
-	http_response buildBaseResponse(
+	http_response build_base_response(
 			boost::beast::http::status status,
 			const std::string& body);
-	http_response bodyEmpty();
-	http_response invalidJSON();
-	http_response methodNotAllowed();
-	http_response missingOrEmptyKey(const std::string& key);
+	http_response body_empty();
+	http_response invalid_json();
+	http_response method_not_allowed();
+	http_response missing_or_empty_key(const std::string& key);
 	http_response unauthorized();
 	//http_response authJWT(const jwtconfig::AuthTokens& tokens);
-	http_response invalidJWTToken();
-	http_response accessJWT(const std::string& accessToken);
-	http_response unsupportedContentType();
+	http_response invalid_jwt_token();
+	http_response access_jwt(const std::string& accessToken);
+	http_response unsupported_content_type();
 
-	static http_response buildBaseResponse(
+	static http_response build_base_response(
 			const http_request& request,
 			boost::beast::http::status status,
 			const std::string& body);
-	static http_response invalidJWTToken(const http_request& request);
+	static http_response invalid_jwt_token(const http_request& request);
 private:
 	const http_request& request;
 };

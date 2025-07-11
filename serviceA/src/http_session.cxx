@@ -1,8 +1,9 @@
 #include "../include/http_session.hxx"
 #include <boost/beast/core/bind_handler.hpp>
+#include <boost/beast/core/error.hpp>
 #include <boost/beast/http/string_body_fwd.hpp>
+#include "../include/request_handler.hxx"
 #include <iostream>
-#include "../include/responses.hxx"
 
 namespace service_a {
 
@@ -40,15 +41,15 @@ on_read(boost::beast::error_code ec, std::size_t) {
         return do_close();
     if (ec)
         fail(ec, "read");
-
-
+    request_handler handler(request_parser_->release());
+    do_write(handler.handle_request());
 }
 
 void
 http_session::
-on_write(boost::beast::error_code const& ec, std::size_t) {
+on_write(bool keep_alive, boost::beast::error_code const& ec, std::size_t) {
     if (ec) return fail(ec, "write");
-    if (ec == boost::beast::http::error::end_of_stream)
+    if (ec == boost::beast::http::error::end_of_stream || !keep_alive)
         return do_close();
     do_read();
 }
@@ -68,10 +69,9 @@ do_write(boost::beast::http::response<boost::beast::http::string_body>&& respons
     boost::beast::http::async_write(
         stream_,
         *response_ptr,
-        boost::beast::bind_front_handler(
-            &http_session::on_write,
-            shared_from_this()
-        )
+        [self = shared_from_this(), response_ptr](boost::beast::error_code const ec, std::size_t bytes) {
+            self->on_write(response_ptr->keep_alive(), ec, bytes);
+        }
     );
 }
 

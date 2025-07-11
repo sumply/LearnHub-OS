@@ -2,48 +2,6 @@
 #include <nlohmann/json_fwd.hpp>
 #include <nlohmann/json.hpp>
 
-
-namespace server::protocol::http {
-
-	enum class Target {
-		Registration,
-		Authorization,
-		RefreshRefreshToken,
-		RefreshAccessToken,
-		Unknown
-	};
-
-	std::string to_string(Target target);
-	Target to_target(const std::string& target);
-
-	std::string to_string(Target target) {
-		switch (target) {
-			case Target::Registration:
-				return "/registration";
-			case Target::Authorization:
-				return "/authorization";
-			case Target::RefreshAccessToken:
-				return "/refresh_access_token";
-			case Target::RefreshRefreshToken:
-				return "/refresh_refresh_token";
-			case Target::Unknown:
-				return "unknown";
-		}
-	}
-
-	Target to_target(const std::string& target) {
-		if (target == "/registration")
-			return Target::Registration;
-		if (target == "/authorization")
-			return Target::Authorization;
-		if (target == "/refresh_access_token")
-			return Target::RefreshAccessToken;
-		if (target == "/refresh_refresh_token")
-			return Target::RefreshRefreshToken;
-		return Target::Unknown;
-	}
-}
-
 namespace service_a {
 
 response_builder::
@@ -52,7 +10,7 @@ response_builder(const http_request& request)
 
 http_response 
 response_builder::
-buildBaseResponse(http::status status, const std::string& body) {
+build_base_response(http::status status, const std::string& body) {
 	http_response response(status, request.version());
 	response.set(http::field::server, BOOST_BEAST_VERSION_STRING);
 	response.set(http::field::content_type, "application/json");
@@ -64,41 +22,41 @@ buildBaseResponse(http::status status, const std::string& body) {
 
 http_response 
 response_builder::
-bodyEmpty() {
+body_empty() {
 	nlohmann::ordered_json text {
 		{"error", "The request body is empty!"}
 	};
-	return buildBaseResponse(http::status::bad_request, text.dump());
+	return build_base_response(http::status::bad_request, text.dump());
 }
 
 http_response 
 response_builder::
-invalidJSON() {
+invalid_json() {
 	nlohmann::ordered_json text {
 		{"error", "The request body is invalid!"},
 		{"example", {
 			{"login", "something"}, 
 			{"password", "something"}}}
 	};
-	return buildBaseResponse(http::status::bad_request, text.dump());
+	return build_base_response(http::status::bad_request, text.dump());
 }
 
 http_response 
 response_builder::
-methodNotAllowed() {
+method_not_allowed() {
 	nlohmann::ordered_json text {
 		{"error", "Use the GET method for additional information, or POST."}
 	};
-	return buildBaseResponse(http::status::method_not_allowed, text.dump());
+	return build_base_response(http::status::method_not_allowed, text.dump());
 }
 
 http_response 
 response_builder::
-missingOrEmptyKey(const std::string& key) {
+missing_or_empty_key(const std::string& key) {
 	nlohmann::ordered_json text {
 		{"error", "Invalid JSON: the '" + key + "' is missing or empty"}
 	};
-	return buildBaseResponse(http::status::bad_request, text.dump());
+	return build_base_response(http::status::bad_request, text.dump());
 }
 
 http_response 
@@ -107,7 +65,7 @@ unauthorized() {
 	nlohmann::ordered_json text {
 		{"error", "Authorization failed"}
 	};
-	return buildBaseResponse(http::status::unauthorized, text.dump());
+	return build_base_response(http::status::unauthorized, text.dump());
 }
 
 /*http_response
@@ -122,35 +80,35 @@ authJWT(const jwtconfig::AuthTokens& tokens) {
 
 http_response 
 response_builder::
-accessJWT(const std::string& accessToken) {
+access_jwt(const std::string& accessToken) {
 	nlohmann::ordered_json text {{"access", accessToken}};
-	return buildBaseResponse(http::status::ok, text.dump());
+	return build_base_response(http::status::ok, text.dump());
 }
 
 http_response 
 response_builder::
-invalidJWTToken() {
+invalid_jwt_token() {
 	nlohmann::ordered_json text {
 		{"error", "The Authorization field is missing or the JWT token is invalid."}
 	};
-	return buildBaseResponse(http::status::unauthorized, text.dump());
+	return build_base_response(http::status::unauthorized, text.dump());
 }
 
 http_response 
 response_builder::
-unsupportedContentType() {
+unsupported_content_type() {
 	nlohmann::ordered_json text {
 		{"error", "Unsupported content type!"},
 		{"Support"}, {
 			{"application/json"}
 		}
 	};
-	return buildBaseResponse(http::status::bad_request, text.dump());
+	return build_base_response(http::status::bad_request, text.dump());
 }
 
 http_response 
 response_builder::
-buildBaseResponse(const http_request& request, http::status status, const std::string& body) {
+build_base_response(const http_request& request, http::status status, const std::string& body) {
 	http_response response(status, request.version());
 	response.set(http::field::server, BOOST_BEAST_VERSION_STRING);
 	response.set(http::field::content_type, "application/json");
@@ -162,11 +120,11 @@ buildBaseResponse(const http_request& request, http::status status, const std::s
 
 http_response 
 response_builder::
-invalidJWTToken(const http_request& request) {
+invalid_jwt_token(const http_request& request) {
 	nlohmann::ordered_json text {
 		{"error", "The Authorization field is missing or the JWT token is invalid."}
 	};
-	return buildBaseResponse(request, http::status::unauthorized, text.dump());
+	return build_base_response(request, http::status::unauthorized, text.dump());
 }
 
 }
