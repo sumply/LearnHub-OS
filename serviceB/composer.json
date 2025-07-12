@@ -1,0 +1,15 @@
+{
+    "name": "razemius/learn-hub-os",
+    "autoload": {
+        "psr-4": {
+            "Razemius\\LearnHubOs\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "razemius",
+            "email": "df260704@gmail.com"
+        }
+    ],
+    "require": {}
+}
