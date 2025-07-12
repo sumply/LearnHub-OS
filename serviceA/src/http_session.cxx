@@ -1,5 +1,6 @@
 #include "../include/http_session.hxx"
 #include "../include/request_handler.hxx"
+#include <boost/asio/error.hpp>
 #include <iostream>
 #include "../include/jwt_config.hxx"
 #include "../include/logging.hxx"
@@ -62,9 +63,9 @@ void
 http_session::
 fail(boost::beast::error_code ec, std::string_view what) {
     DEBUG_FUNC();
-    if (ec == boost::asio::error::operation_aborted)
+    if (ec == boost::asio::error::operation_aborted || ec == boost::asio::error::timed_out)
         return;
-    std::cerr << std::format("FAIL: {}\n", what);
+    std::cerr << std::format("FAIL: {}; LOG: {}\n", what, ec.what());
 }
 
 void

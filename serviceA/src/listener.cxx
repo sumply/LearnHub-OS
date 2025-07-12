@@ -65,8 +65,8 @@ on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket) {
     DEBUG_FUNC();
     if (ec)
         return fail(ec, "accept");
-    run();
     std::make_shared<http_session>(std::move(socket))->run();
+    run();
 }
 
 }

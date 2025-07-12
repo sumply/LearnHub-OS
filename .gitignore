@@ -3,3 +3,4 @@
 /.cache
 .swp
 compile_commands.json
+serviceA/*.tar*

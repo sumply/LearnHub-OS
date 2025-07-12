@@ -2,7 +2,6 @@
 #include "../include/protocol.hxx"
 #include "../include/json_config.hxx"
 #include "../include/logging.hxx"
-#include <iostream>
 
 namespace service_a {
 
@@ -21,6 +20,8 @@ request_handler::
 handle_request() {
     DEBUG_FUNC();
     switch (request_.method()) {
+        case http::verb::options:
+            return handle_options();
         case http::verb::get:
             return handle_get();
         case http::verb::post:
@@ -30,6 +31,12 @@ handle_request() {
         default:
             return response_builder_.method_not_allowed();
     }
+}
+
+http_response
+request_handler::
+handle_options() {
+    return response_builder_.build_base_response(http::status::no_content, "");
 }
 
 http_response

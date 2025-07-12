@@ -35,14 +35,13 @@ int main(int argc, char* argv[]) {
             ioc.stop();
         }
     );
-
+    ioc.run();
     std::vector<std::thread> vec;
     vec.reserve(threads - 1);
     for (; threads > 0; --threads)
         vec.emplace_back([&ioc](){ioc.run();});
     for (auto& t : vec)
         t.join();
-    ioc.run();
 
     return EXIT_SUCCESS;
 }

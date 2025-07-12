@@ -14,9 +14,14 @@ build_base_response(http::status status, const std::string& body) {
 	http_response response(status, request.version());
 	response.set(http::field::server, BOOST_BEAST_VERSION_STRING);
 	response.set(http::field::content_type, "application/json");
+	response.set(http::field::access_control_allow_origin, "*");
+	response.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS");
+	response.set(http::field::access_control_allow_headers, "Content-Type, Authorization");
+	response.set(http::field::access_control_max_age, "86400");
 	response.keep_alive(request.keep_alive());
 	response.body() = body;
 	response.prepare_payload();
+
 	return response;
 }
 

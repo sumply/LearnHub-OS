@@ -27,6 +27,7 @@ public:
 	http_response handle_auth();
 	http_response handle_get();
 	http_response handle_post();
+	http_response handle_options();
 	http_response handle_reqistration();
 private:
 	http_request request_;
