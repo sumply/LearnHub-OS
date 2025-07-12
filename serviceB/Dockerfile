@@ -36,17 +36,28 @@ RUN apt-get update && \
         unzip
 # 3. Set up the application directory
 ENV DEBIAN_FRONTEND=noninteractive
-RUN install -d /usr/share/postgresql-common/pgdg
-RUN curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
-RUN sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
-RUN . /etc/os-release
-RUN apt install -y --no-install-recommends postgresql-17
+#UN install -d /usr/share/postgresql-common/pgdg
+#RUN curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+#RUN sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
+#RUN . /etc/os-release
+#RUN apt install -y --no-install-recommends postgresql-17
 WORKDIR /app
 
-# 4. Copy only dependency files and install them.
-# This leverages Docker's layer cache. `composer install` only re-runs if these files change.
 COPY composer.json ./
 RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+FROM postgres:17 AS initdb
+ENV POSTGRES_DB main
+ENV POSTGRES_USER pdadmin
+ENV POSTGRES_PASSWORD pgadmin
+COPY ./init.sql /docker-entrypoint-initdb.d/
+CMD ["postgres"]
+FROM postgres:17
+ENV POSTGRES_DB main
+ENV POSTGRES_USER pdadmin
+ENV POSTGRES_PASSWORD pgadmin
+COPY --from=initdb /var/lib/postgresql/data /var/lib/postgresql/data
+# 4. Copy only dependency files and install them.
+# This leverages Docker's layer cache. `composer install` only re-runs if these files change.
 # 5. Copy the rest of the application source code
 COPY . .
 
