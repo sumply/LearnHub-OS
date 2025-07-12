@@ -6,6 +6,7 @@ RUN pacman -Syu --noconfirm && \
 
 WORKDIR /app
 COPY . .
-RUN cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build
+ARG DEBUG_FLAG=""
+RUN cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_FLAGS="${DEBUG_FLAG}" -B build
 RUN cmake --build build
 ENTRYPOINT ["./build/serviceA"]

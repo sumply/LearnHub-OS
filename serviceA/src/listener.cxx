@@ -3,6 +3,7 @@
 #include <iostream>
 #include <format>
 #include "../include/http_session.hxx"
+#include "../include/logging.hxx"
 
 namespace service_a {
 
@@ -12,6 +13,7 @@ listener(
     boost::asio::ip::tcp::endpoint endpoint)
     : ioc_(ioc)
     , acceptor_(ioc) {
+        DEBUG_FUNC();
         boost::beast::error_code ec;
 
         ec = acceptor_.open(endpoint.protocol(), ec);
@@ -40,6 +42,7 @@ listener(
 void
 listener::
 run() {
+    DEBUG_FUNC();
     acceptor_.async_accept(
         boost::asio::make_strand(ioc_),
         boost::beast::bind_front_handler(
@@ -50,6 +53,7 @@ run() {
 void
 listener::
 fail(boost::beast::error_code ec, std::string_view what) {
+    DEBUG_FUNC();
     if (ec == boost::asio::error::operation_aborted)
         return;
     std::cerr << std::format("FAIL: {}\n", what);
@@ -58,6 +62,7 @@ fail(boost::beast::error_code ec, std::string_view what) {
 void
 listener::
 on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket) {
+    DEBUG_FUNC();
     if (ec)
         return fail(ec, "accept");
     run();

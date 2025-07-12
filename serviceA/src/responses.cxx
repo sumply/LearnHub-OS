@@ -68,15 +68,15 @@ unauthorized() {
 	return build_base_response(http::status::unauthorized, text.dump());
 }
 
-/*http_response
+http_response
 response_builder::
-authJWT(const jwtconfig::AuthTokens& tokens) {
+auth_jwt(const jwt_config::auth_tokens& tokens) {
 	nlohmann::ordered_json text {
 		{"access", tokens.access},
 		{"refresh", tokens.refresh}
 	};
-	return buildBaseResponse(http::status::ok, text.dump());
-}*/
+	return build_base_response(http::status::ok, text.dump());
+}
 
 http_response 
 response_builder::

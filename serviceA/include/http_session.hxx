@@ -18,6 +18,7 @@ private:
     boost::beast::tcp_stream stream_;
     std::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> request_parser_;
     boost::beast::flat_buffer buffer_;
+
 };
 
 }

@@ -3,8 +3,14 @@
 #include "../include/listener.hxx"
 #include <memory>
 #include <thread>
+#include "../include/dotenv.hxx"
 
 int main(int argc, char* argv[]) {
+    auto cool = dotenv::init(".env");
+    if (!cool) {
+        std::cerr << "Error when reading env file.\n";
+        return EXIT_FAILURE;
+    }
     if (argc != 4) {
         std::cerr << "Usage: <address> <port> <threads>\n";
         return EXIT_FAILURE;

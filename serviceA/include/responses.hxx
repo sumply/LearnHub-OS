@@ -3,6 +3,7 @@
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include "../include/beast.hxx"
+#include "../include/jwt_config.hxx"
 
 namespace service_a {
 
@@ -18,7 +19,7 @@ public:
 	http_response method_not_allowed();
 	http_response missing_or_empty_key(const std::string& key);
 	http_response unauthorized();
-	//http_response authJWT(const jwtconfig::AuthTokens& tokens);
+	http_response auth_jwt(const jwt_config::auth_tokens& tokens);
 	http_response invalid_jwt_token();
 	http_response access_jwt(const std::string& accessToken);
 	http_response unsupported_content_type();

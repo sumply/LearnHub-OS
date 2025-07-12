@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 find_package(Boost REQUIRED)
+
 include(FetchContent)
 FetchContent_Declare(
   nlohmann_json
@@ -18,6 +19,7 @@ FetchContent_Declare(
   GIT_TAG master
 )
 FetchContent_MakeAvailable(nlohmann_json)
+
 FetchContent_Declare(
 	jwt_cpp
 	GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
