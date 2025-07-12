@@ -1,89 +1,71 @@
-# --- Builder Stage ---
-# This stage has all the tools needed to install PHP dependencies with Composer.
-# Using Ubuntu 22.04 LTS for stability.
-FROM ubuntu:plucky AS builder
+# Dockerfile (Single image for PHP app + Pre-initialized PostgreSQL)
 
-# 1. Set a non-interactive frontend for apt to prevent it from prompting for input.
+# --- Stage 1: Build the pre-initialized PostgreSQL database ---
+FROM postgres:17 AS init_db
+ENV POSTGRES_DB main
+ENV POSTGRES_USER pdadmin
+ENV POSTGRES_PASSWORD pgadmin
+COPY ./init.sql /docker-entrypoint-initdb.d/
+CMD ["postgres"] 
+
+# --- Stage 2: PHP Application Builder ---
+FROM ubuntu:plucky AS php_builder
 ENV DEBIAN_FRONTEND=noninteractive
-
-# 2. Install PHP 8.3, Composer, and buil4 tools.
-# We need to add the ondrej/php PPA to get the latest PHP versions.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        software-properties-common \
-        ca-certificates \
-        curl \
-        php8.4-common \
-        php8.4-cli \
+        software-properties-common ca-certificates curl git unzip
+RUN apt-get install -y --no-install-recommends \
+    php8.4-cli php8.4-fpm php8.4-common php8.4-mbstring php8.4-xml \
+    php8.4-gd php8.4-intl php8.4-pgsql php8.4-redis composer && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+WORKDIR /app
+COPY composer.json ./
+RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+COPY . . 
+
+# --- Final Stage: Combine PHP App and Pre-initialized DB ---
+FROM ubuntu:plucky AS final_app_with_db
+
+# 1. Install necessary system dependencies for PostgreSQL client and PHP runtime
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-client \
+        libpq-dev \
         php8.4-fpm \
-        # --- Add required PHP extensions here (uncomment what you need) ---
-        # Most applications need mbstring and xml.
+        php8.4-cli \
+        php8.4-common \
         php8.4-mbstring \
         php8.4-xml \
         php8.4-gd \
         php8.4-intl \
         php8.4-pgsql \
-        # php8.4-mysql \
-        php8.4-redis \
-        apt-transport-https && \
-    apt-get update && \
-    # Install PHP, Composer, and other necessary tools for building
-    apt-get install -y --no-install-recommends \
-        php8.4-cli \
-        php8.4-fpm \
-        composer \
-        git \
-        unzip
-# 3. Set up the application directory
-ENV DEBIAN_FRONTEND=noninteractive
-#UN install -d /usr/share/postgresql-common/pgdg
-#RUN curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
-#RUN sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
-#RUN . /etc/os-release
-#RUN apt install -y --no-install-recommends postgresql-17
-WORKDIR /app
+        php8.4-redis && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY composer.json ./
-RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
-FROM postgres:17 AS initdb
+
+# 2. Copy the initialized DB data from the init_db stage
+#    This makes the DB part of THIS image
+COPY --from=init_db /var/lib/postgresql/data /var/lib/postgresql/data
+
+# 3. Copy the PHP application and its dependencies from the php_builder stage
+COPY --from=php_builder /app /app
+
+# 4. Set up necessary environment variables for PostgreSQL
+#    These are for the *internal* DB instance
+ENV PGDATA=/var/lib/postgresql/data
 ENV POSTGRES_DB main
 ENV POSTGRES_USER pdadmin
 ENV POSTGRES_PASSWORD pgadmin
-COPY ./init.sql /docker-entrypoint-initdb.d/
-CMD ["postgres"]
-FROM postgres:17
-ENV POSTGRES_DB main
-ENV POSTGRES_USER pdadmin
-ENV POSTGRES_PASSWORD pgadmin
-COPY --from=initdb /var/lib/postgresql/data /var/lib/postgresql/data
-# 4. Copy only dependency files and install them.
-# This leverages Docker's layer cache. `composer install` only re-runs if these files change.
-# 5. Copy the rest of the application source code
-COPY . .
 
-# --- Final Application Stage ---
-# This stage creates the final, lean image for running the application.
-FROM ubuntu:plucky AS app
-
-# 1. Install only the required PHP runtime and common extensions.
-RUN apt-get update && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# 2. Set up the application directory
-WORKDIR /app
-
-# 3. Copy the application code and installed dependencies from the builder stage
-COPY --from=builder /app .
-
-# 4. Expose port if it's a web service running on php-fpm
+# 5. Expose the port for the database and for PHP-FPM
+EXPOSE 5432
 EXPOSE 9000
 
-# 5. Define the entrypoint
-# Choose one of the following based on your application type.
+# 6. Set working directory for the application
+WORKDIR /app
 
-# --- OPTION A: For a command-line service (like your original C++ service) ---
-# ENTRYPOINT ["php"]
-CMD ["php8.4", "-S","0.0.0.0:9000","-t",".","index.php" ]
+# 7. Define the entrypoint script to start both PostgreSQL and PHP-FPM
+#    This is a bit more complex, as you need a wrapper script.
 
-# --- OPTION B: For a web application served by PHP-FPM ---
+CMD ["php8.4", "-S", "0.0.0.0:9000", "-t",".", "-c","php.ini", "index.php"]

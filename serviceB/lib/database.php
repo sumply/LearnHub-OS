@@ -4,8 +4,8 @@ class DataBase
  static $host = 'localhost';
  static $port = '5432';
  static $dbname = 'main';
- static $user = 'pgadmin';
- static $password = 'pgadmin';
+ static $user = 'postgres';
+ static $password = 'postgres';
  static PDO $connection;
  static function init()
  {
@@ -15,8 +15,8 @@ class DataBase
    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
    PDO::ATTR_EMULATE_PREPARES   => false, // Recommended for better type safety and performance
   ]);
-  $stmt = self::$connection->query("SELECT id, name, email FROM users ORDER BY id DESC LIMIT 5");
-  $users = $stmt->fetchAll();
+  // $stmt = self::$connection->query("SELECT id, name, email FROM users ORDER BY id DESC LIMIT 5");
+  // $users = $stmt->fetchAll();
  }
  /**
   * undocumented function summary
@@ -27,15 +27,29 @@ class DataBase
   * @return type
   * @throws conditon
   **/
- static function select($table, $fields=[], $conditions = "", $ending ="") : array {
-  $stmt = self::$connection->prepare("SELECT :fields FROM :table where :conditions :ending");
+ static function Select($table, $fields=[], $conditions = "", $ending ="") : array {
   if(is_array($fields)) $fields = implode(",",$fields);
-  $stmt->execute([
-   ":fields" => $fields,
-   ":table" => $table,
-   ":conditions" => $conditions,
-   ":ending" => $ending
-  ]);
-  return $stmt->fetchAll();
+  $query = "SELECT $fields FROM $table where $conditions $ending";
+  $res = self::$connection->query($query, PDO::FETCH_ASSOC);
+  // $stmt = self::$connection->prepare("SELECT :fields FROM :table where :conditions :ending");
+  // $stmt->execute([
+  //  ":fields" => $fields,
+  //  ":table" => $table,
+  //  ":conditions" => $conditions,
+  //  ":ending" => $ending
+  // ]);
+  return $res->fetchAll();
+ }
+ static function Insert() {
+  
+ }
+ static function Update() {
+  
+ }
+ static function Remove() {
+  
+ }
+ static function DirectQuery(&$query) {
+  
  }
 }
