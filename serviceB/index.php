@@ -9,7 +9,9 @@ if(file_exists($path)){
  require "./lib/database.php";
  DataBase::init();
  $res = require $path;
+ if($res != 1) http_response_code($res);
  $stdout = fopen("php://stdout","w+");
- fwrite($stdout ,json_encode($_POST)."\n");
- if(isset($res)) http_response_code($res);
+ fwrite($stdout ,json_encode($path."\n".file_get_contents('php://input'))."\n");
+} else {
+ http_response_code(405);
 }
