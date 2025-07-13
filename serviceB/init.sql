@@ -8,7 +8,7 @@ create table
 users (
     id SERIAL PRIMARY KEY,
     firstName varchar(40) not null,
-    secondtName varchar(40) not null,
+    secondName varchar(40) not null,
     lastName varchar(40) null,
     email TEXT UNIQUE NOT NULL,
     passwordHash TEXT NOT NULL,
@@ -81,8 +81,8 @@ CREATE TABLE groups (
 
 drop TABLE if exists user_groups CASCADE;
 CREATE TABLE user_groups (
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id),
+    group_id INTEGER REFERENCES groups(id),
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, group_id)
 );
