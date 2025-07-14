@@ -1,8 +1,6 @@
 #pragma once
 
-#include <boost/beast.hpp>
-#include <boost/asio.hpp>
-#include <boost/beast/core/error.hpp>
+#include "../include/beast.hxx"
 #include <memory>
 
 namespace service_a {

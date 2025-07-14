@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include "../include/jwt_config.hxx"
 #include "jwt_config.hxx"
+#include "../include/models.hxx"
 
 namespace service_a {
 
@@ -29,7 +30,10 @@ public:
 	http_response handle_post();
 	http_response handle_options();
 	http_response handle_reqistration();
+	http_response handle_get_user();
 private:
+	nlohmann::json post_registration(models::registration);
+	nlohmann::json post_authorizatoin(std::string_view email, std::string_view password);
 	http_request request_;
 	response_builder response_builder_;
 	jwt_config::jwt_verifier& jwt_verifier_;

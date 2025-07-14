@@ -23,6 +23,7 @@ public:
 	http_response invalid_jwt_token();
 	http_response access_jwt(const std::string& accessToken);
 	http_response unsupported_content_type();
+	http_response internal_server_error();
 
 	static http_response build_base_response(
 			const http_request& request,

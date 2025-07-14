@@ -111,6 +111,14 @@ unsupported_content_type() {
 	return build_base_response(http::status::bad_request, text.dump());
 }
 
+http_response
+response_builder::
+internal_server_error() {
+	return build_base_response(http::status::internal_server_error,
+		nlohmann::json{"error", "An error has occurred on the server side."});
+}
+
+
 http_response 
 response_builder::
 build_base_response(const http_request& request, http::status status, const std::string& body) {
@@ -131,5 +139,6 @@ invalid_jwt_token(const http_request& request) {
 	};
 	return build_base_response(request, http::status::unauthorized, text.dump());
 }
+
 
 }

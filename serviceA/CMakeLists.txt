@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 find_package(Boost REQUIRED)
+find_package(CURL REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -28,6 +29,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(jwt_cpp)
 
 target_link_libraries(${PROJECT_NAME}
+    PRIVATE CURL::libcurl
     PRIVATE Boost::headers
     PRIVATE jwt-cpp::jwt-cpp
     PRIVATE nlohmann_json::nlohmann_json

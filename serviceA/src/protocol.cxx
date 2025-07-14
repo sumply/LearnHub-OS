@@ -8,6 +8,8 @@ std::string to_string(target target) {
             return "/registration";
         case target::authorization:
             return "/authorization";
+        case target::get_user:
+            return "/get_user";
         case target::refresh_access_token:
             return "/refresh_access_token";
         case target::refresh_refresh_token:
@@ -26,6 +28,8 @@ target to_target(const std::string& target) {
         return target::refresh_access_token;
     if (target == "/refresh_refresh_token")
         return target::refresh_refresh_token;
+    if (target == "/get_user")
+        return target::get_user;
     return target::unknown;
 }
 

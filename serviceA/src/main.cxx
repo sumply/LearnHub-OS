@@ -11,6 +11,24 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error when reading env file.\n";
         return EXIT_FAILURE;
     }
+    auto reg = dotenv::getenv("SERVICEB_REG");
+    if (!reg) {
+        std::cerr << "SERVICEB_REG\n";
+        return EXIT_FAILURE;
+    }
+    std::cout << reg.value() << '\n';
+    auto auth = dotenv::getenv("SERVICEB_AUTH");
+    if (!auth) {
+        std::cerr << "SERVICEB_AUTH\n";
+        return EXIT_FAILURE;
+    }
+    std::cout << auth.value() << '\n';
+    auto usr_get = dotenv::getenv("SERVICEB_USER_GET");
+    if (!usr_get) {
+        std::cerr << "SERVICEB_GET\n";
+        return EXIT_FAILURE;
+    }
+    std::cout << usr_get.value() << '\n';
     if (argc != 4) {
         std::cerr << "Usage: <address> <port> <threads>\n";
         return EXIT_FAILURE;
@@ -25,21 +43,21 @@ int main(int argc, char* argv[]) {
         ioc,
         boost::asio::ip::tcp::endpoint(address, port))->run();
 
-    boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
-    signals.async_wait(
-        [&ioc](boost::system::error_code const& error, int) {
-            if (!error)
-                std::cout << "The program was completed without errors!\n";
-            else
-                std::cerr << error.what() << '\n';
-            ioc.stop();
-        }
-    );
-    ioc.run();
-    std::vector<std::thread> vec;
-    vec.reserve(threads - 1);
-    for (; threads > 0; --threads)
-        vec.emplace_back([&ioc](){ioc.run();});
+        boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
+        signals.async_wait(
+            [&ioc](boost::system::error_code const& error, int) {
+                if (!error)
+                    std::cout << "The program was completed without errors!\n";
+                else
+                    std::cerr << error.what() << '\n';
+                ioc.stop();
+            }
+        );
+        ioc.run();
+        std::vector<std::thread> vec;
+        vec.reserve(threads - 1);
+        for (; threads > 0; --threads)
+            vec.emplace_back([&ioc](){ioc.run();});
     for (auto& t : vec)
         t.join();
 

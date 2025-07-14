@@ -2,6 +2,8 @@
 #include "../include/protocol.hxx"
 #include "../include/json_config.hxx"
 #include "../include/logging.hxx"
+#include "../include/http_client.hxx"
+#include "../include/dotenv.hxx"
 
 namespace service_a {
 
@@ -50,15 +52,31 @@ handle_auth() {
     auto email = json_config::find(json, "email");
     if (!email)
         return response_builder_.missing_or_empty_key("email");
-
     auto password = json_config::find(json, "password");
     if (!password)
         return response_builder_.missing_or_empty_key("password");
+    http_client client(http_client::method::POST, dotenv::getenv("SERVICEB_AUTH").value());
+    auto text = nlohmann::json{
+        {"email", email.value()},
+        {"password", password.value()}
+    }.dump();
+    client.field("Content-type: application/json");
+    client.body(text);
+    client.show();
+    long status = client.send();
+    if (status == -1)
+        return response_builder_.internal_server_error();
+    if (status != 200)
+        return response_builder_.unauthorized();
 
-   // FIXME: Request database userID.
-    int userID = 10;
+    json = json_config::parse(client.response());
+    if (!json)
+        return response_builder_.invalid_json();
 
-    auto tokens = jwt_config::make_auth_tokens(std::to_string(userID));
+    auto user_id = json_config::find(json, "id");
+    if (!user_id)
+        return response_builder_.missing_or_empty_key("id");
+    auto tokens = jwt_config::make_auth_tokens(user_id.value());
     return response_builder_.auth_jwt(tokens);
 }
 
@@ -70,35 +88,41 @@ handle_reqistration() {
     if (!json)
         return response_builder_.invalid_json();
 
+    auto firstname = json_config::find(json, "firstname");
+    if (!firstname)
+        return response_builder_.missing_or_empty_key("firstname");
+    auto secondname = json_config::find(json, "secondname");
+    if (!secondname)
+        return response_builder_.missing_or_empty_key("secondname");
+    auto lastname = json_config::find(json, "lastname");
+    if (!lastname)
+        return response_builder_.missing_or_empty_key("lastname");
     auto email = json_config::find(json, "email");
     if (!email)
         return response_builder_.missing_or_empty_key("email");
-
     auto password = json_config::find(json, "password");
     if (!password)
         return response_builder_.missing_or_empty_key("password");
-
-    auto name = json_config::find(json, "name");
-    if (!password)
-        return response_builder_.missing_or_empty_key("name");
-
-    auto surname = json_config::find(json, "surname");
-    if (!surname)
-        return response_builder_.missing_or_empty_key("surname");
-
+    auto role = json_config::find(json, "role");
+    if (!role)
+        return response_builder_.missing_or_empty_key("role");
     auto group = json_config::find(json, "group");
     if (!group)
         return response_builder_.missing_or_empty_key("group");
 
-    auto role = json_config::find(json, "role");
-    if (!role)
-        return response_builder_.missing_or_empty_key("role");
-
-    //FIXME: Request database.
+    auto service_response = post_registration({
+        .firstname = firstname.value(),
+        .secondname = secondname.value(),
+        .lastname = lastname.value(),
+        .email = email.value(),
+        .password = password.value(),
+        .group = group.value(),
+        .role = role.value()
+    });
 
     return response_builder_.build_base_response(
         request_, boost::beast::http::status::ok,
-        "Авторизация прошла успешно!");
+        service_response.dump());
 }
 
 
@@ -113,7 +137,46 @@ handle_post() {
             return handle_auth();
         case protocol::target::registration:
             return handle_reqistration();
+        case protocol::target::get_user:
+            return handle_get_user();
+        case protocol::target::refresh_access_token:
+        case protocol::target::refresh_refresh_token:
+        case protocol::target::unknown:
+            return response_builder_.build_base_response(http::status::bad_request, "{\"error\": \"Target\"}");
     }
+}
+
+http_response
+request_handler::
+handle_get_user() {
+    DEBUG_FUNC();
+    auto token = jwt_config::get_bearer_token(request_);
+    if (!token)
+        return response_builder_.invalid_jwt_token();
+
+    auto decoded_token = jwt_config::do_decode(token.value());
+    if (!decoded_token)
+        return response_builder_.invalid_jwt_token();
+
+    bool is_verified = jwt_verifier_.verify(decoded_token.value());
+    if (!is_verified)
+        return response_builder_.invalid_jwt_token();
+
+    if (!decoded_token->has_payload_claim("sub"))
+        return response_builder_.invalid_jwt_token();
+
+    http_client client(http_client::method::POST, dotenv::getenv("SERVICEB_GET_USER").value());
+    client.field("Content-type: application/json");
+    auto text = nlohmann::json{{"id", decoded_token->get_payload_claim("sub").as_string()}}.dump();
+    client.body(text);
+    client.show();
+    long status = client.send();
+    if (status == -1)
+        return response_builder_.internal_server_error();
+    if (status != 200)
+        return response_builder_.unauthorized();
+
+    return response_builder_.build_base_response(http::status::ok, client.response());
 }
 
 http_response
@@ -137,4 +200,51 @@ handle_get() {
     return response_builder_.build_base_response(http::status::ok, text.dump());
 }
 
+nlohmann::json
+request_handler::
+post_registration(models::registration model) {
+    DEBUG_FUNC();
+    http_client client(http_client::method::POST, dotenv::getenv("SERVICEB_REG").value());
+    client.field("Content-type: application/json");
+    auto text = nlohmann::json{
+        {"firstname", model.firstname},
+        {"secondname", model.secondname},
+        {"lastname", model.lastname},
+        {"email", model.email},
+        {"password", model.password},
+        {"group", model.group},
+        {"role", model.role}
+    }.dump();
+    client.body(text);
+    client.show();
+    long status = client.send();
+    DEBUG_LOG(client.response());
+    if (status == -1 || status != 200) {
+        DEBUG_ERROR(client.error_message());
+        return{};
+    }
+    auto json = json_config::parse(client.response());
+    return json.value_or({});
+}
+
+nlohmann::json
+request_handler::
+post_authorizatoin(std::string_view email, std::string_view password) {
+    DEBUG_FUNC();
+    http_client client(http_client::method::POST, dotenv::getenv("SERVICEB_AUTH").value());
+    client.field("Content-type: application/json");
+    client.body(nlohmann::json{
+        {"email", email},
+        {"password", password}
+    }.dump());
+    client.show();
+    long status = client.send();
+    DEBUG_LOG(client.response());
+    if (status == -1 || status != 200) {
+        DEBUG_ERROR(client.error_message());
+        return{};
+    }
+    auto json = json_config::parse(client.response());
+    return json.value_or("");
+}
 }
