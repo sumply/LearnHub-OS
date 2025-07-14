@@ -2,15 +2,23 @@
 $input = file_get_contents('php://input');
 $data = json_decode($input,true);
 if(!$data) return 405;
+$validate = [
+ "id",
+ "firstName",
+ "secondName",
+ "lastName",
+ "email",
+ "passwordHash",
+ "role",
+];
+
 $group = $data["group"];
 unset($data["group"]);
-
-if(!($user = DataBase::Select("users","*","email='".$data["email"]."'"))){
+$res = $user = [];
+if(!($user = DataBase::SelectOne("users","*","email='".$data["email"]."'"))){
  $res = DataBase::Insert("users",$data);
 }
-if(!$res) $res = [];
-$group = DataBase::Select("groups","*","name='".$group."'")[0];
-$user = DataBase::Select("users","id","email='".$data["email"]."'")[0];
+$group = DataBase::SelectOne("groups","*","name='".$group."'");
+$user = DataBase::SelectOne("users","id","email='".$data["email"]."'");
 DataBase::Insert("user_groups",["group_id" => $group["id"], "user_id"=>$user["id"]]);
-
-echo json_encode(array_merge($user, $res));
+flushResponce( json_encode(array_merge($user, $res)));

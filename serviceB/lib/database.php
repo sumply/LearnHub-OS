@@ -33,14 +33,10 @@ class DataBase
   $query = "SELECT $fields FROM $table";
   if ($conditions) $query.= " where $conditions $ending";
   $res = self::$connection->query($query, PDO::FETCH_ASSOC);
-  // $stmt = self::$connection->prepare("SELECT :fields FROM :table where :conditions :ending");
-  // $stmt->execute([
-  //  ":fields" => $fields,
-  //  ":table" => $table,
-  //  ":conditions" => $conditions,
-  //  ":ending" => $ending
-  // ]);
-  return $res->fetchAll();
+  return $res->fetchAll() ?? [];
+ }
+ static function SelectOne($table, $fields = [], $conditions = null, $ending = null) {
+  return self::Select($table,$fields,$conditions,$ending)[0] ?? [];
  }
  static function Insert(string $table, array $data): Throwable | array
  {
@@ -55,6 +51,9 @@ class DataBase
    
    if($stmt->execute($insert)) return $stmt->fetchAll();
   } catch (\Throwable $th) {
+   if(DEVMODE){
+    return ["error" => $th->getMessage()];
+   }
    $message = "";
    switch ($th->getCode()) {
     case 23505:
@@ -78,7 +77,7 @@ class DataBase
   $setClause = implode(", ", $setParts);
   $sql = "UPDATE $table SET $setClause WHERE $conditions";
   $stmt = self::$connection->prepare($sql);
-  return $stmt->execute($data);
+  return $stmt->execute($data) ?? [];
  }
 
  static function Remove(string $table, string $conditions): bool
@@ -92,7 +91,7 @@ class DataBase
   $stmt = self::$connection->prepare($query);
   $stmt->execute($params);
   if (str_starts_with(strtoupper(trim($query)), 'SELECT')) {
-   return $stmt->fetchAll();
+   return $stmt->fetchAll() ?? [];
   }
   return true;
  }
