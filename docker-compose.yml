@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  server:
+    build: server/
+    ports:
+      - "3000:3000"
+    env_file:
+      - server/configs/server.env
