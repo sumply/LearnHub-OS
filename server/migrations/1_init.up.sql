@@ -1,29 +1,37 @@
+CREATE EXTENSION IF NOT EXISTS citext;
+
+CREATE TYPE user_role AS enum('student', 'teacher', 'admin', 'root');
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    firstName VARCHAR(40) NOT NULL,
-    secondName VARCHAR(40) NOT NULL,
-    lastName VARCHAR(40),
-    email TEXT UNIQUE NOT NULL,
-    passwordHash TEXT NOT NULL,
-    role SMALLINT NOT NULL
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_name VARCHAR(40) NOT NULL,
+    last_name VARCHAR(40) NOT NULL,
+    middle_name VARCHAR(40),
+    email CITEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role user_role NOT NULL,
+    icon_id INTEGER REFERENCES files(id) ON DELETE SET NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS categories (
+CREATE TABLE IF NOT EXISTS groups (
     id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS user_groups (
     id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
-    category_id INTEGER REFERENCES categories(id),
-    is_visible BOOLEAN DEFAULT TRUE,
-    requires_submission BOOLEAN DEFAULT FALSE,
-    created_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, group_id)
 );
 
-CREATE TABLE IF NOT EXISTS task
+CREATE TABLE IF NOT EXISTS files (
+    id SERIAL PRIMARY KEY,
+    storage_key TEXT NOT NULL UNIQUE,
+    mime_type TEXT NOT NULL,
+    size BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
