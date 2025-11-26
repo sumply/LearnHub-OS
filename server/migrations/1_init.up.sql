@@ -2,6 +2,14 @@ CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TYPE user_role AS enum('student', 'teacher', 'admin', 'root');
 
+CREATE TABLE IF NOT EXISTS files (
+    id SERIAL PRIMARY KEY,
+    storage_key TEXT NOT NULL UNIQUE,
+    mime_type TEXT NOT NULL,
+    size BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(40) NOT NULL,
@@ -9,12 +17,19 @@ CREATE TABLE IF NOT EXISTS users (
     middle_name VARCHAR(40),
     email CITEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
     role user_role NOT NULL,
     icon_id INTEGER REFERENCES files(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS groups (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subjects (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -28,10 +43,23 @@ CREATE TABLE IF NOT EXISTS user_groups (
     UNIQUE(user_id, group_id)
 );
 
-CREATE TABLE IF NOT EXISTS files (
+CREATE TABLE IF NOT EXISTS materials (
     id SERIAL PRIMARY KEY,
-    storage_key TEXT NOT NULL UNIQUE,
-    mime_type TEXT NOT NULL,
-    size BIGINT NOT NULL,
+    name TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+    subject_id INTEGER REFERENCES subjects(id) ON DELETE CASCADE,
+    file_id INTEGER REFERENCES files(id) ON DELETE CASCADE UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS materials_tags (
+    material_id INTEGER REFERENCES materials(id) ON DELETE CASCADE,
+    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY(material_id, tag_id)
 );

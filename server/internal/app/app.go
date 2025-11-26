@@ -4,21 +4,16 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/config"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"server/internal/transport"
 )
 
 func Run() error {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, world!")
-	})
-	s, err := config.NewServer()
-	if err != nil {
-		return err
-	}
+	r := transport.NewServer(InitHandler())
+	s := config.Server{Addr: "127.0.0.1", Port: 8000}
 	http.ListenAndServe(fmt.Sprintf("%s:%d", s.Addr, s.Port), r)
 	return nil
+}
+
+func InitHandler() transport.HandlerInterface {
+	return transport.NewMockHandler()
 }
