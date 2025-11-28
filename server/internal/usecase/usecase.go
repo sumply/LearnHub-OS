@@ -52,7 +52,7 @@ type User interface {
 	Login(ctx context.Context, p UserLoginParam) (JWT, error)
 	Get(ctx context.Context, auth AuthData, p UserGetParam) ([]UserData, error)
 	Create(ctx context.Context, auth AuthData, p UserCreateParam) error
-	GetMe(ctx context.Context, auth AuthData, id int64) (UserData, error)
+	GetMe(ctx context.Context, auth AuthData) (UserData, error)
 	GetByID(ctx context.Context, auth AuthData, id int64) (UserData, error)
 	Put(ctx context.Context, auth AuthData, id int64, p UserPutParam) error
 	Delete(ctx context.Context, auth AuthData, id int64) error

@@ -6,6 +6,9 @@ import (
 	"io"
 	"net/http"
 	"server/internal/usecase"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type userDTOLoginRequest struct {
@@ -34,24 +37,30 @@ type UserHandler struct {
 	u usecase.User
 }
 
-func NewUserHandler() *UserHandler {
-	return &UserHandler{}
+func NewUserHandler(u usecase.User) *UserHandler {
+	return &UserHandler{
+		u: u,
+	}
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req userDTOLoginRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
+		sendError(
+			w,
+			http.StatusBadRequest,
+			"Не удалось распарсить тело запроса.",
+		)
 		return
 	}
 
-	ctx := context.Background()
-
-	re, err := h.u.Login(ctx, usecase.UserLoginParam{
+	re, err := h.u.Login(r.Context(), usecase.UserLoginParam{
 		Email:    req.Email,
 		Password: req.Password,
 	})
 
 	if err != nil {
+		sendError(w, http.StatusInternalServerError, "")
 		return
 	}
 
@@ -61,7 +70,11 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		return
+		sendError(
+			w,
+			http.StatusInternalServerError,
+			"Ошибка при маршалинге ответа.",
+		)
 	}
 }
 
@@ -69,6 +82,34 @@ func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		sendError(
+			w,
+			http.StatusInternalServerError,
+			"Не удалось получить данные токена авторизации.",
+		)
+		return
+	}
+
+	uauth := usecase.AuthData{
+		Subject: auth.subject,
+		Role:    auth.role,
+	}
+
+	resp, err := h.u.GetMe(r.Context(), uauth)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, "")
+		return
+	}
+
+	if err := encodeJSON(w, &resp); err != nil {
+		sendError(
+			w,
+			http.StatusInternalServerError,
+			"Ошибка при маршалинге ответа.",
+		)
+	}
 }
 
 func (h *UserHandler) Put(w http.ResponseWriter, r *http.Request) {
@@ -81,36 +122,70 @@ func (h *UserHandler) Put(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Post(w http.ResponseWriter, r *http.Request) {
 	var req userDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
+		sendError(
+			w,
+			http.StatusBadRequest,
+			"Не удалось распарсить тело запроса.",
+		)
 		return
 	}
 
 	auth, ok := getAuthData(r.Context())
 	if !ok {
+		sendError(
+			w,
+			http.StatusInternalServerError,
+			"Не удалось получить данные токена авторизации.",
+		)
 		return
 	}
 
-	err := h.u.Create(
-		r.Context(),
-		usecase.AuthData{
-			Subject: auth.subject,
-			Role:    auth.role,
-		},
-		usecase.UserCreateParam{
-			FirstName:  req.FirstName,
-			LastName:   req.LastName,
-			MiddleName: req.MiddleName,
-		},
-	)
+	uath := usecase.AuthData{
+		Subject: auth.subject,
+		Role:    auth.role,
+	}
+	param := usecase.UserCreateParam{
+		FirstName:  req.FirstName,
+		LastName:   req.LastName,
+		MiddleName: req.MiddleName,
+	}
+
+	err := h.u.Create(r.Context(), uath, param)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		sendError(w, http.StatusInternalServerError, "")
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *UserHandler) Delete(http.ResponseWriter, *http.Request) {
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userIDParam := chi.URLParam(r, "user_id")
+	userID, err := strconv.ParseInt(userIDParam, 10, 64)
+	if err != nil {
+		sendError(
+			w,
+			http.StatusBadRequest,
+			"Не удалось преобразовать параметр {user_id} в число.",
+		)
+	}
 
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		sendError(
+			w,
+			http.StatusInternalServerError,
+			"Не удалось получить данные токена авторизации.",
+		)
+		return
+	}
+
+	uath := usecase.AuthData{Subject: auth.subject, Role: auth.role}
+	err = h.u.Delete(r.Context(), uath, userID)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, "")
+		return
+	}
 }
 
 func decodeJSON(r io.ReadCloser, v any) error {
@@ -128,6 +203,6 @@ func encodeJSON(w io.Writer, v any) error {
 }
 
 func getAuthData(ctx context.Context) (authData, bool) {
-	auth, ok := ctx.Value(auth).(authData)
+	auth, ok := ctx.Value(authKey).(authData)
 	return auth, ok
 }

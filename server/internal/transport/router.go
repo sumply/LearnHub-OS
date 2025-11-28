@@ -2,20 +2,25 @@ package transport
 
 import (
 	"net/http"
+	"server/internal/usecase"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func NewRouter() http.Handler {
 	r := chi.NewRouter()
 
-	uh := NewUserHandler()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	uh := NewUserHandler(usecase.NewFakeUser())
 
 	r.Post("/login", uh.Login)
 
 	r.Group(func(r chi.Router) {
 		r.Use(getTokenFromHeader)
-		r.Use(validateToken)
+		r.Use(makeValidateTokenFunc(&FakeTokenParser{}))
 
 		addUserRouting(r, uh)
 	})
@@ -28,7 +33,7 @@ func addUserRouting(r chi.Router, h *UserHandler) {
 	r.Get("/users", h.Get)
 	r.Get("/users/me", h.GetMe)
 	r.Put("/users", h.Put)
-	r.Delete("/users", h.Delete)
+	r.Delete("/users/{user_id}", h.Delete)
 }
 
 /*
