@@ -1,107 +1,133 @@
 package transport
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"server/internal/dto"
-	"server/internal/service"
-	"time"
+	"server/internal/usecase"
 )
 
-type HandlerInterface interface {
-	Authz(http.ResponseWriter, *http.Request)
-	Registration(http.ResponseWriter, *http.Request)
-	GetMaterialCard(http.ResponseWriter, *http.Request)
+type userDTOLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-type Handler struct {
-	service service.Interface
+type userDTOLoginResponse struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
 }
 
-func NewHandler(s service.Interface) *Handler {
-	return &Handler{
-		service: s,
-	}
+type userDTOPostRequest struct {
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	MiddleName string `json:"middle_name"`
 }
 
-func (h *Handler) Authz(w http.ResponseWriter, r *http.Request) {
-	var req dto.AuthzRequest
-	if err := decode(r.Body, &req); err != nil {
-		http.Error(w, err.Error(), 400)
+type userDTOPutRequest struct {
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	MiddleName string `json:"middle_name"`
+}
+
+type UserHandler struct {
+	u usecase.User
+}
+
+func NewUserHandler() *UserHandler {
+	return &UserHandler{}
+}
+
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req userDTOLoginRequest
+	if err := decodeJSON(r.Body, &req); err != nil {
 		return
 	}
 
-	resp, err := h.service.Authz(&req)
+	ctx := context.Background()
+
+	re, err := h.u.Login(ctx, usecase.UserLoginParam{
+		Email:    req.Email,
+		Password: req.Password,
+	})
 
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	encode(w, &resp)
+	resp := userDTOLoginResponse{
+		RefreshToken: re.RefreshToken,
+		AccessToken:  re.AccessToken,
+	}
+
+	if err := encodeJSON(w, &resp); err != nil {
+		return
+	}
+}
+
+func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
+}
+
+func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+}
+
+func (h *UserHandler) Put(w http.ResponseWriter, r *http.Request) {
+	var req userDTOPutRequest
+	if err := decodeJSON(r.Body, &req); err != nil {
+		return
+	}
+}
+
+func (h *UserHandler) Post(w http.ResponseWriter, r *http.Request) {
+	var req userDTOPostRequest
+	if err := decodeJSON(r.Body, &req); err != nil {
+		return
+	}
+
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		return
+	}
+
+	err := h.u.Create(
+		r.Context(),
+		usecase.AuthData{
+			Subject: auth.subject,
+			Role:    auth.role,
+		},
+		usecase.UserCreateParam{
+			FirstName:  req.FirstName,
+			LastName:   req.LastName,
+			MiddleName: req.MiddleName,
+		},
+	)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *Handler) Registration(http.ResponseWriter, *http.Request) {
+func (h *UserHandler) Delete(http.ResponseWriter, *http.Request) {
+
 }
 
-type MockHandler struct{}
-
-func NewMockHandler() *MockHandler {
-	return &MockHandler{}
-}
-
-func (h *MockHandler) Authz(w http.ResponseWriter, r *http.Request) {
-	token := map[string]any{
-		"jwt_refresh": 10,
-		"jwt_access":  10,
-	}
-	user := map[string]any{
-		"user_id":     10,
-		"first_name":  "First",
-		"last_name":   "Last",
-		"middle_name": "Middle",
-		"icon_ref":    "ref",
-		"created_at":  time.Now().UTC(),
-	}
-	resp := map[string]any{
-		"jwt":  token,
-		"user": user,
-	}
-	json.NewEncoder(w).Encode(&resp)
-}
-
-func (h *MockHandler) Registration(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
-}
-
-func (h *MockHandler) GetMaterialCard(w http.ResponseWriter, r *http.Request) {
-	m := dto.MaterialCardResponse{
-		ID:        10,
-		Name:      "Mock",
-		Type:      "pdf",
-		Size:      1024,
-		Summary:   "It's the mock material",
-		Subject:   "Something",
-		Class:     "11A",
-		CreatedAt: time.Now(),
-		Tags:      []string{"mock"},
-	}
-	encode(w, &m)
-}
-
-func decode(r io.ReadCloser, v any) error {
+func decodeJSON(r io.ReadCloser, v any) error {
 	if err := json.NewDecoder(r).Decode(v); err != nil {
 		return err
 	}
 	return nil
 }
 
-func encode(w io.Writer, v any) error {
+func encodeJSON(w io.Writer, v any) error {
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		return err
 	}
 	return nil
+}
+
+func getAuthData(ctx context.Context) (authData, bool) {
+	auth, ok := ctx.Value(auth).(authData)
+	return auth, ok
 }
