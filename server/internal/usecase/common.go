@@ -48,6 +48,18 @@ type AuthData struct {
 	Role    string
 }
 
+type GroupData struct {
+	ID        int64
+	Name      string
+	CreatedAt time.Time
+}
+
+type SubjectData struct {
+	ID        int64
+	Name      string
+	CreatedAt time.Time
+}
+
 type User interface {
 	Login(ctx context.Context, p UserLoginParam) (JWT, error)
 	Get(ctx context.Context, auth AuthData, p UserGetParam) ([]UserData, error)
@@ -56,4 +68,14 @@ type User interface {
 	GetByID(ctx context.Context, auth AuthData, id int64) (UserData, error)
 	Put(ctx context.Context, auth AuthData, id int64, p UserPutParam) error
 	Delete(ctx context.Context, auth AuthData, id int64) error
+}
+
+type Group interface {
+	Create(ctx context.Context, name string) error
+	Get(ctx context.Context) ([]GroupData, error)
+}
+
+type Subject interface {
+	Create(ctx context.Context, name string) error
+	Get(ctx context.Context) ([]SubjectData, error)
 }

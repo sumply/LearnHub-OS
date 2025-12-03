@@ -13,7 +13,7 @@ type TokenParser interface {
 type FakeTokenParser struct{}
 
 func (p *FakeTokenParser) Parse(token string) (authData, bool) {
-	return authData{subject: 1, role: "admin"}, false
+	return authData{subject: 1, role: "admin"}, true
 }
 
 type ctxKey string
@@ -30,7 +30,7 @@ const (
 	authKey  ctxKey = "authData"
 )
 
-func getTokenFromHeader(next http.Handler) http.Handler {
+func getTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		matches := authBearer.FindStringSubmatch(authHeader)
@@ -51,7 +51,7 @@ func getTokenFromHeader(next http.Handler) http.Handler {
 	})
 }
 
-func makeValidateTokenFunc(p TokenParser) func(http.Handler) http.Handler {
+func validateTokenMiddleware(p TokenParser) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, ok := r.Context().Value(tokenKey).(string)
@@ -78,12 +78,4 @@ func makeValidateTokenFunc(p TokenParser) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-func sendError(w http.ResponseWriter, statusCode int, what string) {
-	body := map[string]any{
-		"error": what,
-	}
-	w.WriteHeader(statusCode)
-	encodeJSON(w, body)
 }

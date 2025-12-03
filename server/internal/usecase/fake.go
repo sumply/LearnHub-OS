@@ -98,3 +98,76 @@ func (u *FakeUser) Put(ctx context.Context, auth AuthData, id int64, p UserPutPa
 func (u *FakeUser) Delete(ctx context.Context, auth AuthData, id int64) error {
 	return nil
 }
+
+type FakeGroup struct{}
+
+func (f *FakeGroup) Create(ctx context.Context, name string) error {
+	return nil
+}
+
+func (f *FakeGroup) Get(ctx context.Context) ([]GroupData, error) {
+	var groups []GroupData
+	groups = initFakeGroupSlices(groups, "А")
+	groups = initFakeGroupSlices(groups, "Б")
+	groups = initFakeGroupSlices(groups, "В")
+	return groups, nil
+}
+
+func initFakeGroupSlices(groups []GroupData, word string) []GroupData {
+	for i := 1; i < 11; i++ {
+		g := GroupData{
+			ID:        int64(i),
+			Name:      fmt.Sprintf("%d%s", i, word),
+			CreatedAt: time.Now(),
+		}
+		groups = append(groups, g)
+	}
+	return groups
+}
+
+type FakeSubject struct{}
+
+func (f *FakeSubject) Create(ctx context.Context, name string) error {
+	return nil
+}
+
+func (f *FakeSubject) Get(ctx context.Context) ([]SubjectData, error) {
+	subjects := []SubjectData{
+		{
+			ID:        1,
+			Name:      "Английский язык",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        1,
+			Name:      "Русский язык",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        1,
+			Name:      "Информатика",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        1,
+			Name:      "Математика",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        1,
+			Name:      "Алгебра",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        1,
+			Name:      "Геометрия",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        1,
+			Name:      "Обществознание",
+			CreatedAt: time.Now(),
+		},
+	}
+	return subjects, nil
+}

@@ -1,15 +1,35 @@
 package transport
 
 import (
-	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 	"server/internal/usecase"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
+
+type userDTOLoginRequest struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+type userDTOLoginResponse struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+}
+
+type userDTOPostRequest struct {
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	MiddleName string `json:"middle_name"`
+	Role       string `json:"role"`
+}
+
+type userDTOPutRequest struct {
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	MiddleName string `json:"middle_name"`
+}
 
 type UserHandler struct {
 	u usecase.User
@@ -24,11 +44,7 @@ func NewUserHandler(u usecase.User) *UserHandler {
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req userDTOLoginRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendError(
-			w,
-			http.StatusBadRequest,
-			"Не удалось распарсить тело запроса.",
-		)
+		sendDecodeError(w)
 		return
 	}
 
@@ -48,11 +64,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			"Ошибка при маршалинге ответа.",
-		)
+		sendEncodeError(w)
 	}
 }
 
@@ -82,11 +94,8 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			"Ошибка при маршалинге ответа.",
-		)
+		sendEncodeError(w)
+		return
 	}
 }
 
@@ -100,11 +109,7 @@ func (h *UserHandler) Put(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Post(w http.ResponseWriter, r *http.Request) {
 	var req userDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendError(
-			w,
-			http.StatusBadRequest,
-			"Не удалось распарсить тело запроса.",
-		)
+		sendDecodeError(w)
 		return
 	}
 
@@ -164,23 +169,4 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusInternalServerError, "")
 		return
 	}
-}
-
-func decodeJSON(r io.ReadCloser, v any) error {
-	if err := json.NewDecoder(r).Decode(v); err != nil {
-		return err
-	}
-	return nil
-}
-
-func encodeJSON(w io.Writer, v any) error {
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		return err
-	}
-	return nil
-}
-
-func getAuthData(ctx context.Context) (authData, bool) {
-	auth, ok := ctx.Value(authKey).(authData)
-	return auth, ok
 }
