@@ -11,28 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type userDTOLoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type userDTOLoginResponse struct {
-	RefreshToken string `json:"refresh_token"`
-	AccessToken  string `json:"access_token"`
-}
-
-type userDTOPostRequest struct {
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-}
-
-type userDTOPutRequest struct {
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-}
-
 type UserHandler struct {
 	u usecase.User
 }
@@ -55,7 +33,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	re, err := h.u.Login(r.Context(), usecase.UserLoginParam{
-		Email:    req.Email,
+		Email:    req.Login,
 		Password: req.Password,
 	})
 

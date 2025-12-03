@@ -2,7 +2,6 @@ package transport
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"regexp"
 )
@@ -29,10 +28,6 @@ var authBearer = regexp.MustCompile(`^Bearer\s+(.+)$`)
 const (
 	tokenKey ctxKey = "token"
 	authKey  ctxKey = "authData"
-)
-
-var (
-	errUnauthorized = errors.New("Authorization token is invalid")
 )
 
 func getTokenFromHeader(next http.Handler) http.Handler {
