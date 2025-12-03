@@ -25,12 +25,13 @@ func NewFakeUser() *FakeUser {
 
 func initFakeSlices(role string) []UserData {
 	var users []UserData
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
+		name := fmt.Sprintf("%s%d", role, i)
 		d := UserData{
 			ID:         int64(i),
-			FirstName:  fmt.Sprintf("%s%d", role, i),
-			LastName:   fmt.Sprintf("%s%d", role, i),
-			MiddleName: fmt.Sprintf("%s%d", role, i),
+			FirstName:  name,
+			LastName:   name,
+			MiddleName: name,
 			Role:       role,
 			CreatedAt:  time.Now(),
 		}
@@ -59,7 +60,7 @@ func (u *FakeUser) Get(ctx context.Context, auth AuthData, p UserGetParam) ([]Us
 	case "teacher":
 		return u.students, nil
 	case "student":
-		return u.students, nil
+		return nil, nil
 	case "root":
 		return append(append(u.admins, u.students...), u.teachers...), nil
 	default:
@@ -71,7 +72,7 @@ func (u *FakeUser) Create(ctx context.Context, auth AuthData, p UserCreateParam)
 	return nil
 }
 
-func (u *FakeUser) GetMe(ctx context.Context, auth AuthData, id int64) (UserData, error) {
+func (u *FakeUser) GetMe(ctx context.Context, auth AuthData) (UserData, error) {
 	switch auth.Role {
 	case "admin":
 		return u.admins[0], nil
@@ -87,12 +88,13 @@ func (u *FakeUser) GetMe(ctx context.Context, auth AuthData, id int64) (UserData
 }
 
 func (u *FakeUser) GetByID(ctx context.Context, auth AuthData, id int64) (UserData, error) {
+	return u.roots[0], nil
 }
 
 func (u *FakeUser) Put(ctx context.Context, auth AuthData, id int64, p UserPutParam) error {
-
+	return nil
 }
 
 func (u *FakeUser) Delete(ctx context.Context, auth AuthData, id int64) error {
-
+	return nil
 }
