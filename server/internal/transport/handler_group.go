@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"fmt"
 	"net/http"
 	"server/internal/usecase"
 )
@@ -9,11 +10,20 @@ type groupDTOPostRequest struct {
 	Name string `json:"name"`
 }
 
-type groupsHandler struct {
+type groupHandler struct {
 	usecase usecase.Group
 }
 
-func (h *groupsHandler) Post(w http.ResponseWriter, r *http.Request) {
+func newGroupHandler(g usecase.Group) (*groupHandler, error) {
+	if g == nil {
+		return nil, fmt.Errorf("не передана реализация интерфейса")
+	}
+	return &groupHandler{
+		usecase: g,
+	}, nil
+}
+
+func (h *groupHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req groupDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
@@ -32,7 +42,7 @@ func (h *groupsHandler) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *groupsHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.usecase.Get(r.Context())
 	if err != nil {
 		sendError(

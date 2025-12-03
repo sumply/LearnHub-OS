@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"fmt"
 	"net/http"
 	"server/internal/usecase"
 )
@@ -9,11 +10,20 @@ type subjectDTOPostRequest struct {
 	Name string `json:"name"`
 }
 
-type subjectshandler struct {
+type subjecthandler struct {
 	usecase usecase.Subject
 }
 
-func (h *subjectshandler) Post(w http.ResponseWriter, r *http.Request) {
+func newSubjectHandler(s usecase.Subject) (*subjecthandler, error) {
+	if s == nil {
+		return nil, fmt.Errorf("не передана реализация интерфейса")
+	}
+	return &subjecthandler{
+		usecase: s,
+	}, nil
+}
+
+func (h *subjecthandler) post(w http.ResponseWriter, r *http.Request) {
 	var req subjectDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
@@ -32,7 +42,7 @@ func (h *subjectshandler) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *subjectshandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *subjecthandler) get(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.usecase.Get(r.Context())
 	if err != nil {
 		sendError(

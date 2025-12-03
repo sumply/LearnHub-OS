@@ -8,44 +8,58 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func NewRouter() http.Handler {
+func NewRouter(
+	uu usecase.User,
+	ug usecase.Group,
+	us usecase.Subject,
+	t TokenParser,
+) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	uh := NewUserHandler(usecase.NewFakeUser())
-	gh := groupsHandler{&usecase.FakeGroup{}}
-	sh := subjectshandler{&usecase.FakeSubject{}}
+	uh, err := newUserHandler(uu)
+	if err != nil {
+		return nil, err
+	}
+	gh, err := newGroupHandler(ug)
+	if err != nil {
+		return nil, err
+	}
+	sh, err := newSubjectHandler(us)
+	if err != nil {
+		return nil, err
+	}
 
-	r.Post("/login", uh.Login)
+	r.Post("/login", uh.login)
 
 	r.Group(func(r chi.Router) {
 		r.Use(getTokenMiddleware)
-		r.Use(validateTokenMiddleware(&FakeTokenParser{}))
+		r.Use(validateTokenMiddleware(t))
 
 		addUserRouting(r, uh)
-		addGroupRouting(r, &gh)
-		addSubjectsRouting(r, &sh)
+		addGroupRouting(r, gh)
+		addSubjectsRouting(r, sh)
 	})
 
-	return r
+	return r, nil
 }
 
-func addUserRouting(r chi.Router, h *UserHandler) {
-	r.Post("/users", h.Post)
-	r.Get("/users", h.Get)
-	r.Get("/users/me", h.GetMe)
-	r.Put("/users", h.Put)
-	r.Delete("/users/{user_id}", h.Delete)
+func addUserRouting(r chi.Router, h *userHandler) {
+	r.Post("/users", h.post)
+	r.Get("/users", h.get)
+	r.Get("/users/me", h.getMe)
+	r.Put("/users", h.put)
+	r.Delete("/users/{user_id}", h.delete)
 }
 
-func addGroupRouting(r chi.Router, h *groupsHandler) {
-	r.Post("/groups", h.Post)
-	r.Get("/groups", h.Get)
+func addGroupRouting(r chi.Router, h *groupHandler) {
+	r.Post("/groups", h.post)
+	r.Get("/groups", h.get)
 }
 
-func addSubjectsRouting(r chi.Router, h *subjectshandler) {
-	r.Post("/subjects", h.Post)
-	r.Get("/subjects", h.Get)
+func addSubjectsRouting(r chi.Router, h *subjecthandler) {
+	r.Post("/subjects", h.post)
+	r.Get("/subjects", h.get)
 }

@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"fmt"
 	"net/http"
 	"server/internal/usecase"
 	"strconv"
@@ -31,17 +32,20 @@ type userDTOPutRequest struct {
 	MiddleName string `json:"middle_name"`
 }
 
-type UserHandler struct {
+type userHandler struct {
 	u usecase.User
 }
 
-func NewUserHandler(u usecase.User) *UserHandler {
-	return &UserHandler{
-		u: u,
+func newUserHandler(u usecase.User) (*userHandler, error) {
+	if u == nil {
+		return nil, fmt.Errorf("не передана реализация интерфейса")
 	}
+	return &userHandler{
+		u: u,
+	}, nil
 }
 
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) login(w http.ResponseWriter, r *http.Request) {
 	var req userDTOLoginRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
@@ -68,10 +72,10 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 	auth, ok := getAuthData(r.Context())
 	if !ok {
 		sendError(
@@ -99,14 +103,14 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UserHandler) Put(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) put(w http.ResponseWriter, r *http.Request) {
 	var req userDTOPutRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		return
 	}
 }
 
-func (h *UserHandler) Post(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req userDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
@@ -142,7 +146,7 @@ func (h *UserHandler) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) delete(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "user_id")
 	userID, err := strconv.ParseInt(userIDParam, 10, 64)
 	if err != nil {
