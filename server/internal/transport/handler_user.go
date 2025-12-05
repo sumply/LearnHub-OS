@@ -9,6 +9,20 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type id uint64
+
+type userShortResp struct {
+	ID        id
+	ShortName string `json:"short_name"`
+}
+
+type userFullResp struct {
+	ID         id
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	MiddleName string `json:"middle_name"`
+}
+
 type userDTOLoginRequest struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
@@ -20,10 +34,10 @@ type userDTOLoginResponse struct {
 }
 
 type userDTOPostRequest struct {
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-	Role       string `json:"role"`
+	FirstName  string  `json:"first_name"`
+	LastName   string  `json:"last_name"`
+	MiddleName *string `json:"middle_name"`
+	Role       string  `json:"role"`
 }
 
 type userDTOPutRequest struct {
@@ -73,6 +87,44 @@ func (h *userHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		sendGetAuthDataError(w)
+		return
+	}
+
+	uath := usecase.AuthData{
+		Subject: auth.subject,
+		Role:    auth.role,
+	}
+
+	data, err := h.u.Get(r.Context(), uath, usecase.UserGetParam{})
+	if err != nil {
+		sendError(
+			w,
+			http.StatusInternalServerError,
+			err.Error(),
+		)
+		return
+	}
+
+	var resp []userShortResp
+	for _, d := range data {
+		u := userShortResp{
+			ID: id(d.ID),
+			ShortName: formatShortName(
+				d.FirstName,
+				d.LastName,
+				d.MiddleName,
+			),
+		}
+		resp = append(resp, u)
+	}
+
+	if err := encodeJSON(w, resp); err != nil {
+		sendEncodeError(w)
+		return
+	}
 }
 
 func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
@@ -91,10 +143,17 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 		Role:    auth.role,
 	}
 
-	resp, err := h.u.GetMe(r.Context(), uauth)
+	data, err := h.u.GetMe(r.Context(), uauth)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "")
 		return
+	}
+
+	resp := userFullResp{
+		ID:         id(data.ID),
+		FirstName:  data.FirstName,
+		LastName:   data.LastName,
+		MiddleName: data.MiddleName,
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
@@ -119,11 +178,7 @@ func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
 
 	auth, ok := getAuthData(r.Context())
 	if !ok {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			"Не удалось получить данные токена авторизации.",
-		)
+		sendGetAuthDataError(w)
 		return
 	}
 
@@ -134,7 +189,7 @@ func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
 	param := usecase.UserCreateParam{
 		FirstName:  req.FirstName,
 		LastName:   req.LastName,
-		MiddleName: req.MiddleName,
+		MiddleName: *req.MiddleName,
 	}
 
 	err := h.u.Create(r.Context(), uath, param)
@@ -159,11 +214,7 @@ func (h *userHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	auth, ok := getAuthData(r.Context())
 	if !ok {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			"Не удалось получить данные токена авторизации.",
-		)
+		sendGetAuthDataError(w)
 		return
 	}
 

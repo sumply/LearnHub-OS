@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -48,4 +49,23 @@ func sendEncodeError(w http.ResponseWriter) {
 		http.StatusInternalServerError,
 		"Ошибка при маршалинге ответа.",
 	)
+}
+
+func sendGetAuthDataError(w http.ResponseWriter) {
+	sendError(
+		w,
+		http.StatusInternalServerError,
+		"Не удалось получить данные токена авторизации.",
+	)
+}
+
+func formatShortName(f string, l string, m string) string {
+	if f == "" || l == "" {
+		return ""
+	}
+	name := fmt.Sprintf("%s %v.", f, l[0])
+	if m != "" {
+		name = fmt.Sprintf("%s %v.", name, m[0])
+	}
+	return name
 }

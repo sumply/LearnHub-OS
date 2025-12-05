@@ -31,6 +31,7 @@ func NewRouter(
 	if err != nil {
 		return nil, err
 	}
+	qh := newQuizHandler()
 
 	r.Post("/login", uh.login)
 
@@ -41,6 +42,7 @@ func NewRouter(
 		addUserRouting(r, uh)
 		addGroupRouting(r, gh)
 		addSubjectsRouting(r, sh)
+		addQuizRouting(r, qh)
 	})
 
 	return r, nil
@@ -62,4 +64,12 @@ func addGroupRouting(r chi.Router, h *groupHandler) {
 func addSubjectsRouting(r chi.Router, h *subjecthandler) {
 	r.Post("/subjects", h.post)
 	r.Get("/subjects", h.get)
+}
+
+func addQuizRouting(r chi.Router, h *quizHandler) {
+	r.Post("/quizzes", h.post)
+	r.Get("/quizzes", h.get)
+	r.Get("/quizzes/{quiz_id}", h.getByID)
+	r.Post("/quizzes/{quiz_id}/result", h.postByIDResult)
+	r.Get("/quizzes/{quiz_id}/result", h.getByIDResult)
 }

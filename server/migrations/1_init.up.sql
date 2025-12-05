@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS quiz.quizzes (
   name VARCHAR(30) NOT NULL,
   summary VARCHAR(230),
   subject_id INTEGER REFERENCES school.subjects(id) ON DELETE CASCADE,
-  teacher_id INTEGER REFERENCES users.profile(id) ON DELETE CASCADE,
+  owner_id INTEGER REFERENCES users.profile(id) ON DELETE CASCADE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS quiz.groups (
 CREATE TABLE IF NOT EXISTS quiz.questions (
 	id SERIAL PRIMARY KEY,
 	quizz_id INTEGER REFERENCES quiz.quizzes(id) ON DELETE CASCADE,
-	question VARCHAR(230) NOT NULL
+	name VARCHAR(230) NOT NULL
 );
 
 -- Ответы на вопросы к заданиям.
@@ -83,8 +83,7 @@ CREATE TABLE IF NOT EXISTS quiz.answer_options (
 CREATE TABLE IF NOT EXISTS quiz.selected_answers (
 	question_id INTEGER REFERENCES quiz.questions(id) ON DELETE CASCADE,
 	user_id INTEGER REFERENCES users.profile(id) ON DELETE CASCADE,
-	answer_id INTEGER REFERENCES quiz.answer_options(id) ON DELETE CASCADE,
-	UNIQUE(question_id, answer_id)
+	answer_id INTEGER REFERENCES quiz.answer_options(id) ON DELETE CASCADE
 );
 
 -- Общая информация о пользователе, которому доступно задание.
