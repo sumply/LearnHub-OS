@@ -17,7 +17,11 @@ type Server struct {
 	Port int
 }
 
-func NewServer() (*Server, error) {
+func (s *Server) String() string {
+	return fmt.Sprintf("%s:%d", s.Addr, s.Port)
+}
+
+func NewServerFromEnv() (*Server, error) {
 	addr := os.Getenv("ADDRESS_HOST")
 	if addr == "" {
 		return nil, fmt.Errorf("ADDRESS_HOST: %w", ErrEmpty)

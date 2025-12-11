@@ -12,6 +12,7 @@ func NewRouter(
 	uu usecase.User,
 	ug usecase.Group,
 	us usecase.Subject,
+	uq usecase.Quiz,
 	t TokenParser,
 ) (http.Handler, error) {
 	r := chi.NewRouter()
@@ -31,7 +32,10 @@ func NewRouter(
 	if err != nil {
 		return nil, err
 	}
-	qh := newQuizHandler()
+	qh, err := newQuizHandler(uq)
+	if err != nil {
+		return nil, err
+	}
 
 	r.Post("/login", uh.login)
 
@@ -72,4 +76,5 @@ func addQuizRouting(r chi.Router, h *quizHandler) {
 	r.Get("/quizzes/{quiz_id}", h.getByID)
 	r.Post("/quizzes/{quiz_id}/result", h.postByIDResult)
 	r.Get("/quizzes/{quiz_id}/result", h.getByIDResult)
+	r.Get("/quizzes/{quiz_id}/result/{result_id}", h.getByIDResultByID)
 }

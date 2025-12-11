@@ -6,6 +6,16 @@ import (
 	"server/internal/usecase"
 )
 
+type groupResp struct {
+	ID   id     `json:"id"`
+	Name string `json:"name"`
+}
+
+func (r *groupResp) fromUCGroupDomain(d usecase.GroupDomain) {
+	r.ID = id(d.ID)
+	r.Name = d.Name
+}
+
 type groupDTOPostRequest struct {
 	Name string `json:"name"`
 }
@@ -43,7 +53,7 @@ func (h *groupHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.usecase.Get(r.Context())
+	data, err := h.usecase.Get(r.Context())
 	if err != nil {
 		sendError(
 			w,
@@ -51,6 +61,11 @@ func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
 			err.Error(),
 		)
 		return
+	}
+
+	resp := make([]groupResp, len(data))
+	for i := range data {
+		resp[i].fromUCGroupDomain(data[i])
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {

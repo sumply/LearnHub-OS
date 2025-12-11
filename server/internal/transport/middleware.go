@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"server/internal/usecase"
 )
 
 type TokenParser interface {
@@ -21,6 +22,17 @@ type ctxKey string
 type authData struct {
 	subject int64
 	role    string
+}
+
+func (a *authData) toIdentity() usecase.Identity {
+	r, ok := toUserRole(a.role)
+	if !ok {
+		return usecase.Identity{}
+	}
+	return usecase.Identity{
+		ID:   usecase.ID(a.subject),
+		Role: r,
+	}
 }
 
 var authBearer = regexp.MustCompile(`^Bearer\s+(.+)$`)

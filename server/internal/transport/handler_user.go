@@ -16,6 +16,15 @@ type userShortResp struct {
 	ShortName string `json:"short_name"`
 }
 
+func (u *userShortResp) fromUserData(d usecase.UserDomain) {
+	u.ID = id(d.ID)
+	u.ShortName = formatShortName(
+		d.FirstName,
+		d.LastName,
+		d.MiddleName,
+	)
+}
+
 type userFullResp struct {
 	ID         id
 	FirstName  string `json:"first_name"`
@@ -23,14 +32,33 @@ type userFullResp struct {
 	MiddleName string `json:"middle_name"`
 }
 
-type userDTOLoginRequest struct {
+func (u *userFullResp) fromUserData(d usecase.UserDomain) {
+	u.ID = id(d.ID)
+	u.FirstName = d.FirstName
+	u.LastName = d.LastName
+	u.MiddleName = d.MiddleName
+}
+
+type loginRequest struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
-type userDTOLoginResponse struct {
+func (r *loginRequest) toLoginParam() usecase.UserLoginParam {
+	return usecase.UserLoginParam{
+		Login:    r.Login,
+		Password: usecase.Password(r.Password),
+	}
+}
+
+type loginResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	AccessToken  string `json:"access_token"`
+}
+
+func (r *loginResponse) fromJWT(d usecase.JWT) {
+	r.AccessToken = d.AccessToken
+	r.RefreshToken = d.RefreshToken
 }
 
 type userDTOPostRequest struct {
@@ -60,26 +88,21 @@ func newUserHandler(u usecase.User) (*userHandler, error) {
 }
 
 func (h *userHandler) login(w http.ResponseWriter, r *http.Request) {
-	var req userDTOLoginRequest
+	var req loginRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
 		return
 	}
 
-	re, err := h.u.Login(r.Context(), usecase.UserLoginParam{
-		Email:    req.Login,
-		Password: req.Password,
-	})
+	data, err := h.u.Login(r.Context(), req.toLoginParam())
 
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "")
 		return
 	}
 
-	resp := userDTOLoginResponse{
-		RefreshToken: re.RefreshToken,
-		AccessToken:  re.AccessToken,
-	}
+	var resp loginResponse
+	resp.fromJWT(data)
 
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)
@@ -93,12 +116,7 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uath := usecase.AuthData{
-		Subject: auth.subject,
-		Role:    auth.role,
-	}
-
-	data, err := h.u.Get(r.Context(), uath, usecase.UserGetParam{})
+	data, err := h.u.Get(r.Context(), auth.toIdentity())
 	if err != nil {
 		sendError(
 			w,
@@ -110,14 +128,8 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	var resp []userShortResp
 	for _, d := range data {
-		u := userShortResp{
-			ID: id(d.ID),
-			ShortName: formatShortName(
-				d.FirstName,
-				d.LastName,
-				d.MiddleName,
-			),
-		}
+		var u userShortResp
+		u.fromUserData(d)
 		resp = append(resp, u)
 	}
 
@@ -138,23 +150,14 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uauth := usecase.AuthData{
-		Subject: auth.subject,
-		Role:    auth.role,
-	}
-
-	data, err := h.u.GetMe(r.Context(), uauth)
+	data, err := h.u.GetMe(r.Context(), auth.toIdentity())
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "")
 		return
 	}
 
-	resp := userFullResp{
-		ID:         id(data.ID),
-		FirstName:  data.FirstName,
-		LastName:   data.LastName,
-		MiddleName: data.MiddleName,
-	}
+	var resp userFullResp
+	resp.fromUserData(data)
 
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)
@@ -182,17 +185,13 @@ func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uath := usecase.AuthData{
-		Subject: auth.subject,
-		Role:    auth.role,
-	}
 	param := usecase.UserCreateParam{
 		FirstName:  req.FirstName,
 		LastName:   req.LastName,
 		MiddleName: *req.MiddleName,
 	}
 
-	err := h.u.Create(r.Context(), uath, param)
+	err := h.u.Create(r.Context(), auth.toIdentity(), param)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "")
 		return
@@ -218,8 +217,7 @@ func (h *userHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uath := usecase.AuthData{Subject: auth.subject, Role: auth.role}
-	err = h.u.Delete(r.Context(), uath, userID)
+	err = h.u.Delete(r.Context(), auth.toIdentity(), usecase.ID(userID))
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "")
 		return
