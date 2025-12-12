@@ -13,6 +13,7 @@ func Run() error {
 		usecase.NewFakeGroup(),
 		usecase.NewFakeSubject(),
 		usecase.NewFakeQuiz(),
+		usecase.NewFakeQuizResult(),
 		&transport.FakeTokenParser{},
 	)
 	if err != nil {

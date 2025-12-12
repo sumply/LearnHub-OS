@@ -6,19 +6,25 @@ import (
 )
 
 type User interface {
-	Login(ctx context.Context, p UserLoginParam) (JWT, error)
-	Get(ctx context.Context, auth Identity) ([]UserDomain, error)
-	Create(ctx context.Context, auth Identity, p UserCreateParam) error
-	GetMe(ctx context.Context, auth Identity) (UserDomain, error)
-	GetByID(ctx context.Context, auth Identity, id ID) (UserDomain, error)
-	Put(ctx context.Context, auth Identity, id ID, p UserPutParam) error
-	Delete(ctx context.Context, auth Identity, id ID) error
+	Login(context.Context, UserLoginParam) (JWT, error)
+	Get(context.Context, Identity) ([]UserDomain, error)
+	Create(context.Context, Identity, UserCreateParam) error
+	GetMe(context.Context, Identity) (UserDomain, error)
+	GetByID(context.Context, Identity, ID) (UserDomain, error)
+	Put(context.Context, Identity, ID, UserPutParam) error
+	Delete(context.Context, Identity, ID) error
 }
 
 type Quiz interface {
-	Create(ctx context.Context, auth Identity, param QuizCreateParam) error
-	Get(ctx context.Context, auth Identity) ([]QuizDomain, error)
-	GetByID(ctx context.Context, auth Identity, id ID) (QuizDomain, error)
+	Create(context.Context, Identity, QuizCreateParam) error
+	Get(context.Context, Identity) ([]QuizDomain, error)
+	GetByID(context.Context, Identity, ID) (QuizDomain, error)
+}
+
+type QuizResult interface {
+	Create(context.Context, Identity, []QuizResultCreateParam) error
+	Get(context.Context, Identity) error
+	GetByID(context.Context, Identity, ID) error
 }
 
 type Group interface {
@@ -82,6 +88,11 @@ type Identity struct {
 	Role UserRole
 }
 
+type IdentityQuiz struct {
+	Identity
+	QuizID ID
+}
+
 type GroupDomain struct {
 	ID        ID
 	Name      string
@@ -124,8 +135,29 @@ type QuizQuestionDomain struct {
 }
 
 type QuizDomain struct {
+	ID        ID
+	Name      string
+	Summary   string
+	Questions []QuizQuestionDomain
+}
+
+type QuizResultShortDomain struct {
 	ID         ID
-	Name       string
-	Summary    string
-	Quiestions []QuizQuestionDomain
+	TotalScore int
+	Score      int
+	Completed  bool
+}
+
+type QuizResultDomain struct {
+	ID         ID
+	TotalScore int
+	Score      int
+	Completed  bool
+	Quiz       QuizDomain
+	User       UserDomain
+}
+
+type QuizResultCreateParam struct {
+	QuestionID ID
+	OptionID   ID
 }

@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS quiz.questions (
 );
 
 -- Ответы на вопросы к заданиям.
-CREATE TABLE IF NOT EXISTS quiz.answer_options (
+CREATE TABLE IF NOT EXISTS quiz.options (
 	id SERIAL PRIMARY KEY,
 	question_id INTEGER REFERENCES quiz.questions(id) ON DELETE CASCADE,
 	option_text VARCHAR(230) NOT NULL,
@@ -80,10 +80,10 @@ CREATE TABLE IF NOT EXISTS quiz.answer_options (
 );
 
 -- Ответы пользователя на вопросы заданий.
-CREATE TABLE IF NOT EXISTS quiz.selected_answers (
+CREATE TABLE IF NOT EXISTS quiz.selected (
 	question_id INTEGER REFERENCES quiz.questions(id) ON DELETE CASCADE,
 	user_id INTEGER REFERENCES users.profile(id) ON DELETE CASCADE,
-	answer_id INTEGER REFERENCES quiz.answer_options(id) ON DELETE CASCADE
+	answer_id INTEGER REFERENCES quiz.options(id) ON DELETE CASCADE
 );
 
 -- Общая информация о пользователе, которому доступно задание.

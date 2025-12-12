@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/usecase"
-	"time"
 )
 
 type quizOptionsCreate struct {
@@ -95,8 +94,8 @@ func (q *quizFullResp) fromUC(domain usecase.QuizDomain) {
 	q.ID = id(domain.ID)
 	q.Title = domain.Name
 	q.Summary = domain.Summary
-	questions := make([]quizQuestionResp, len(domain.Quiestions))
-	for i, d := range domain.Quiestions {
+	questions := make([]quizQuestionResp, len(domain.Questions))
+	for i, d := range domain.Questions {
 		questions[i].fromUC(d)
 	}
 	q.Questions = questions
@@ -114,22 +113,6 @@ func (q *quizShortResp) fromUC(d usecase.QuizDomain) {
 	q.ID = id(d.ID)
 	q.Name = d.Name
 	q.Summary = d.Summary
-}
-
-type quizResultCreateReq struct {
-	Answers []struct {
-		QuestionID int64 `json:"question_id"`
-		OptionID   int64 `json:"option_id"`
-	} `json:"answers"`
-}
-
-type quizResultResp struct {
-	ID            id            `json:"id"`
-	TotalScore    int           `json:"total_score"`
-	Score         int           `json:"score"`
-	Completed     userShortResp `json:"completed"`
-	CompletedTime time.Time     `json:"completed_time"`
-	Group         groupResp     `json:"group"`
 }
 
 type quizHandler struct {
@@ -223,25 +206,4 @@ func (h *quizHandler) getByID(w http.ResponseWriter, r *http.Request) {
 		sendEncodeError(w)
 		return
 	}
-}
-
-func (h *quizHandler) postByIDResult(w http.ResponseWriter, r *http.Request) {
-	var req quizResultCreateReq
-	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
-}
-
-func (h *quizHandler) getByIDResult(w http.ResponseWriter, r *http.Request) {
-	var resp []quizResultResp
-	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
-		return
-	}
-}
-
-func (h *quizHandler) getByIDResultByID(w http.ResponseWriter, r *http.Request) {
-
 }
