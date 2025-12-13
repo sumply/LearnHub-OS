@@ -11,7 +11,7 @@ type subjectResp struct {
 	Name string `json:"name"`
 }
 
-func (r *subjectResp) fromUCSubjectDomain(d usecase.SubjectDomain) {
+func (r *subjectResp) fromDomain(d usecase.SubjectDomain) {
 	r.ID = id(d.ID)
 	r.Name = d.Name
 }
@@ -20,20 +20,20 @@ type subjectDTOPostRequest struct {
 	Name string `json:"name"`
 }
 
-type subjecthandler struct {
+type subjectHandler struct {
 	usecase usecase.Subject
 }
 
-func newSubjectHandler(s usecase.Subject) (*subjecthandler, error) {
+func newSubjectHandler(s usecase.Subject) (*subjectHandler, error) {
 	if s == nil {
 		return nil, fmt.Errorf("не передана реализация интерфейса")
 	}
-	return &subjecthandler{
+	return &subjectHandler{
 		usecase: s,
 	}, nil
 }
 
-func (h *subjecthandler) post(w http.ResponseWriter, r *http.Request) {
+func (h *subjectHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req subjectDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
@@ -58,7 +58,7 @@ func (h *subjecthandler) post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *subjecthandler) get(w http.ResponseWriter, r *http.Request) {
+func (h *subjectHandler) get(w http.ResponseWriter, r *http.Request) {
 	auth, ok := getAuthData(r.Context())
 	if !ok {
 		sendGetAuthDataError(w)
@@ -76,7 +76,7 @@ func (h *subjecthandler) get(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]subjectResp, len(data))
 	for i := range data {
-		resp[i].fromUCSubjectDomain(data[i])
+		resp[i].fromDomain(data[i])
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {

@@ -16,13 +16,15 @@ type userShortResp struct {
 	ShortName string `json:"short_name"`
 }
 
-func (u *userShortResp) fromUserData(d usecase.UserDomain) {
-	u.ID = id(d.ID)
-	u.ShortName = formatShortName(
-		d.FirstName,
-		d.LastName,
-		d.MiddleName,
-	)
+func userShortRespFromDomain(d usecase.UserDomain) userShortResp {
+	return userShortResp{
+		ID: id(d.ID),
+		ShortName: formatShortName(
+			d.FirstName,
+			d.LastName,
+			d.MiddleName,
+		),
+	}
 }
 
 type userFullResp struct {
@@ -32,11 +34,13 @@ type userFullResp struct {
 	MiddleName string `json:"middle_name"`
 }
 
-func (u *userFullResp) fromUserData(d usecase.UserDomain) {
-	u.ID = id(d.ID)
-	u.FirstName = d.FirstName
-	u.LastName = d.LastName
-	u.MiddleName = d.MiddleName
+func userFullRespFromDomain(d usecase.UserDomain) userFullResp {
+	return userFullResp{
+		ID:         id(d.ID),
+		FirstName:  d.FirstName,
+		LastName:   d.LastName,
+		MiddleName: d.MiddleName,
+	}
 }
 
 type loginRequest struct {
@@ -128,9 +132,7 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	var resp []userShortResp
 	for _, d := range data {
-		var u userShortResp
-		u.fromUserData(d)
-		resp = append(resp, u)
+		resp = append(resp, userShortRespFromDomain(d))
 	}
 
 	if err := encodeJSON(w, resp); err != nil {
@@ -156,8 +158,7 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp userFullResp
-	resp.fromUserData(data)
+	resp := userFullRespFromDomain(data)
 
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)

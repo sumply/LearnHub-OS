@@ -119,6 +119,11 @@ func getParamQuizID(r *http.Request) (id, error) {
 	return id(i), err
 }
 
+func getParamAnswerID(r *http.Request) (id, error) {
+	i, err := getParamInt(r, "answer_id")
+	return id(i), err
+}
+
 func sendParamError(w http.ResponseWriter, what string) {
 	sendError(
 		w,

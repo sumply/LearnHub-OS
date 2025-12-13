@@ -82,19 +82,3 @@ func (f *FakeQuiz) GetByID(ctx context.Context, auth Identity, id ID) (QuizDomai
 	}
 	return quiz, nil
 }
-
-type FakeQuizResult struct{}
-
-func NewFakeQuizResult() *FakeQuizResult {
-	return &FakeQuizResult{}
-}
-
-func (f *FakeQuizResult) Create(context.Context, Identity, []QuizResultCreateParam) error {
-	return nil
-}
-func (f *FakeQuizResult) Get(context.Context, Identity) error {
-	return nil
-}
-func (f *FakeQuizResult) GetByID(context.Context, Identity, ID) error {
-	return nil
-}

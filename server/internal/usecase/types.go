@@ -21,10 +21,10 @@ type Quiz interface {
 	GetByID(context.Context, Identity, ID) (QuizDomain, error)
 }
 
-type QuizResult interface {
-	Create(context.Context, Identity, []QuizResultCreateParam) error
-	Get(context.Context, Identity) error
-	GetByID(context.Context, Identity, ID) error
+type Answer interface {
+	Create(context.Context, Identity, AnswerCreateParam) error
+	Get(context.Context, Identity) ([]AnswerDomain, error)
+	GetByID(context.Context, Identity, ID) (AnswerDomain, error)
 }
 
 type Group interface {
@@ -88,11 +88,6 @@ type Identity struct {
 	Role UserRole
 }
 
-type IdentityQuiz struct {
-	Identity
-	QuizID ID
-}
-
 type GroupDomain struct {
 	ID        ID
 	Name      string
@@ -141,23 +136,27 @@ type QuizDomain struct {
 	Questions []QuizQuestionDomain
 }
 
-type QuizResultShortDomain struct {
-	ID         ID
-	TotalScore int
-	Score      int
-	Completed  bool
+type AnsweredQuestion struct {
+	Question QuizQuestionDomain
+	Answered QuizOptionsDomain
 }
 
-type QuizResultDomain struct {
+type AnswerDomain struct {
 	ID         ID
 	TotalScore int
 	Score      int
 	Completed  bool
 	Quiz       QuizDomain
 	User       UserDomain
+	Answers    []AnsweredQuestion
 }
 
-type QuizResultCreateParam struct {
+type SelectedOption struct {
 	QuestionID ID
 	OptionID   ID
+}
+
+type AnswerCreateParam struct {
+	QuizID  ID
+	Answers []SelectedOption
 }

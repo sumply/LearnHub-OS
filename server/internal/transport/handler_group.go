@@ -11,7 +11,7 @@ type groupResp struct {
 	Name string `json:"name"`
 }
 
-func (r *groupResp) fromUCGroupDomain(d usecase.GroupDomain) {
+func (r *groupResp) fromDomain(d usecase.GroupDomain) {
 	r.ID = id(d.ID)
 	r.Name = d.Name
 }
@@ -65,7 +65,7 @@ func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]groupResp, len(data))
 	for i := range data {
-		resp[i].fromUCGroupDomain(data[i])
+		resp[i].fromDomain(data[i])
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {

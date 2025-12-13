@@ -61,10 +61,12 @@ type quizOptionsResp struct {
 	IsCorrect bool   `json:"is_correct"`
 }
 
-func (q *quizOptionsResp) fromUC(d usecase.QuizOptionsDomain) {
-	q.ID = id(d.ID)
-	q.Text = d.Text
-	q.IsCorrect = d.IsCorrect
+func quizOptionsRespFromDomain(d usecase.QuizOptionsDomain) quizOptionsResp {
+	return quizOptionsResp{
+		ID:        id(d.ID),
+		Text:      d.Text,
+		IsCorrect: d.IsCorrect,
+	}
 }
 
 type quizQuestionResp struct {
@@ -72,13 +74,15 @@ type quizQuestionResp struct {
 	Options []quizOptionsResp `json:"options"`
 }
 
-func (q *quizQuestionResp) fromUC(d usecase.QuizQuestionDomain) {
-	q.Title = d.Name
+func quizQuestionRespFromDomain(d usecase.QuizQuestionDomain) quizQuestionResp {
 	opts := make([]quizOptionsResp, len(d.Answers))
-	for i, o := range d.Answers {
-		opts[i].fromUC(o)
+	for i, d := range d.Answers {
+		opts[i] = quizOptionsRespFromDomain(d)
 	}
-	q.Options = opts
+	return quizQuestionResp{
+		Title:   d.Name,
+		Options: opts,
+	}
 }
 
 type quizFullResp struct {
@@ -90,15 +94,16 @@ type quizFullResp struct {
 	Questions []quizQuestionResp `json:"questions"`
 }
 
-func (q *quizFullResp) fromUC(domain usecase.QuizDomain) {
-	q.ID = id(domain.ID)
-	q.Title = domain.Name
-	q.Summary = domain.Summary
+func quizFullRespFromDomain(domain usecase.QuizDomain) quizFullResp {
 	questions := make([]quizQuestionResp, len(domain.Questions))
 	for i, d := range domain.Questions {
-		questions[i].fromUC(d)
+		questions[i] = quizQuestionRespFromDomain(d)
 	}
-	q.Questions = questions
+	return quizFullResp{
+		ID:      id(domain.ID),
+		Title:   domain.Name,
+		Summary: domain.Summary,
+	}
 }
 
 type quizShortResp struct {
@@ -109,10 +114,12 @@ type quizShortResp struct {
 	Owner   userShortResp `json:"owner"`
 }
 
-func (q *quizShortResp) fromUC(d usecase.QuizDomain) {
-	q.ID = id(d.ID)
-	q.Name = d.Name
-	q.Summary = d.Summary
+func quizShortRespFromDomain(d usecase.QuizDomain) quizShortResp {
+	return quizShortResp{
+		ID:      id(d.ID),
+		Name:    d.Name,
+		Summary: d.Summary,
+	}
 }
 
 type quizHandler struct {
@@ -173,7 +180,7 @@ func (h *quizHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]quizShortResp, len(data))
 	for i, d := range data {
-		resp[i].fromUC(d)
+		resp[i] = quizShortRespFromDomain(d)
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
@@ -200,8 +207,7 @@ func (h *quizHandler) getByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp quizFullResp
-	resp.fromUC(data)
+	resp := quizFullRespFromDomain(data)
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)
 		return

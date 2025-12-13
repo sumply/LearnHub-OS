@@ -12,6 +12,13 @@ type answerReq struct {
 	OptionID   id `json:"option_id"`
 }
 
+func selectedOptionFromAnswerReq(r answerReq) usecase.SelectedOption {
+	return usecase.SelectedOption{
+		QuestionID: usecase.ID(r.QuestionID),
+		OptionID:   usecase.ID(r.OptionID),
+	}
+}
+
 type answerCreateReq struct {
 	Answers []answerReq `json:"answers"`
 }
@@ -21,32 +28,78 @@ type answerShortResp struct {
 	Quiz          quizShortResp `json:"quiz"`
 	TotalScore    int           `json:"total_score"`
 	Score         int           `json:"score"`
-	Completed     userShortResp `json:"completed"`
+	Completed     bool          `json:"completed"`
+	User          userShortResp `json:"user"`
 	CompletedTime time.Time     `json:"completed_time"`
 	Group         groupResp     `json:"group"`
 }
 
-type answerFullResp struct {
-	ID            id            `json:"id"`
-	TotalScore    int           `json:"total_score"`
-	Score         int           `json:"score"`
-	Completed     bool          `json:"completed"`
-	CompletedTime time.Time     `json:"completed_time"`
-	User          userShortResp `json:"user"`
-	Quiz          quizShortResp `json:"quiz"`
-	Answers       []answerResp  `json:"answers"`
+func answerShortRespFromDomain(d usecase.AnswerDomain) answerShortResp {
+	return answerShortResp{
+		ID:         id(d.ID),
+		TotalScore: d.TotalScore,
+		Score:      d.Score,
+		Completed:  d.Completed,
+		User:       userShortRespFromDomain(d.User),
+		Quiz:       quizShortRespFromDomain(d.Quiz),
+	}
 }
 
-type answerResp struct {
+type answerFullResp struct {
+	ID            id                 `json:"id"`
+	TotalScore    int                `json:"total_score"`
+	Score         int                `json:"score"`
+	Completed     bool               `json:"completed"`
+	CompletedTime time.Time          `json:"completed_time"`
+	User          userShortResp      `json:"user"`
+	Quiz          quizShortResp      `json:"quiz"`
+	Answers       []answeredQuestion `json:"answers"`
+}
+
+func answerFullRespFromDomain(d usecase.AnswerDomain) answerFullResp {
+	answers := make([]answeredQuestion, len(d.Answers))
+	for i, a := range d.Answers {
+		answers[i] = answerQuestionFromDomain(a)
+	}
+	return answerFullResp{
+		ID:         id(d.ID),
+		TotalScore: d.TotalScore,
+		Score:      d.Score,
+		Completed:  d.Completed,
+		User:       userShortRespFromDomain(d.User),
+		Quiz:       quizShortRespFromDomain(d.Quiz),
+		Answers:    answers,
+	}
+}
+
+type answeredQuestion struct {
 	Question quizQuestionResp `json:"question"`
-	Answer   quizOptionsResp  `json:"answer"`
+	Answered quizOptionsResp  `json:"answered"`
+}
+
+func answerQuestionFromDomain(d usecase.AnsweredQuestion) answeredQuestion {
+	return answeredQuestion{
+		Question: quizQuestionRespFromDomain(d.Question),
+		Answered: quizOptionsRespFromDomain(d.Answered),
+	}
 }
 
 type answerHandler struct {
-	usecase usecase.QuizResult
+	usecase usecase.Answer
 }
 
-func newAnswerHandler(u usecase.QuizResult) (*answerHandler, error) {
+func answerCreateParamFromRequest(quizID id, req []answerReq) usecase.AnswerCreateParam {
+	answers := make([]usecase.SelectedOption, len(req))
+	for i, r := range req {
+		answers[i] = selectedOptionFromAnswerReq(r)
+	}
+	return usecase.AnswerCreateParam{
+		QuizID:  usecase.ID(quizID),
+		Answers: answers,
+	}
+}
+
+func newAnswerHandler(u usecase.Answer) (*answerHandler, error) {
 	if u == nil {
 		return nil, fmt.Errorf("не передана реализация интерфейса")
 	}
@@ -56,16 +109,41 @@ func newAnswerHandler(u usecase.QuizResult) (*answerHandler, error) {
 }
 
 func (h *answerHandler) post(w http.ResponseWriter, r *http.Request) {
+	quizID, err := getParamQuizID(r)
+	if err != nil {
+		sendParamError(w, err.Error())
+		return
+	}
 	var req answerCreateReq
 	if err := decodeJSON(r.Body, &req); err != nil {
 		sendDecodeError(w)
 		return
 	}
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		sendGetAuthDataError(w)
+		return
+	}
+
+	h.usecase.Create(r.Context(), auth.toIdentity(), answerCreateParamFromRequest(quizID, req.Answers))
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *answerHandler) get(w http.ResponseWriter, r *http.Request) {
-	var resp []answerShortResp
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		sendGetAuthDataError(w)
+		return
+	}
+	domains, err := h.usecase.Get(r.Context(), auth.toIdentity())
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, "")
+		return
+	}
+	resp := make([]answerShortResp, len(domains))
+	for i, domain := range domains {
+		resp[i] = answerShortRespFromDomain(domain)
+	}
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)
 		return
@@ -73,17 +151,18 @@ func (h *answerHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *answerHandler) getByID(w http.ResponseWriter, r *http.Request) {
-	_, err := getParamQuizID(r)
+	answerID, err := getParamAnswerID(r)
 	if err != nil {
 		sendParamError(w, err.Error())
 		return
 	}
-	_, err = getParamResultID(r)
-	if err != nil {
-		sendParamError(w, err.Error())
+	auth, ok := getAuthData(r.Context())
+	if !ok {
+		sendGetAuthDataError(w)
 		return
 	}
-	var resp []answerFullResp
+	domain, err := h.usecase.GetByID(r.Context(), auth.toIdentity(), usecase.ID(answerID))
+	resp := answerFullRespFromDomain(domain)
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)
 		return
