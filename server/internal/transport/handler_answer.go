@@ -125,7 +125,12 @@ func (h *answerHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.usecase.Create(r.Context(), auth.toIdentity(), answerCreateParamFromRequest(quizID, req.Answers))
+	err = h.usecase.Create(r.Context(), auth.toIdentity(), answerCreateParamFromRequest(quizID, req.Answers))
+	if err != nil {
+		sendUsecaseError(w, err)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -137,7 +142,7 @@ func (h *answerHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 	domains, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "")
+		sendUsecaseError(w, err)
 		return
 	}
 	resp := make([]answerShortResp, len(domains))
@@ -162,6 +167,10 @@ func (h *answerHandler) getByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	domain, err := h.usecase.GetByID(r.Context(), auth.toIdentity(), usecase.ID(answerID))
+	if err != nil {
+		sendUsecaseError(w, err)
+		return
+	}
 	resp := answerFullRespFromDomain(domain)
 	if err := encodeJSON(w, &resp); err != nil {
 		sendEncodeError(w)

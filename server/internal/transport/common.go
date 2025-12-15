@@ -109,11 +109,6 @@ func getParamInt(r *http.Request, key string) (int, error) {
 	return i, nil
 }
 
-func getParamResultID(r *http.Request) (id, error) {
-	i, err := getParamInt(r, "result_id")
-	return id(i), err
-}
-
 func getParamQuizID(r *http.Request) (id, error) {
 	i, err := getParamInt(r, "quiz_id")
 	return id(i), err
@@ -129,5 +124,13 @@ func sendParamError(w http.ResponseWriter, what string) {
 		w,
 		http.StatusBadRequest,
 		what,
+	)
+}
+
+func sendUsecaseError(w http.ResponseWriter, err error) {
+	sendError(
+		w,
+		http.StatusInternalServerError,
+		err.Error(),
 	)
 }

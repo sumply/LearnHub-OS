@@ -154,7 +154,7 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.u.GetMe(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "")
+		sendUsecaseError(w, err)
 		return
 	}
 
@@ -194,7 +194,7 @@ func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
 
 	err := h.u.Create(r.Context(), auth.toIdentity(), param)
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "")
+		sendUsecaseError(w, err)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (h *userHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.u.Delete(r.Context(), auth.toIdentity(), usecase.ID(userID))
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "")
+		sendUsecaseError(w, err)
 		return
 	}
 }

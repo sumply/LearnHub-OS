@@ -154,11 +154,7 @@ func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 		req.toUCParam(),
 	)
 	if err != nil {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			err.Error(),
-		)
+		sendUsecaseError(w, err)
 		return
 	}
 
@@ -174,7 +170,7 @@ func (h *quizHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "")
+		sendUsecaseError(w, err)
 		return
 	}
 
@@ -203,7 +199,7 @@ func (h *quizHandler) getByID(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.usecase.GetByID(r.Context(), auth.toIdentity(), usecase.ID(quizID))
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "")
+		sendUsecaseError(w, err)
 		return
 	}
 

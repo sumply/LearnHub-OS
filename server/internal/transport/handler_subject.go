@@ -47,11 +47,7 @@ func (h *subjectHandler) post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.usecase.Create(r.Context(), auth.toIdentity(), req.Name); err != nil {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			err.Error(),
-		)
+		sendUsecaseError(w, err)
 		return
 	}
 
@@ -67,11 +63,8 @@ func (h *subjectHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendError(
-			w,
-			http.StatusInternalServerError,
-			err.Error(),
-		)
+		sendUsecaseError(w, err)
+		return
 	}
 
 	resp := make([]subjectResp, len(data))
