@@ -3,6 +3,7 @@ package transport
 import (
 	"fmt"
 	"net/http"
+	"server/internal/logger"
 	"server/internal/usecase"
 	"strconv"
 
@@ -114,12 +115,18 @@ func (h *userHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
+	log := logger.FromCtx(r.Context())
+	log.Debug("Получение всех пользователей.")
+
+	log.Debug("Получение данных авторизации.")
 	auth, ok := getAuthData(r.Context())
 	if !ok {
+		log.Error("Хендлер не смог получит данные авторизации.")
 		sendGetAuthDataError(w)
 		return
 	}
 
+	log.Debug("Вызов Get метода usecase.")
 	data, err := h.u.Get(r.Context(), auth.toIdentity())
 	if err != nil {
 		sendError(
@@ -139,6 +146,7 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 		sendEncodeError(w)
 		return
 	}
+	log.Debug("Пользователи успешно отправлены.")
 }
 
 func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {

@@ -3,11 +3,16 @@ package app
 import (
 	"net/http"
 	"server/internal/config"
+	"server/internal/logger"
 	"server/internal/transport"
 	"server/internal/usecase"
 )
 
 func Run() error {
+	logger.SetNewFunc(func() logger.Logger {
+		return logger.NewMock()
+	})
+
 	r, err := transport.NewRouter(
 		usecase.NewFakeUser(),
 		usecase.NewFakeGroup(),
