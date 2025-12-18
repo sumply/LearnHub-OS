@@ -2,16 +2,16 @@ package usecase
 
 import "context"
 
-type FakeQuizResult struct{}
+type StubAnswer struct{}
 
-func NewFakeQuizResult() *FakeQuizResult {
-	return &FakeQuizResult{}
+func NewStubAnswer() *StubAnswer {
+	return &StubAnswer{}
 }
 
-func (f *FakeQuizResult) Create(context.Context, Identity, AnswerCreateParam) error {
+func (f *StubAnswer) Create(context.Context, Identity, AnswerCreateParam) error {
 	return nil
 }
-func (f *FakeQuizResult) Get(context.Context, Identity) ([]AnswerDomain, error) {
+func (f *StubAnswer) Get(context.Context, Identity) ([]AnswerDomain, error) {
 	d := AnswerDomain{
 		ID:         0,
 		TotalScore: 0,
@@ -164,7 +164,7 @@ func (f *FakeQuizResult) Get(context.Context, Identity) ([]AnswerDomain, error) 
 	}
 	return res, nil
 }
-func (f *FakeQuizResult) GetByID(context.Context, Identity, ID) (AnswerDomain, error) {
+func (f *StubAnswer) GetByID(context.Context, Identity, ID) (AnswerDomain, error) {
 	d := AnswerDomain{
 		ID:         0,
 		TotalScore: 0,

@@ -2,17 +2,17 @@ package usecase
 
 import "context"
 
-type FakeQuiz struct{}
+type StubQuiz struct{}
 
-func NewFakeQuiz() *FakeQuiz {
-	return &FakeQuiz{}
+func NewStubQuiz() *StubQuiz {
+	return &StubQuiz{}
 }
 
-func (f *FakeQuiz) Create(ctx context.Context, auth Identity, param QuizCreateParam) error {
+func (f *StubQuiz) Create(ctx context.Context, auth Identity, param QuizCreateParam) error {
 	return nil
 }
 
-func (f *FakeQuiz) Get(ctx context.Context, auth Identity) ([]QuizDomain, error) {
+func (f *StubQuiz) Get(ctx context.Context, auth Identity) ([]QuizDomain, error) {
 	answer := QuizOptionsDomain{
 		ID:        0,
 		Text:      "Text",
@@ -51,7 +51,7 @@ func (f *FakeQuiz) Get(ctx context.Context, auth Identity) ([]QuizDomain, error)
 	return slice, nil
 }
 
-func (f *FakeQuiz) GetByID(ctx context.Context, auth Identity, id ID) (QuizDomain, error) {
+func (f *StubQuiz) GetByID(ctx context.Context, auth Identity, id ID) (QuizDomain, error) {
 	answer := QuizOptionsDomain{
 		ID:        0,
 		Text:      "Text",

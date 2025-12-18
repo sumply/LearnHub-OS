@@ -5,17 +5,17 @@ import (
 	"time"
 )
 
-type FakeSubject struct{}
+type StubSubject struct{}
 
-func NewFakeSubject() *FakeSubject {
-	return &FakeSubject{}
+func NewStubSubject() *StubSubject {
+	return &StubSubject{}
 }
 
-func (f *FakeSubject) Create(ctx context.Context, _ Identity, name string) error {
+func (f *StubSubject) Create(ctx context.Context, _ Identity, name string) error {
 	return nil
 }
 
-func (f *FakeSubject) Get(ctx context.Context, _ Identity) ([]SubjectDomain, error) {
+func (f *StubSubject) Get(ctx context.Context, _ Identity) ([]SubjectDomain, error) {
 	subjects := []SubjectDomain{
 		{
 			ID:        1,

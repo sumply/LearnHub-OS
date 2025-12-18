@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"server/internal/config"
 	"server/internal/logger"
@@ -9,17 +10,32 @@ import (
 )
 
 func Run() error {
+	app, err := config.NewApp("./configs/app.yaml")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%v\n", app)
+
 	logger.SetNewFunc(func() logger.Logger {
-		return logger.NewMock()
+		return logger.NewFake()
 	})
 
+	uu, err := app.CreateUsecaseUser()
+	if err != nil {
+		return err
+	}
+	ua, err := app.CreateUsecaseAnswer()
+	if err != nil {
+		return err
+	}
+
 	r, err := transport.NewRouter(
-		usecase.NewFakeUser(),
-		usecase.NewFakeGroup(),
-		usecase.NewFakeSubject(),
-		usecase.NewFakeQuiz(),
-		usecase.NewFakeQuizResult(),
-		&transport.FakeTokenParser{},
+		uu,
+		usecase.NewStubGroup(),
+		usecase.NewStubSubject(),
+		usecase.NewStubQuiz(),
+		ua,
+		&transport.StubTokenParser{},
 	)
 	if err != nil {
 		return err

@@ -1,0 +1,13 @@
+common:
+  logger: fake
+
+usecase:
+  user: stub
+  subject: stub
+  quiz: stub
+  group: stub
+  answer: stub
+
+transport:
+  jwt: 
+    parser: stub

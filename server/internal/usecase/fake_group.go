@@ -6,25 +6,25 @@ import (
 	"time"
 )
 
-type FakeGroup struct{}
+type StubGroup struct{}
 
-func NewFakeGroup() *FakeGroup {
-	return &FakeGroup{}
+func NewStubGroup() *StubGroup {
+	return &StubGroup{}
 }
 
-func (f *FakeGroup) Create(ctx context.Context, name string) error {
+func (f *StubGroup) Create(ctx context.Context, name string) error {
 	return nil
 }
 
-func (f *FakeGroup) Get(ctx context.Context) ([]GroupDomain, error) {
+func (f *StubGroup) Get(ctx context.Context) ([]GroupDomain, error) {
 	var groups []GroupDomain
-	groups = initFakeGroupSlices(groups, "А")
-	groups = initFakeGroupSlices(groups, "Б")
-	groups = initFakeGroupSlices(groups, "В")
+	groups = initStubGroupSlices(groups, "А")
+	groups = initStubGroupSlices(groups, "Б")
+	groups = initStubGroupSlices(groups, "В")
 	return groups, nil
 }
 
-func initFakeGroupSlices(groups []GroupDomain, word string) []GroupDomain {
+func initStubGroupSlices(groups []GroupDomain, word string) []GroupDomain {
 	for i := 1; i < 11; i++ {
 		g := GroupDomain{
 			ID:        ID(i),

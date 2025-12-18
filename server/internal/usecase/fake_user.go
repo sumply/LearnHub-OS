@@ -7,23 +7,23 @@ import (
 	"time"
 )
 
-type FakeUser struct {
+type StubUser struct {
 	admins   []UserDomain
 	teachers []UserDomain
 	students []UserDomain
 	roots    []UserDomain
 }
 
-func NewFakeUser() *FakeUser {
-	u := FakeUser{}
-	u.admins = initFakeSlices(Admin)
-	u.roots = initFakeSlices(Root)
-	u.students = initFakeSlices(Student)
-	u.teachers = initFakeSlices(Teacher)
+func NewStubUser() *StubUser {
+	u := StubUser{}
+	u.admins = initStubSlices(Admin)
+	u.roots = initStubSlices(Root)
+	u.students = initStubSlices(Student)
+	u.teachers = initStubSlices(Teacher)
 	return &u
 }
 
-func initFakeSlices(role UserRole) []UserDomain {
+func initStubSlices(role UserRole) []UserDomain {
 	var users []UserDomain
 	for i := range 20 {
 		name := fmt.Sprintf("%d%d", role, i)
@@ -40,7 +40,7 @@ func initFakeSlices(role UserRole) []UserDomain {
 	return users
 }
 
-func (u *FakeUser) Login(ctx context.Context, p UserLoginParam) (JWT, error) {
+func (u *StubUser) Login(ctx context.Context, p UserLoginParam) (JWT, error) {
 	switch p.Login {
 	case "admin", "teacher", "student", "root":
 		tm := map[string]any{
@@ -53,7 +53,7 @@ func (u *FakeUser) Login(ctx context.Context, p UserLoginParam) (JWT, error) {
 	return JWT{}, fmt.Errorf("email is not role")
 }
 
-func (u *FakeUser) Get(ctx context.Context, auth Identity) ([]UserDomain, error) {
+func (u *StubUser) Get(ctx context.Context, auth Identity) ([]UserDomain, error) {
 	switch auth.Role {
 	case Admin:
 		return append(u.students, u.teachers...), nil
@@ -68,11 +68,11 @@ func (u *FakeUser) Get(ctx context.Context, auth Identity) ([]UserDomain, error)
 	}
 }
 
-func (u *FakeUser) Create(ctx context.Context, auth Identity, p UserCreateParam) error {
+func (u *StubUser) Create(ctx context.Context, auth Identity, p UserCreateParam) error {
 	return nil
 }
 
-func (u *FakeUser) GetMe(ctx context.Context, auth Identity) (UserDomain, error) {
+func (u *StubUser) GetMe(ctx context.Context, auth Identity) (UserDomain, error) {
 	switch auth.Role {
 	case Admin:
 		return u.admins[0], nil
@@ -87,14 +87,14 @@ func (u *FakeUser) GetMe(ctx context.Context, auth Identity) (UserDomain, error)
 	}
 }
 
-func (u *FakeUser) GetByID(ctx context.Context, auth Identity, id ID) (UserDomain, error) {
+func (u *StubUser) GetByID(ctx context.Context, auth Identity, id ID) (UserDomain, error) {
 	return u.roots[0], nil
 }
 
-func (u *FakeUser) Put(ctx context.Context, auth Identity, id ID, p UserPutParam) error {
+func (u *StubUser) Put(ctx context.Context, auth Identity, id ID, p UserPutParam) error {
 	return nil
 }
 
-func (u *FakeUser) Delete(ctx context.Context, auth Identity, id ID) error {
+func (u *StubUser) Delete(ctx context.Context, auth Identity, id ID) error {
 	return nil
 }

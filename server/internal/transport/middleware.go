@@ -12,9 +12,9 @@ type TokenParser interface {
 	Parse(token string) (authData, bool)
 }
 
-type FakeTokenParser struct{}
+type StubTokenParser struct{}
 
-func (p *FakeTokenParser) Parse(token string) (authData, bool) {
+func (p *StubTokenParser) Parse(token string) (authData, bool) {
 	return authData{subject: 1, role: "admin"}, true
 }
 

@@ -26,41 +26,41 @@ type Logger interface {
 	With(...TraceField) Logger
 }
 
-type Mock struct {
+type Fake struct {
 	ctx context.Context
 }
 
-func NewMock() *Mock {
-	return &Mock{
+func NewFake() *Fake {
+	return &Fake{
 		ctx: context.Background(),
 	}
 }
 
-func (m *Mock) Debug(msg string) {
+func (m *Fake) Debug(msg string) {
 	m.print("DEBUG", msg)
 }
-func (m *Mock) Info(msg string) {
+func (m *Fake) Info(msg string) {
 	m.print("INFO", msg)
 }
-func (m *Mock) Warn(msg string) {
+func (m *Fake) Warn(msg string) {
 	m.print("WARN", msg)
 }
-func (m *Mock) Error(msg string) {
+func (m *Fake) Error(msg string) {
 	m.print("ERROR", msg)
 }
 
-func (m *Mock) With(fields ...TraceField) Logger {
+func (m *Fake) With(fields ...TraceField) Logger {
 	f, ok := getTracedFields(m.ctx)
 	if !ok {
 		f = make(map[string]any)
 	}
 	new := copyTracedFields(f, fields...)
-	return &Mock{
+	return &Fake{
 		ctx: withTracedFields(m.ctx, new),
 	}
 }
 
-func (m *Mock) print(layer string, msg string) {
+func (m *Fake) print(layer string, msg string) {
 	f, ok := getTracedFields(m.ctx)
 	if !ok {
 		f = make(map[string]any)
@@ -88,9 +88,11 @@ func copyTracedFields(to map[string]any, from ...TraceField) map[string]any {
 	return new
 }
 
-var newFunc func() Logger
+type NewFunc func() Logger
 
-func SetNewFunc(new func() Logger) {
+var newFunc NewFunc
+
+func SetNewFunc(new NewFunc) {
 	newFunc = new
 }
 
