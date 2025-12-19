@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"server/internal/logger"
+	"server/internal/transport"
 	"server/internal/usecase"
 	"strconv"
 
@@ -149,6 +150,17 @@ func (a *App) CreateLoggerNewFunc() (logger.NewFunc, error) {
 		return func() logger.Logger {
 			return logger.NewFake()
 		}, nil
+	default:
+		return nil, nil
+	}
+}
+
+func (a *App) CreateTransportJWTParser() (transport.TokenParser, error) {
+	switch a.Transport.JWT.Parser {
+	case ImplFake:
+		return nil, nil
+	case ImplStub:
+		return &transport.StubTokenParser{}, nil
 	default:
 		return nil, nil
 	}
