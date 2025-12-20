@@ -3,9 +3,8 @@ package app
 import (
 	"net/http"
 	"server/internal/config"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"server/internal/logger"
+	"server/internal/transport"
 )
 
 func Run() error {
@@ -15,7 +14,8 @@ func Run() error {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, world!")
 	})
-	s, err := config.NewServer()
+
+	app, err := config.NewApp("./configs/app.yaml")
 	if err != nil {
 		return err
 	}
