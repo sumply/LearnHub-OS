@@ -123,6 +123,7 @@ func quizShortRespFromDomain(d usecase.QuizDomain) quizShortResp {
 }
 
 type quizHandler struct {
+	handler
 	usecase usecase.Quiz
 }
 
@@ -138,13 +139,13 @@ func newQuizHandler(u usecase.Quiz) (*quizHandler, error) {
 func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req quizCreateReq
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
+		h.sendDecodeError(w)
 		return
 	}
 
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
@@ -154,7 +155,7 @@ func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 		req.toUCParam(),
 	)
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -162,15 +163,15 @@ func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *quizHandler) get(w http.ResponseWriter, r *http.Request) {
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	data, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -180,32 +181,32 @@ func (h *quizHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }
 
 func (h *quizHandler) getByID(w http.ResponseWriter, r *http.Request) {
-	quizID, err := getParamQuizID(r)
+	quizID, err := h.getParamQuizID(r)
 	if err != nil {
-		sendParamError(w, err.Error())
+		h.sendParamError(w, err.Error())
 		return
 	}
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	data, err := h.usecase.GetByID(r.Context(), auth.toIdentity(), usecase.ID(quizID))
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
 	resp := quizFullRespFromDomain(data)
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }

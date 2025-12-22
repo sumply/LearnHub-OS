@@ -21,6 +21,7 @@ type subjectDTOPostRequest struct {
 }
 
 type subjectHandler struct {
+	handler
 	usecase usecase.Subject
 }
 
@@ -36,18 +37,18 @@ func newSubjectHandler(s usecase.Subject) (*subjectHandler, error) {
 func (h *subjectHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req subjectDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
+		h.sendDecodeError(w)
 		return
 	}
 
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	if err := h.usecase.Create(r.Context(), auth.toIdentity(), req.Name); err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -55,15 +56,15 @@ func (h *subjectHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *subjectHandler) get(w http.ResponseWriter, r *http.Request) {
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	data, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -73,7 +74,7 @@ func (h *subjectHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }

@@ -3,11 +3,12 @@ package transport
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
 	"regexp"
 	"server/internal/logger"
 	"server/internal/usecase"
+
+	"github.com/google/uuid"
 )
 
 type TokenParser interface {
@@ -26,6 +27,8 @@ type authData struct {
 	subject id
 	role    string
 }
+
+type middlewareBuilder struct{}
 
 func loggerWithAuthData(log logger.Logger, auth authData) logger.Logger {
 	field := logger.TraceField{
@@ -56,17 +59,13 @@ const (
 	authKey  ctxKey = "authData"
 )
 
-func getTokenMiddleware(next http.Handler) http.Handler {
+func (b *middlewareBuilder) buildGetToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log := logger.FromCtx(r.Context())
-
-		authHeader := r.Header.Get("Authorization")
-		matches := authBearer.FindStringSubmatch(authHeader)
+		auth := b.getAuthorization(r.Header)
+		matches := authBearer.FindStringSubmatch(auth)
 
 		if len(matches) != 2 {
 			const errMsg = `Authorization header must be "Bearer <token>"`
-			loggerWithResponse(log, http.StatusBadRequest, errMsg).
-				Warn("authorization header missing or invalid")
 			sendError(
 				w,
 				http.StatusBadRequest,
@@ -82,7 +81,7 @@ func getTokenMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func validateTokenMiddleware(p TokenParser) func(http.Handler) http.Handler {
+func (b *middlewareBuilder) buildValidateToken(p TokenParser) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := logger.FromCtx(r.Context())
@@ -90,8 +89,6 @@ func validateTokenMiddleware(p TokenParser) func(http.Handler) http.Handler {
 			token, ok := r.Context().Value(tokenKey).(string)
 			if !ok {
 				const errMsg = "Authorization token is invalid"
-				loggerWithResponse(log, http.StatusUnauthorized, errMsg).
-					Warn("authorization token from context is missing")
 				sendError(
 					w,
 					http.StatusUnauthorized,
@@ -103,8 +100,6 @@ func validateTokenMiddleware(p TokenParser) func(http.Handler) http.Handler {
 			auth, ok := p.Parse(token)
 			if !ok {
 				const errMsg = "Authorization token is expired"
-				loggerWithResponse(log, http.StatusUnauthorized, errMsg).
-					Warn("authorization token failed verification")
 				sendError(
 					w,
 					http.StatusUnauthorized,
@@ -123,18 +118,34 @@ func validateTokenMiddleware(p TokenParser) func(http.Handler) http.Handler {
 	}
 }
 
-func loggingRequestMiddleware(next http.Handler) http.Handler {
+func (b *middlewareBuilder) buildLoggingRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log := logger.FromCtx(r.Context())
-		log = loggerWithRequest(log, r)
+		log = b.loggerWithRequest(log, r)
 		ctx := logger.WithLoggerCtx(r.Context(), log)
 		log.Info("Request received")
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
-	fields := logger.TraceField{
+func (b *middlewareBuilder) buildLoggingResponse(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rw := newResponseWriterWrapper(w)
+
+		next.ServeHTTP(rw, r)
+
+		log := logger.FromCtx(r.Context())
+		b.loggerWithResponse(log, rw.statusCode, rw.size).
+			Info("Response sent")
+	})
+}
+
+func (b *middlewareBuilder) loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
+	reqID := logger.TraceField{
+		Key:   "Request_id",
+		Value: uuid.New().String(),
+	}
+	field := logger.TraceField{
 		Key: "Request",
 		Value: map[string]any{
 			"URI":    r.RequestURI,
@@ -142,24 +153,63 @@ func loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
 		},
 	}
 	logger.OnDebug(func() {
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			return
+		header := r.Header.Clone()
+		auth := b.getAuthorization(header)
+		matches := authBearer.FindStringSubmatch(auth)
+		if len(matches) != 2 {
+			auth = "[INVALID_TOKEN_FORMAT]"
+		} else {
+			auth = "Bearer [MASKED_TOKEN]"
 		}
-		r.Body.Close()
-		r.Body = io.NopCloser(bytes.NewBuffer(data))
-		fields.Value.(map[string]any)["Body"] = string(data)
+		header.Set("Authorization", auth)
+		field.Value.(map[string]any)["Headers"] = header
 	})
-	return log.With(fields)
+	return log.With(reqID, field)
 }
 
-func loggerWithResponse(log logger.Logger, status int, what string) logger.Logger {
+func (b *middlewareBuilder) loggerWithResponse(log logger.Logger, status int, size int) logger.Logger {
 	fields := logger.TraceField{
 		Key: "Response",
 		Value: map[string]any{
 			"Status": status,
-			"What":   what,
+			"Size":   size,
 		},
 	}
 	return log.With(fields)
+}
+
+func (b *middlewareBuilder) getAuthorization(h http.Header) string {
+	return h.Get("Authorization")
+}
+
+type responseWriterWrapper struct {
+	rw         http.ResponseWriter
+	statusCode int
+	size       int
+	body       bytes.Buffer
+}
+
+func newResponseWriterWrapper(w http.ResponseWriter) *responseWriterWrapper {
+	return &responseWriterWrapper{
+		rw:         w,
+		statusCode: http.StatusOK,
+	}
+}
+
+func (w *responseWriterWrapper) Header() http.Header {
+	return w.rw.Header()
+}
+
+func (w *responseWriterWrapper) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.rw.WriteHeader(statusCode)
+}
+
+func (w *responseWriterWrapper) Write(data []byte) (int, error) {
+	logger.OnDebug(func() {
+		w.body.Write(data)
+	})
+	size, err := w.rw.Write(data)
+	w.size += size
+	return size, err
 }

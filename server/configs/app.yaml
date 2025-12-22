@@ -4,11 +4,22 @@ common:
     level: debug
 
 usecase:
-  user: stub
+  user: real
   subject: stub
   quiz: stub
   group: stub
   answer: stub
+
+service:
+  generator: 
+    auth: stub
+    page: stub
+  sender:
+    mail: stub
+  storage:
+    type: stub
+  validator:
+    user: stub
 
 transport:
   jwt: 

@@ -8,20 +8,6 @@ import (
 )
 
 func Run() error {
-<<<<<<< Updated upstream
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, world!")
-	})
-
-	app, err := config.NewApp("./configs/app.yaml")
-	if err != nil {
-		return err
-	}
-	http.ListenAndServe(fmt.Sprintf("%s:%d", s.Addr, s.Port), r)
-	return nil
-=======
 	app, err := config.NewApp("./configs/app.yaml")
 	if err != nil {
 		return err
@@ -78,7 +64,6 @@ func createHandler(app *config.App) (http.Handler, error) {
 		return nil, err
 	}
 	return r, nil
->>>>>>> Stashed changes
 }
 
 func InitLogger(app *config.App) error {

@@ -49,24 +49,27 @@ type loginRequest struct {
 func (r *loginRequest) toLoginParam() usecase.UserLoginParam {
 	return usecase.UserLoginParam{
 		Login:    r.Login,
-		Password: usecase.Password(r.Password),
+		Password: r.Password,
 	}
 }
 
-type loginResponse struct {
+type loginResp struct {
 	RefreshToken string `json:"refresh_token"`
 	AccessToken  string `json:"access_token"`
 }
 
-func (r *loginResponse) fromJWT(d usecase.JWT) {
-	r.AccessToken = d.AccessToken
-	r.RefreshToken = d.RefreshToken
+func loginRespFromJWT(d usecase.JWT) loginResp {
+	return loginResp{
+		AccessToken:  d.AccessToken,
+		RefreshToken: d.RefreshToken,
+	}
 }
 
-type userDTOPostRequest struct {
+type userCreateReq struct {
 	FirstName  string  `json:"first_name"`
 	LastName   string  `json:"last_name"`
 	MiddleName *string `json:"middle_name"`
+	Email      string  `json:"email"`
 	Role       string  `json:"role"`
 }
 
@@ -77,6 +80,7 @@ type userDTOPutRequest struct {
 }
 
 type userHandler struct {
+	handler
 	u usecase.User
 }
 
@@ -90,31 +94,24 @@ func newUserHandler(u usecase.User) (*userHandler, error) {
 }
 
 func (h *userHandler) login(w http.ResponseWriter, r *http.Request) {
-	log := logger.FromCtx(r.Context())
+	_ = logger.FromCtx(r.Context())
 
 	var req loginRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
-		status, msg := sendDecodeError(w)
-		loggerWithResponse(log, status, msg).
-			Warn("failed decoded request")
+		h.sendDecodeError(w)
 		return
 	}
 
 	data, err := h.u.Login(r.Context(), req.toLoginParam())
 	if err != nil {
-		status, msg := sendUsecaseError(w, err)
-		loggerWithResponse(log, status, msg).
-			Warn("failed authorization")
+		h.sendUsecaseError(w, err)
 		return
 	}
 
-	var resp loginResponse
-	resp.fromJWT(data)
+	resp := loginRespFromJWT(data)
 
 	if err := encodeJSON(w, &resp); err != nil {
-		status, msg := sendEncodeError(w)
-		loggerWithResponse(log, status, msg).
-			Error("failed encoding response")
+		h.sendEncodeError(w)
 	}
 }
 
@@ -122,9 +119,9 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromCtx(r.Context())
 	log.Debug("Called a handler method get")
 
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
@@ -146,7 +143,7 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }
@@ -155,16 +152,16 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromCtx(r.Context())
 	log.Debug("Called a handler method getMe")
 
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	log.Debug("Calling a usecase method GetMe")
 	data, err := h.u.GetMe(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -172,7 +169,7 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 	resp := userFullRespFromDomain(data)
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 
@@ -187,20 +184,22 @@ func (h *userHandler) put(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
-	log := logger.FromCtx(r.Context())
-	log.Debug("Called a handler method post()")
-
-	log.Debug("Decoding a request")
-	var req userDTOPostRequest
+	var req userCreateReq
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
+		h.sendDecodeError(w)
+
 		return
 	}
 
-	log.Debug("Calling the function getAuthData()")
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
+		return
+	}
+
+	role, ok := toUserRole(req.Role)
+	if !ok {
+		h.sendDecodeError(w)
 		return
 	}
 
@@ -208,12 +207,13 @@ func (h *userHandler) post(w http.ResponseWriter, r *http.Request) {
 		FirstName:  req.FirstName,
 		LastName:   req.LastName,
 		MiddleName: *req.MiddleName,
+		Email:      req.Email,
+		Role:       role,
 	}
 
-	log.Debug("Calling a usecase method create()")
 	err := h.u.Create(r.Context(), auth.toIdentity(), param)
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -225,23 +225,23 @@ func (h *userHandler) delete(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Called a handler method delete()")
 
 	log.Debug("Calling the function getParamUserID()")
-	userID, err := getParamUserID(r)
+	userID, err := h.getParamUserID(r)
 	if err != nil {
-		sendParamError(w, err.Error())
+		h.sendParamError(w, err.Error())
 		return
 	}
 
 	log.Debug("Calling the function getAuthData()")
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	log.Debug("Calling a usecase method Delete()")
 	err = h.u.Delete(r.Context(), auth.toIdentity(), usecase.ID(userID))
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 }

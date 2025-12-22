@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"errors"
+	"server/internal/logger"
+	"server/internal/service/validator"
 	"time"
 )
 
@@ -44,10 +46,6 @@ type Subject interface {
 	Get(ctx context.Context, auth Identity) ([]SubjectDomain, error)
 }
 
-type Email string
-
-type Password string
-
 type UserRole uint8
 
 const (
@@ -61,7 +59,7 @@ type ID uint64
 
 type UserLoginParam struct {
 	Login    string
-	Password Password
+	Password string
 }
 
 type JWT struct {
@@ -88,11 +86,32 @@ type UserCreateParam struct {
 	FirstName  string
 	LastName   string
 	MiddleName string
+	Email      string
+	Role       UserRole
+}
+
+func (p *UserCreateParam) trim(v validator.User) {
+	p.FirstName = v.Trim(p.FirstName)
+	p.LastName = v.Trim(p.LastName)
+	p.MiddleName = v.Trim(p.MiddleName)
+	p.Email = v.Trim(p.Email)
+}
+
+func (p *UserCreateParam) validate(v validator.User) bool {
+	return v.ValidName(p.FirstName) && v.ValidName(p.LastName) && v.ValidName(p.MiddleName) && v.ValidEmail(p.Email)
 }
 
 type Identity struct {
 	ID   ID
 	Role UserRole
+}
+
+func (i *Identity) isHigherOrEqual(role UserRole) bool {
+	return i.Role <= role
+}
+
+func (i *Identity) isHigher(role UserRole) bool {
+	return i.Role < role
 }
 
 type GroupDomain struct {
@@ -166,4 +185,25 @@ type SelectedOption struct {
 type AnswerCreateParam struct {
 	QuizID  ID
 	Answers []SelectedOption
+}
+
+func mapFromUserCreateParam(p UserCreateParam) map[string]any {
+	fields := map[string]any{
+		"FirstName":  p.FirstName,
+		"LastName":   p.LastName,
+		"MiddleName": p.MiddleName,
+		"Role":       p.Role,
+	}
+	logger.OnDebug(func() {
+		fields["Email"] = p.Email
+	})
+	return fields
+}
+
+func mapFromIdentity(identity Identity) map[string]any {
+	fields := map[string]any{
+		"ID":   identity.ID,
+		"Role": identity.Role,
+	}
+	return fields
 }

@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 	"server/internal/logger"
+	"server/internal/service/generator"
+	"server/internal/service/sender"
+	"server/internal/service/storage"
+	"server/internal/service/validator"
 	"server/internal/transport"
 	"server/internal/usecase"
 	"strconv"
@@ -15,6 +19,16 @@ import (
 var (
 	ErrEmpty   = errors.New("key is empty")
 	ErrInvalid = errors.New("value is invalid")
+)
+
+const (
+	ImplStub  = "stub"
+	ImplFake  = "fake"
+	ImplReal  = "real"
+	ImplDebug = "debug"
+	ImplInfo  = "info"
+	ImplWarn  = "warn"
+	ImplError = "error"
 )
 
 type Server struct {
@@ -44,17 +58,6 @@ func NewServerFromEnv() (*Server, error) {
 		Port: p,
 	}, nil
 }
-<<<<<<< Updated upstream
-=======
-
-const (
-	ImplStub  = "stub"
-	ImplFake  = "fake"
-	ImplDebug = "debug"
-	ImplInfo  = "info"
-	ImplWarn  = "warn"
-	ImplError = "error"
-)
 
 type AppCommonLogger struct {
 	Type  string `yaml:"type"`
@@ -81,9 +84,79 @@ type AppTransport struct {
 	JWT AppJWT `yaml:"jwt"`
 }
 
+type AppGenerator struct {
+	Auth string `yaml:"auth"`
+	Page string `yaml:"page"`
+}
+
+func (a *AppGenerator) CreateAuth() (generator.Generator, error) {
+	switch a.Auth {
+	case ImplStub:
+		return generator.NewStub(), nil
+	default:
+		return nil, fmt.Errorf("%w: generator .auth", ErrInvalid)
+	}
+}
+
+func (a *AppGenerator) CreatePage() (generator.PageGenerator, error) {
+	switch a.Page {
+	case ImplStub:
+		return generator.NewStubPageGenerator(), nil
+	default:
+		return nil, fmt.Errorf("%w: generator .page", ErrInvalid)
+	}
+}
+
+type AppSender struct {
+	Mail string `yaml:"mail"`
+}
+
+func (a *AppSender) CreateMail() (sender.Mail, error) {
+	switch a.Mail {
+	case ImplStub:
+		return sender.NewStubMail(), nil
+	default:
+		return nil, fmt.Errorf("%w: sender .mail", ErrInvalid)
+	}
+}
+
+type AppValidator struct {
+	User string `yaml:"user"`
+}
+
+func (a *AppValidator) CreateUser() (validator.User, error) {
+	switch a.User {
+	case ImplStub:
+		return validator.NewStubUser(), nil
+	default:
+		return nil, fmt.Errorf("%w: validator .user", ErrInvalid)
+	}
+}
+
+type AppStorage struct {
+	Type string `yaml:"type"`
+}
+
+func (a *AppStorage) CreateStorage() (storage.Storage, error) {
+	switch a.Type {
+	case ImplStub:
+		return storage.NewStub(), nil
+	default:
+		return nil, fmt.Errorf("%w: storage .type", ErrInvalid)
+	}
+}
+
+type AppService struct {
+	Generator AppGenerator `yaml:"generator"`
+	Sender    AppSender    `yaml:"sender"`
+	Storage   AppStorage   `yaml:"storage"`
+	Validator AppValidator `yaml:"validator"`
+}
+
 type App struct {
 	Common    AppCommon    `yaml:"common"`
 	Usecase   AppUsecase   `yaml:"usecase"`
+	Service   AppService   `yaml:"service"`
 	Transport AppTransport `yaml:"transport"`
 }
 
@@ -104,54 +177,74 @@ func (a *App) CreateUsecaseUser() (usecase.User, error) {
 	switch a.Usecase.User {
 	case ImplStub:
 		return usecase.NewStubUser(), nil
-	case ImplFake:
-		return nil, nil
+	case ImplReal:
+		gen, err := a.Service.Generator.CreateAuth()
+		if err != nil {
+			return nil, err
+		}
+		val, err := a.Service.Validator.CreateUser()
+		if err != nil {
+			return nil, err
+		}
+		ms, err := a.Service.Sender.CreateMail()
+		if err != nil {
+			return nil, err
+		}
+		pgen, err := a.Service.Generator.CreatePage()
+		if err != nil {
+			return nil, err
+		}
+		storage, err := a.Service.Storage.CreateStorage()
+		if err != nil {
+			return nil, err
+		}
+		return usecase.NewRealUser(gen, val, ms, pgen, storage), nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: usecase .user", ErrInvalid)
 	}
 }
 
 func (a *App) CreateUsecaseSubject() (usecase.Subject, error) {
-	switch a.Usecase.User {
+	switch a.Usecase.Subject {
 	case ImplStub:
 		return usecase.NewStubSubject(), nil
 	case ImplFake:
 		return nil, nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: usecase .subject", ErrInvalid)
 	}
 }
 
 func (a *App) CreateUsecaseGroup() (usecase.Group, error) {
-	switch a.Usecase.User {
+	switch a.Usecase.Group {
 	case ImplStub:
 		return usecase.NewStubGroup(), nil
 	case ImplFake:
 		return nil, nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: usecase .group", ErrInvalid)
 	}
 }
 
 func (a *App) CreateUsecaseAnswer() (usecase.Answer, error) {
-	switch a.Usecase.User {
+	switch a.Usecase.Answer {
 	case ImplStub:
 		return usecase.NewStubAnswer(), nil
 	case ImplFake:
 		return nil, nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: usecase .answer", ErrInvalid)
 	}
 }
 
 func (a *App) CreateUsecaseQuiz() (usecase.Quiz, error) {
-	switch a.Usecase.User {
+	switch a.Usecase.Quiz {
 	case ImplStub:
 		return usecase.NewStubQuiz(), nil
 	case ImplFake:
 		return nil, nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: usecase .quiz", ErrInvalid)
 	}
 }
 
@@ -162,7 +255,7 @@ func (a *App) CreateLoggerNewFunc() (logger.NewFunc, error) {
 			return logger.NewFake()
 		}, nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: logger .type", ErrInvalid)
 	}
 }
 
@@ -173,7 +266,7 @@ func (a *App) CreateTransportJWTParser() (transport.TokenParser, error) {
 	case ImplStub:
 		return &transport.StubTokenParser{}, nil
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("%w: logger .parse", ErrInvalid)
 	}
 }
 
@@ -188,7 +281,6 @@ func (a *App) CreateLoggerLevel() (logger.Level, error) {
 	case ImplError:
 		return logger.ERROR, nil
 	default:
-		return 0, nil
+		return 0, ErrInvalid
 	}
 }
->>>>>>> Stashed changes

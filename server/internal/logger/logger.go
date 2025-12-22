@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"time"
 )
 
 type Level uint8
@@ -95,6 +96,7 @@ func (m *Fake) print(level string, msg string) {
 	}
 	f["level"] = level
 	f["message"] = msg
+	f["timestamp"] = time.Now().UTC()
 	e := json.NewEncoder(os.Stdout)
 	e.SetIndent("=", "\t")
 	e.Encode(f)

@@ -85,6 +85,7 @@ func answerQuestionFromDomain(d usecase.AnsweredQuestion) answeredQuestion {
 }
 
 type answerHandler struct {
+	handler
 	usecase usecase.Answer
 }
 
@@ -109,25 +110,25 @@ func newAnswerHandler(u usecase.Answer) (*answerHandler, error) {
 }
 
 func (h *answerHandler) post(w http.ResponseWriter, r *http.Request) {
-	quizID, err := getParamQuizID(r)
+	quizID, err := h.getParamQuizID(r)
 	if err != nil {
-		sendParamError(w, err.Error())
+		h.sendParamError(w, err.Error())
 		return
 	}
 	var req answerCreateReq
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
+		h.sendDecodeError(w)
 		return
 	}
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	err = h.usecase.Create(r.Context(), auth.toIdentity(), answerCreateParamFromRequest(quizID, req.Answers))
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -135,14 +136,14 @@ func (h *answerHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *answerHandler) get(w http.ResponseWriter, r *http.Request) {
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 	domains, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 	resp := make([]answerShortResp, len(domains))
@@ -150,30 +151,30 @@ func (h *answerHandler) get(w http.ResponseWriter, r *http.Request) {
 		resp[i] = answerShortRespFromDomain(domain)
 	}
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }
 
 func (h *answerHandler) getByID(w http.ResponseWriter, r *http.Request) {
-	answerID, err := getParamAnswerID(r)
+	answerID, err := h.getParamAnswerID(r)
 	if err != nil {
-		sendParamError(w, err.Error())
+		h.sendParamError(w, err.Error())
 		return
 	}
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 	domain, err := h.usecase.GetByID(r.Context(), auth.toIdentity(), usecase.ID(answerID))
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 	resp := answerFullRespFromDomain(domain)
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }

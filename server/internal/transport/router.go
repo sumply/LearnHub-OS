@@ -5,7 +5,6 @@ import (
 	"server/internal/usecase"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 func NewRouter(
@@ -18,8 +17,10 @@ func NewRouter(
 ) (http.Handler, error) {
 	r := chi.NewRouter()
 
-	r.Use(loggingRequestMiddleware)
-	r.Use(middleware.Recoverer)
+	mw := middlewareBuilder{}
+
+	r.Use(mw.buildLoggingRequest)
+	r.Use(mw.buildLoggingResponse)
 
 	uh, err := newUserHandler(uu)
 	if err != nil {
@@ -45,8 +46,8 @@ func NewRouter(
 	r.Post("/login", uh.login)
 
 	r.Group(func(r chi.Router) {
-		r.Use(getTokenMiddleware)
-		r.Use(validateTokenMiddleware(t))
+		r.Use(mw.buildGetToken)
+		r.Use(mw.buildValidateToken(t))
 
 		addUserRouting(r, uh)
 		addGroupRouting(r, gh)

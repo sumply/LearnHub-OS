@@ -21,6 +21,7 @@ type groupDTOPostRequest struct {
 }
 
 type groupHandler struct {
+	handler
 	usecase usecase.Group
 }
 
@@ -36,12 +37,12 @@ func newGroupHandler(g usecase.Group) (*groupHandler, error) {
 func (h *groupHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req groupDTOPostRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
+		h.sendDecodeError(w)
 		return
 	}
 
 	if err := h.usecase.Create(r.Context(), req.Name); err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -51,7 +52,7 @@ func (h *groupHandler) post(w http.ResponseWriter, r *http.Request) {
 func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
 	data, err := h.usecase.Get(r.Context())
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -61,7 +62,7 @@ func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }
