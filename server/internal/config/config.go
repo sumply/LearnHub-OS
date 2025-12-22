@@ -6,8 +6,8 @@ import (
 	"os"
 	"server/internal/logger"
 	"server/internal/service/generator"
+	"server/internal/service/repository"
 	"server/internal/service/sender"
-	"server/internal/service/storage"
 	"server/internal/service/validator"
 	"server/internal/transport"
 	"server/internal/usecase"
@@ -137,10 +137,10 @@ type AppStorage struct {
 	Type string `yaml:"type"`
 }
 
-func (a *AppStorage) CreateStorage() (storage.Storage, error) {
+func (a *AppStorage) CreateStorage() (repository.Repository, error) {
 	switch a.Type {
 	case ImplStub:
-		return storage.NewStub(), nil
+		return repository.NewStub(), nil
 	default:
 		return nil, fmt.Errorf("%w: storage .type", ErrInvalid)
 	}

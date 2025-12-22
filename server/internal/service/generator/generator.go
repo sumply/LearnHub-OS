@@ -1,9 +1,12 @@
 package generator
 
+import "encoding/json"
+
 type Generator interface {
 	GenPassword() (pwd string, hashed string)
 	GenLogin() string
 	GenHashedPwd(pwd string) (hashed string)
+	GenJWTTokens(id uint64, role string) (access, refresh string)
 }
 
 type WelcomePageParam struct {
@@ -44,4 +47,13 @@ func (g *Stub) GenLogin() string {
 
 func (g *Stub) GenHashedPwd(pwd string) (hashed string) {
 	return "hashed"
+}
+
+func (g *Stub) GenJWTTokens(id uint64, role string) (access, refresh string) {
+	token := map[string]any{
+		"id":   id,
+		"role": role,
+	}
+	d, _ := json.Marshal(&token)
+	return string(d), string(d)
 }

@@ -4,6 +4,7 @@ type User interface {
 	Trim(string) string
 	ValidName(string) bool
 	ValidEmail(string) bool
+	ValidPassword(string) bool
 }
 
 func NewStubUser() *StubUser {
@@ -20,5 +21,9 @@ func (v *StubUser) ValidName(string) bool {
 }
 
 func (v *StubUser) ValidEmail(string) bool {
+	return true
+}
+
+func (v *StubUser) ValidPassword(string) bool {
 	return true
 }

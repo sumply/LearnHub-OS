@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	ErrAccess    = errors.New("access permission")
-	ErrNotFound  = errors.New("not found")
-	ErrCollision = errors.New("collision")
+	ErrAccess       = errors.New("access permission")
+	ErrNotFound     = errors.New("not found")
+	ErrCollision    = errors.New("collision")
+	ErrInvalidField = errors.New("invalid field")
 )
 
 type User interface {
@@ -46,6 +47,21 @@ type Subject interface {
 	Get(ctx context.Context, auth Identity) ([]SubjectDomain, error)
 }
 
+func NewUserRole(s string) UserRole {
+	switch s {
+	case "root":
+		return Root
+	case "admin":
+		return Admin
+	case "teacher":
+		return Teacher
+	case "student":
+		return Student
+	default:
+		return INVALID
+	}
+}
+
 type UserRole uint8
 
 const (
@@ -53,13 +69,38 @@ const (
 	Admin
 	Teacher
 	Student
+	INVALID
 )
+
+func (u UserRole) toString() string {
+	switch u {
+	case Root:
+		return "root"
+	case Admin:
+		return "admin"
+	case Teacher:
+		return "teacher"
+	case Student:
+		return "student"
+	default:
+		return "invalid"
+	}
+}
 
 type ID uint64
 
 type UserLoginParam struct {
 	Login    string
 	Password string
+}
+
+func (p *UserLoginParam) trim(v validator.User) {
+	p.Login = v.Trim(p.Login)
+	p.Password = v.Trim(p.Password)
+}
+
+func (p *UserLoginParam) validate(v validator.User) bool {
+	return v.ValidPassword(p.Password)
 }
 
 type JWT struct {

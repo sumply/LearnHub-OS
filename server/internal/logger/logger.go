@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -146,4 +147,8 @@ func OnDebug(f func()) {
 	if level <= DEBUG {
 		f()
 	}
+}
+
+func Masking(value string) (mask string) {
+	return strings.Repeat("*", len(value))
 }
