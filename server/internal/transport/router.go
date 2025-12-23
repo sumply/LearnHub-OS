@@ -13,6 +13,7 @@ func NewRouter(
 	us usecase.Subject,
 	uq usecase.Quiz,
 	uqr usecase.Answer,
+	usp usecase.Speciality,
 	t TokenParser,
 ) (http.Handler, error) {
 	r := chi.NewRouter()
@@ -42,6 +43,7 @@ func NewRouter(
 	if err != nil {
 		return nil, err
 	}
+	sph := newSpecialityHandler(usp)
 
 	r.Post("/login", uh.login)
 
@@ -54,6 +56,7 @@ func NewRouter(
 		addSubjectsRouting(r, sh)
 		addQuizRouting(r, qh)
 		addAnswerRouting(r, qrh)
+		addSpecialityRouting(r, sph)
 	})
 
 	return r, nil
@@ -63,6 +66,7 @@ func addUserRouting(r chi.Router, h *userHandler) {
 	r.Post("/users", h.post)
 	r.Get("/users", h.get)
 	r.Get("/users/me", h.getMe)
+	r.Get("/users/{user_id}", h.getByID)
 	r.Put("/users", h.put)
 	r.Delete("/users/{user_id}", h.delete)
 }
@@ -87,4 +91,8 @@ func addAnswerRouting(r chi.Router, h *answerHandler) {
 	r.Post("/quizzes/{quiz_id}/answers", h.post)
 	r.Get("/answers", h.get)
 	r.Get("/answers/{answer_id}", h.getByID)
+}
+
+func addSpecialityRouting(r chi.Router, h *specialityHandler) {
+	r.Post("/speciality", h.post)
 }

@@ -5,6 +5,7 @@ import (
 	"server/internal/config"
 	"server/internal/logger"
 	"server/internal/transport"
+	"server/internal/usecase"
 )
 
 func Run() error {
@@ -58,6 +59,7 @@ func createHandler(app *config.App) (http.Handler, error) {
 		us,
 		uq,
 		ua,
+		usecase.NewRealSpeciality(),
 		tp,
 	)
 	if err != nil {

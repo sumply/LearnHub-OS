@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"server/internal/logger"
+	"server/internal/repository"
 	"server/internal/service/validator"
 	"time"
 )
@@ -45,6 +46,10 @@ type Group interface {
 type Subject interface {
 	Create(ctx context.Context, auth Identity, name string) error
 	Get(ctx context.Context, auth Identity) ([]SubjectDomain, error)
+}
+
+type Speciality interface {
+	Create(ctx context.Context, name string) error
 }
 
 func NewUserRole(s string) UserRole {
@@ -117,6 +122,17 @@ type UserDomain struct {
 	CreatedAt  time.Time
 }
 
+func newUserDomainFromRepo(e repository.UserEntity) UserDomain {
+	return UserDomain{
+		ID:         ID(e.ID),
+		FirstName:  e.FirstName,
+		LastName:   e.LastName,
+		MiddleName: e.MiddleName,
+		Role:       NewUserRole(string(e.Role)),
+		CreatedAt:  e.CreatedAt,
+	}
+}
+
 type UserPutParam struct {
 	FirstName  string
 	LastName   string
@@ -165,6 +181,13 @@ type SubjectDomain struct {
 	ID        ID
 	Name      string
 	CreatedAt time.Time
+}
+
+func newSubjectDomainFromEntity(e repository.SubjectEntity) SubjectDomain {
+	return SubjectDomain{
+		ID:   ID(e.ID),
+		Name: e.Name,
+	}
 }
 
 type QuizCreateOption struct {

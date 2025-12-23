@@ -6,28 +6,13 @@ type ID uint64
 type Foreign ID
 type UserRole string
 
-const (
-	Root    UserRole = "root"
-	Admin   UserRole = "admin"
-	Student UserRole = "student"
-	Teacher UserRole = "teacher"
-)
-
-type Repository interface {
-	User() User
-}
-
-type User interface {
-	Save(UserSaveParam) error
-}
-
 type AuthEntity struct {
 	Login          string
 	Email          string
 	PasswordHashed string
 }
 
-type ProfileEntity struct {
+type UserEntity struct {
 	ID         ID
 	FirstName  string
 	LastName   string
@@ -37,6 +22,11 @@ type ProfileEntity struct {
 }
 
 type GroupEntity struct {
+	ID   ID
+	Name string
+}
+
+type SpecialityEntity struct {
 	ID   ID
 	Name string
 }
@@ -69,28 +59,4 @@ type ProgressEntity struct {
 	Score          int
 	CompletionTime time.Time
 	IsCompleted    bool
-}
-type UserSaveParam struct {
-	FirstName  string
-	MiddleName string
-	LastName   string
-	Email      string
-	Login      string
-	HashedPwd  string
-}
-
-func NewStub() *Stub {
-	return &Stub{}
-}
-
-type Stub struct{}
-
-func (s *Stub) User() User {
-	return &StubUser{}
-}
-
-type StubUser struct{}
-
-func (s *StubUser) Save(UserSaveParam) error {
-	return nil
 }

@@ -149,8 +149,32 @@ func (h *userHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
-	log := logger.FromCtx(r.Context())
-	log.Debug("Called a handler method getMe")
+	auth, ok := h.getAuthData(r.Context())
+	if !ok {
+		h.sendGetAuthDataError(w)
+		return
+	}
+
+	data, err := h.u.GetMe(r.Context(), auth.toIdentity())
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	resp := userFullRespFromDomain(data)
+
+	if err := encodeJSON(w, &resp); err != nil {
+		h.sendEncodeError(w)
+		return
+	}
+}
+
+func (h *userHandler) getByID(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getParamUserID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
 
 	auth, ok := h.getAuthData(r.Context())
 	if !ok {
@@ -158,22 +182,17 @@ func (h *userHandler) getMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debug("Calling a usecase method GetMe")
-	data, err := h.u.GetMe(r.Context(), auth.toIdentity())
+	data, err := h.u.GetByID(r.Context(), auth.toIdentity(), usecase.ID(userID))
 	if err != nil {
 		h.sendUsecaseError(w, err)
 		return
 	}
 
-	log.Debug("Mapping from a usecase domain to a response struct")
 	resp := userFullRespFromDomain(data)
-
 	if err := encodeJSON(w, &resp); err != nil {
 		h.sendEncodeError(w)
 		return
 	}
-
-	log.Debug("Ending a handler method getMe")
 }
 
 func (h *userHandler) put(w http.ResponseWriter, r *http.Request) {
