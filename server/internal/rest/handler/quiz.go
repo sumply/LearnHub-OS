@@ -1,11 +1,6 @@
-package transport
+package handler
 
-import (
-	"fmt"
-	"net/http"
-	"server/internal/usecase"
-)
-
+/*
 type quizOptionsCreate struct {
 	Text      string `json:"text"`
 	IsCorrect bool   `json:"is_correct"`
@@ -210,3 +205,4 @@ func (h *quizHandler) getByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+*/

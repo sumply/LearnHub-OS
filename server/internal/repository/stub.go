@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"server/internal/domain"
 	"time"
 )
 
@@ -16,30 +17,33 @@ func newStubUserEntity() UserEntity {
 	}
 }
 
-type stubTx struct {
-}
-
-func (tx *stubTx) Context() context.Context {
-	return context.Background()
-}
-
-func (tx *stubTx) Commit() error {
-	return nil
-}
-func (tx *stubTx) Rollback() error {
-	return nil
-}
-
 type stubUser struct{}
 
-func (m *stubUser) Create(context.Context, UserCreate) error {
+func (m *stubUser) Save(context.Context, *domain.User) error {
 	return nil
 }
-func (m *stubUser) GetByID(ctx context.Context, id ID) (UserEntity, error) {
-	return newStubUserEntity(), nil
+func (m *stubUser) GetByID(ctx context.Context, id ID) (*domain.User, error) {
+	user := &domain.User{
+		ID:         1,
+		FirstName:  "Вася",
+		LastName:   "Гвоздев",
+		MiddleName: "Иванович",
+		Role:       domain.UserStudent,
+		CreatedAt:  time.Now().UTC(),
+	}
+	return user, nil
 }
-func (m *stubUser) GetByLoginPwd(ctx context.Context, login string, pwd string) (UserEntity, error) {
-	return newStubUserEntity(), nil
+func (m *stubUser) GetByLogin(ctx context.Context, login string) (*domain.User, error) {
+	user, err := domain.NewUser(
+		"login",
+		"password",
+		"email",
+		"firstName",
+		"secondName",
+		"middleName",
+		domain.UserAdmin,
+	)
+	return user, err
 }
 
 type stubStudent struct{}
@@ -47,11 +51,8 @@ type stubStudent struct{}
 func (m *stubStudent) Save(context.Context, StudentCreate) error {
 	return nil
 }
-func (m *stubStudent) GetByGroup(context.Context, ID) ([]UserEntity, error) {
-	res := make([]UserEntity, 10)
-	for i := range res {
-		res[i] = newStubUserEntity()
-	}
+func (m *stubStudent) GetByGroup(context.Context, ID) ([]*domain.User, error) {
+	res := make([]*domain.User, 10)
 	return res, nil
 }
 
@@ -91,18 +92,12 @@ func (m *stubGroup) Get(context.Context) ([]GroupEntity, error) {
 
 type stubSpeciality struct{}
 
-func (m *stubSpeciality) Save(ctx context.Context, data SpecialityCreate) error {
+func (m *stubSpeciality) Save(ctx context.Context, data *domain.Speciality) error {
 	return nil
 }
 
-func (m *stubSpeciality) Get(context.Context) ([]SpecialityEntity, error) {
-	res := make([]SpecialityEntity, 8) // Примерно 8 специальностей для заглушки
-	for i := range res {
-		res[i] = SpecialityEntity{
-			ID:   ID(i),
-			Name: "speciality",
-		}
-	}
+func (m *stubSpeciality) Get(context.Context) ([]*domain.Speciality, error) {
+	res := make([]*domain.Speciality, 8) // Примерно 8 специальностей для заглушки
 	return res, nil
 }
 
@@ -115,9 +110,6 @@ func NewStub() *Stub {
 
 func (m *Stub) User() User {
 	return new(stubUser)
-}
-func (m *Stub) Student() Student {
-	return new(stubStudent)
 }
 func (m *Stub) Subject() Subject {
 	return new(stubSubject)

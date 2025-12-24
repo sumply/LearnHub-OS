@@ -1,10 +1,11 @@
-package transport
+package handler
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"server/internal/domain"
+	"server/internal/rest/transport"
 	"server/internal/usecase"
 	"strconv"
 
@@ -13,14 +14,9 @@ import (
 
 type handler struct{}
 
-func (h *handler) getAuthData(ctx context.Context) (authData, bool) {
-	auth, ok := ctx.Value(authKey).(authData)
-	return auth, ok
-}
-
 func (h *handler) sendDecodeError(w http.ResponseWriter) (int, string) {
 	const errMsg = "Не удалось распарсить тело запроса."
-	sendError(
+	transport.SendError(
 		w,
 		http.StatusBadRequest,
 		errMsg,
@@ -30,20 +26,12 @@ func (h *handler) sendDecodeError(w http.ResponseWriter) (int, string) {
 
 func (h *handler) sendEncodeError(w http.ResponseWriter) (int, string) {
 	const errMsg = "Ошибка при маршалинге ответа."
-	sendError(
+	transport.SendError(
 		w,
 		http.StatusInternalServerError,
 		errMsg,
 	)
 	return http.StatusInternalServerError, errMsg
-}
-
-func (h *handler) sendGetAuthDataError(w http.ResponseWriter) {
-	sendError(
-		w,
-		http.StatusInternalServerError,
-		"Не удалось получить данные токена авторизации.",
-	)
 }
 
 func (h *handler) getParam(r *http.Request, key string) (string, error) {
@@ -82,7 +70,7 @@ func (h *handler) getParamUserID(r *http.Request) (id, error) {
 }
 
 func (h *handler) sendParamError(w http.ResponseWriter, what string) {
-	sendError(
+	transport.SendError(
 		w,
 		http.StatusBadRequest,
 		what,
@@ -106,6 +94,32 @@ func (h *handler) sendUsecaseError(w http.ResponseWriter, err error) (int, strin
 		status = http.StatusInternalServerError
 		msg = "Internal server error"
 	}
-	sendError(w, status, msg)
+	transport.SendError(w, status, msg)
 	return status, msg
+}
+
+var roleMap = map[string]domain.UserRole{
+	"root":    domain.UserRoot,
+	"admin":   domain.UserAdmin,
+	"teacher": domain.UserTeacher,
+	"student": domain.UserStudent,
+}
+
+func userRole(s string) domain.UserRole {
+	r, ok := roleMap[s]
+	if !ok {
+		r = domain.UserInvalid
+	}
+	return r
+}
+
+func identity(a transport.AuthData) usecase.Identity {
+	role, ok := roleMap[a.Role]
+	if !ok {
+		role = domain.UserInvalid
+	}
+	return usecase.Identity{
+		ID:   domain.UserID(a.ID),
+		Role: role,
+	}
 }

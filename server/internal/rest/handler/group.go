@@ -1,8 +1,9 @@
-package transport
+package handler
 
 import (
 	"fmt"
 	"net/http"
+	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
 
@@ -11,32 +12,27 @@ type groupResp struct {
 	Name string `json:"name"`
 }
 
-func (r *groupResp) fromDomain(d usecase.GroupDomain) {
-	r.ID = id(d.ID)
-	r.Name = d.Name
-}
-
-type groupDTOPostRequest struct {
+type groupCreateReq struct {
 	Name string `json:"name"`
 }
 
-type groupHandler struct {
+type Group struct {
 	handler
 	usecase usecase.Group
 }
 
-func newGroupHandler(g usecase.Group) (*groupHandler, error) {
+func NewGroup(g usecase.Group) (*Group, error) {
 	if g == nil {
 		return nil, fmt.Errorf("не передана реализация интерфейса")
 	}
-	return &groupHandler{
+	return &Group{
 		usecase: g,
 	}, nil
 }
 
-func (h *groupHandler) post(w http.ResponseWriter, r *http.Request) {
-	var req groupDTOPostRequest
-	if err := decodeJSON(r.Body, &req); err != nil {
+func (h *Group) Post(w http.ResponseWriter, r *http.Request) {
+	var req groupCreateReq
+	if err := transport.DecodeJSON(r.Body, &req); err != nil {
 		h.sendDecodeError(w)
 		return
 	}
@@ -49,7 +45,7 @@ func (h *groupHandler) post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
+func (h *Group) Get(w http.ResponseWriter, r *http.Request) {
 	data, err := h.usecase.Get(r.Context())
 	if err != nil {
 		h.sendUsecaseError(w, err)
@@ -57,11 +53,14 @@ func (h *groupHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := make([]groupResp, len(data))
-	for i := range data {
-		resp[i].fromDomain(data[i])
+	for i, d := range data {
+		resp[i] = groupResp{
+			ID:   id(d.ID),
+			Name: string(d.Name),
+		}
 	}
 
-	if err := encodeJSON(w, &resp); err != nil {
+	if err := transport.EncodeJSON(w, &resp); err != nil {
 		h.sendEncodeError(w)
 		return
 	}

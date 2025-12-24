@@ -1,12 +1,6 @@
-package transport
+package handler
 
-import (
-	"fmt"
-	"net/http"
-	"server/internal/usecase"
-	"time"
-)
-
+/*
 type answerReq struct {
 	QuestionID id `json:"question_id"`
 	OptionID   id `json:"option_id"`
@@ -178,3 +172,4 @@ func (h *answerHandler) getByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+*/

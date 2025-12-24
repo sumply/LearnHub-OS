@@ -8,10 +8,10 @@ import (
 )
 
 type StubUser struct {
-	admins   []UserDomain
-	teachers []UserDomain
-	students []UserDomain
-	roots    []UserDomain
+	admins   []UserDTO
+	teachers []UserDTO
+	students []UserDTO
+	roots    []UserDTO
 }
 
 func NewStubUser() *StubUser {
@@ -23,12 +23,12 @@ func NewStubUser() *StubUser {
 	return &u
 }
 
-func initStubSlices(role UserRole) []UserDomain {
-	var users []UserDomain
+func initStubSlices(role UserRole) []UserDTO {
+	var users []UserDTO
 	for i := range 20 {
 		name := fmt.Sprintf("%d%d", role, i)
-		d := UserDomain{
-			ID:         ID(i),
+		d := UserDTO{
+			ID:         uint64(i),
 			FirstName:  name,
 			LastName:   name,
 			MiddleName: name,
@@ -53,7 +53,7 @@ func (u *StubUser) Login(ctx context.Context, p UserLoginParam) (JWT, error) {
 	return JWT{}, fmt.Errorf("email is not role")
 }
 
-func (u *StubUser) Get(ctx context.Context, auth Identity) ([]UserDomain, error) {
+func (u *StubUser) Get(ctx context.Context, auth Identity) ([]UserDTO, error) {
 	switch auth.Role {
 	case Admin:
 		return append(u.students, u.teachers...), nil
@@ -72,7 +72,7 @@ func (u *StubUser) Create(ctx context.Context, auth Identity, p UserCreateParam)
 	return nil
 }
 
-func (u *StubUser) GetMe(ctx context.Context, auth Identity) (UserDomain, error) {
+func (u *StubUser) GetMe(ctx context.Context, auth Identity) (UserDTO, error) {
 	switch auth.Role {
 	case Admin:
 		return u.admins[0], nil
@@ -83,11 +83,11 @@ func (u *StubUser) GetMe(ctx context.Context, auth Identity) (UserDomain, error)
 	case Root:
 		return u.roots[0], nil
 	default:
-		return UserDomain{}, nil
+		return UserDTO{}, nil
 	}
 }
 
-func (u *StubUser) GetByID(ctx context.Context, auth Identity, id ID) (UserDomain, error) {
+func (u *StubUser) GetByID(ctx context.Context, auth Identity, id ID) (UserDTO, error) {
 	return u.roots[0], nil
 }
 

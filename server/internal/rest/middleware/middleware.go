@@ -1,4 +1,4 @@
-package transport
+package middleware
 
 import (
 	"bytes"
@@ -6,67 +6,46 @@ import (
 	"net/http"
 	"regexp"
 	"server/internal/logger"
-	"server/internal/usecase"
+	"server/internal/rest/transport"
 
 	"github.com/google/uuid"
 )
 
+type ctxKey string
+
+const tokenKey ctxKey = "token"
+
 type TokenParser interface {
-	Parse(token string) (authData, bool)
+	Parse(token string) (transport.AuthData, error)
 }
 
 type StubTokenParser struct{}
 
-func (p *StubTokenParser) Parse(token string) (authData, bool) {
-	return authData{subject: 1, role: "admin"}, true
+func (p *StubTokenParser) Parse(token string) (transport.AuthData, bool) {
+	return transport.AuthData{ID: 1, Role: "root"}, true
 }
 
-type ctxKey string
-
-type authData struct {
-	subject id
-	role    string
-}
-
-type middlewareBuilder struct{}
-
-func loggerWithAuthData(log logger.Logger, auth authData) logger.Logger {
+func loggerWithAuthData(log logger.Logger, auth transport.AuthData) logger.Logger {
 	field := logger.TraceField{
 		Key: "Auth",
 		Value: map[string]any{
-			"ID":   auth.subject,
-			"Role": auth.role,
+			"ID":   auth.ID,
+			"Role": auth.Role,
 		},
 	}
 	return log.With(field)
 }
 
-func (a *authData) toIdentity() usecase.Identity {
-	r, ok := toUserRole(a.role)
-	if !ok {
-		return usecase.Identity{}
-	}
-	return usecase.Identity{
-		ID:   usecase.ID(a.subject),
-		Role: r,
-	}
-}
-
 var authBearer = regexp.MustCompile(`^Bearer\s+(.+)$`)
 
-const (
-	tokenKey ctxKey = "token"
-	authKey  ctxKey = "authData"
-)
-
-func (b *middlewareBuilder) buildGetToken(next http.Handler) http.Handler {
+func GetToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth := b.getAuthorization(r.Header)
+		auth := getAuthorization(r.Header)
 		matches := authBearer.FindStringSubmatch(auth)
 
 		if len(matches) != 2 {
 			const errMsg = `Authorization header must be "Bearer <token>"`
-			sendError(
+			transport.SendError(
 				w,
 				http.StatusBadRequest,
 				errMsg,
@@ -81,7 +60,7 @@ func (b *middlewareBuilder) buildGetToken(next http.Handler) http.Handler {
 	})
 }
 
-func (b *middlewareBuilder) buildValidateToken(p TokenParser) func(http.Handler) http.Handler {
+func ValidateToken(p TokenParser) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := logger.FromCtx(r.Context())
@@ -89,7 +68,7 @@ func (b *middlewareBuilder) buildValidateToken(p TokenParser) func(http.Handler)
 			token, ok := r.Context().Value(tokenKey).(string)
 			if !ok {
 				const errMsg = "Authorization token is invalid"
-				sendError(
+				transport.SendError(
 					w,
 					http.StatusUnauthorized,
 					errMsg,
@@ -97,20 +76,19 @@ func (b *middlewareBuilder) buildValidateToken(p TokenParser) func(http.Handler)
 				return
 			}
 
-			auth, ok := p.Parse(token)
-			if !ok {
-				const errMsg = "Authorization token is expired"
-				sendError(
+			auth, err := p.Parse(token)
+			if err != nil {
+				transport.SendError(
 					w,
 					http.StatusUnauthorized,
-					errMsg,
+					err.Error(),
 				)
 				return
 			}
 
 			log = loggerWithAuthData(log, auth)
 
-			ctx := context.WithValue(r.Context(), authKey, auth)
+			ctx := auth.WithCtx(r.Context())
 			ctx = logger.WithLoggerCtx(ctx, log)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -118,29 +96,29 @@ func (b *middlewareBuilder) buildValidateToken(p TokenParser) func(http.Handler)
 	}
 }
 
-func (b *middlewareBuilder) buildLoggingRequest(next http.Handler) http.Handler {
+func LogRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log := logger.FromCtx(r.Context())
-		log = b.loggerWithRequest(log, r)
+		log = loggerWithRequest(log, r)
 		ctx := logger.WithLoggerCtx(r.Context(), log)
 		log.Info("Request received")
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func (b *middlewareBuilder) buildLoggingResponse(next http.Handler) http.Handler {
+func LogResponse(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := newResponseWriterWrapper(w)
 
 		next.ServeHTTP(rw, r)
 
 		log := logger.FromCtx(r.Context())
-		b.loggerWithResponse(log, rw.statusCode, rw.size).
+		loggerWithResponse(log, rw.statusCode, rw.size).
 			Info("Response sent")
 	})
 }
 
-func (b *middlewareBuilder) loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
+func loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
 	reqID := logger.TraceField{
 		Key:   "Request_id",
 		Value: uuid.New().String(),
@@ -154,7 +132,7 @@ func (b *middlewareBuilder) loggerWithRequest(log logger.Logger, r *http.Request
 	}
 	logger.OnDebug(func() {
 		header := r.Header.Clone()
-		auth := b.getAuthorization(header)
+		auth := getAuthorization(header)
 		matches := authBearer.FindStringSubmatch(auth)
 		if len(matches) != 2 {
 			auth = "[INVALID_TOKEN_FORMAT]"
@@ -167,7 +145,7 @@ func (b *middlewareBuilder) loggerWithRequest(log logger.Logger, r *http.Request
 	return log.With(reqID, field)
 }
 
-func (b *middlewareBuilder) loggerWithResponse(log logger.Logger, status int, size int) logger.Logger {
+func loggerWithResponse(log logger.Logger, status int, size int) logger.Logger {
 	fields := logger.TraceField{
 		Key: "Response",
 		Value: map[string]any{
@@ -178,7 +156,7 @@ func (b *middlewareBuilder) loggerWithResponse(log logger.Logger, status int, si
 	return log.With(fields)
 }
 
-func (b *middlewareBuilder) getAuthorization(h http.Header) string {
+func getAuthorization(h http.Header) string {
 	return h.Get("Authorization")
 }
 

@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"context"
-	"errors"
+	"server/internal/domain"
 	"server/internal/logger"
 	"server/internal/repository"
 	"server/internal/service/generator"
@@ -29,32 +29,29 @@ type RealUser struct {
 	repo  repository.Repository
 }
 
-func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (JWT, error) {
+func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.TokenPair, error) {
 	log := u.loggerFromLogin(ctx, param)
 	log.Debug("Called a login usecase method")
 
-	param.trim(u.valid)
-	if !param.validate(u.valid) {
-		return JWT{}, ErrInvalidField
+	user, err := u.repo.User().GetByLogin(ctx, param.Login)
+	if err != nil {
+		return nil, u.mapStorageError(err)
 	}
 
-	hash := u.gen.GenHashedPwd(param.Password)
-	log.Debug("Generated a password hash")
-
-	user, err := u.repo.User().GetByLoginPwd(ctx, param.Login, hash)
-	if err != nil {
-		return JWT{}, u.mapStorageError(err)
+	ok := user.Credential.Authorization(param.Login, param.Password)
+	if !ok {
+		return nil, ErrAccess
 	}
 
 	access, refresh := u.gen.GenJWTTokens(uint64(user.ID), string(user.Role))
 	log.Debug("Generated a jwt tokens")
 
-	return JWT{
-		AccessToken:  access,
-		RefreshToken: refresh,
+	return &domain.TokenPair{
+		Access:  access,
+		Refresh: refresh,
 	}, nil
 }
-func (u *RealUser) Get(context.Context, Identity) ([]UserDomain, error) {
+func (u *RealUser) Get(context.Context, Identity) ([]*domain.User, error) {
 	return nil, nil
 }
 func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCreateParam) error {
@@ -62,29 +59,28 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 
 	log.Debug("Called a create usecase method")
 
-	if !identity.isHigherOrEqual(Admin) || !identity.isHigher(param.Role) {
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) || !identity.Role.IsHigher(param.Role) {
 		log.Warn("Access permission")
 		return ErrAccess
 	}
 
-	param.trim(u.valid)
+	login := u.gen.GenLogin()
+	pwd := u.gen.GenPassword()
 
-	if !param.validate(u.valid) {
-		log.Warn("Param fields is not valid")
-		return errors.New("fields is not valid")
+	user, err := domain.NewUser(
+		login,
+		pwd,
+		param.Email,
+		param.FirstName,
+		param.LastName,
+		param.MiddleName,
+		domain.UserRole(param.Role),
+	)
+	if err != nil {
+		return err
 	}
 
-	login := u.gen.GenLogin()
-	pwd, hashed := u.gen.GenPassword()
-
-	err := u.repo.User().Create(ctx, repository.UserCreate{
-		FirstName:  param.FirstName,
-		LastName:   param.LastName,
-		MiddleName: param.MiddleName,
-		Email:      param.Email,
-		Login:      login,
-		HashedPwd:  hashed,
-	})
+	err = u.repo.User().Save(ctx, user)
 	if err != nil {
 		return u.mapStorageError(err)
 	}
@@ -104,36 +100,28 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 	return nil
 }
 
-func (u *RealUser) GetMe(ctx context.Context, identity Identity) (UserDomain, error) {
+func (u *RealUser) GetMe(ctx context.Context, identity Identity) (*domain.User, error) {
 	log := u.loggerFromGetMe(ctx, identity)
 	log.Debug("Called a getMe usecase method")
 
-	user, err := u.repo.User().GetByID(ctx, repository.ID(identity.ID))
+	user, err := u.repo.User().GetByID(ctx, domain.UserID(identity.ID))
 	if err != nil {
-		return UserDomain{}, u.mapStorageError(err)
+		return nil, u.mapStorageError(err)
 	}
 
-	return newUserDomainFromRepo(user), nil
+	return user, nil
 }
 
-func (u *RealUser) GetByID(ctx context.Context, identity Identity, id ID) (UserDomain, error) {
+func (u *RealUser) GetByID(ctx context.Context, identity Identity, id ID) (*domain.User, error) {
 	log := u.loggerFromGetByID(ctx, identity, id)
 	log.Debug("Called a getByID usecase method")
 
-	user, err := u.repo.User().GetByID(ctx, repository.ID(id))
+	user, err := u.repo.User().GetByID(ctx, domain.UserID(id))
 	if err != nil {
-		return UserDomain{}, u.mapStorageError(err)
+		return nil, u.mapStorageError(err)
 	}
 
-	return newUserDomainFromRepo(user), nil
-}
-
-func (u *RealUser) Put(context.Context, Identity, ID, UserPutParam) error {
-	return nil
-}
-
-func (u *RealUser) Delete(context.Context, Identity, ID) error {
-	return nil
+	return user, nil
 }
 
 func (u *RealUser) loggerFromCreate(ctx context.Context, identity Identity, param UserCreateParam) logger.Logger {

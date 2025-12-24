@@ -3,10 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
-	"server/internal/logger"
-	"server/internal/repository"
-	"server/internal/service/validator"
-	"time"
+	"server/internal/domain"
 )
 
 var (
@@ -17,15 +14,48 @@ var (
 )
 
 type User interface {
-	Login(context.Context, UserLoginParam) (JWT, error)
-	Get(context.Context, Identity) ([]UserDomain, error)
+	Login(context.Context, UserLoginParam) (*domain.TokenPair, error)
+	Get(context.Context, Identity) ([]*domain.User, error)
 	Create(context.Context, Identity, UserCreateParam) error
-	GetMe(context.Context, Identity) (UserDomain, error)
-	GetByID(context.Context, Identity, ID) (UserDomain, error)
-	Put(context.Context, Identity, ID, UserPutParam) error
-	Delete(context.Context, Identity, ID) error
+	GetMe(context.Context, Identity) (*domain.User, error)
+	GetByID(context.Context, Identity, domain.UserID) (*domain.User, error)
+	Delete(context.Context, Identity, domain.UserID) error
 }
 
+type Speciality interface {
+	Create(ctx context.Context, idendity Identity, name string) error
+	Get(ctx context.Context, identity Identity) ([]*domain.Speciality, error)
+}
+
+type Group interface {
+	Create(ctx context.Context, name string) error
+	Get(ctx context.Context) ([]*domain.Group, error)
+}
+
+type Subject interface {
+	Create(ctx context.Context, auth Identity, name string) error
+	Get(ctx context.Context, auth Identity) ([]*domain.Subject, error)
+}
+
+type UserLoginParam struct {
+	Login    string
+	Password string
+}
+
+type Identity struct {
+	ID   domain.UserID
+	Role domain.UserRole
+}
+
+type UserCreateParam struct {
+	FirstName  string
+	LastName   string
+	MiddleName string
+	Email      string
+	Role       domain.UserRole
+}
+
+/*
 type Quiz interface {
 	Create(context.Context, Identity, QuizCreateParam) error
 	Get(context.Context, Identity) ([]QuizDomain, error)
@@ -38,70 +68,9 @@ type Answer interface {
 	GetByID(context.Context, Identity, ID) (AnswerDomain, error)
 }
 
-type Group interface {
-	Create(ctx context.Context, name string) error
-	Get(ctx context.Context) ([]GroupDomain, error)
-}
-
-type Subject interface {
-	Create(ctx context.Context, auth Identity, name string) error
-	Get(ctx context.Context, auth Identity) ([]SubjectDomain, error)
-}
-
-type Speciality interface {
-	Create(ctx context.Context, name string) error
-}
-
-func NewUserRole(s string) UserRole {
-	switch s {
-	case "root":
-		return Root
-	case "admin":
-		return Admin
-	case "teacher":
-		return Teacher
-	case "student":
-		return Student
-	default:
-		return INVALID
-	}
-}
-
-type UserRole uint8
-
-const (
-	Root UserRole = iota
-	Admin
-	Teacher
-	Student
-	INVALID
-)
-
-func (u UserRole) toString() string {
-	switch u {
-	case Root:
-		return "root"
-	case Admin:
-		return "admin"
-	case Teacher:
-		return "teacher"
-	case Student:
-		return "student"
-	default:
-		return "invalid"
-	}
-}
-
-type ID uint64
-
 type UserLoginParam struct {
 	Login    string
 	Password string
-}
-
-func (p *UserLoginParam) trim(v validator.User) {
-	p.Login = v.Trim(p.Login)
-	p.Password = v.Trim(p.Password)
 }
 
 func (p *UserLoginParam) validate(v validator.User) bool {
@@ -113,38 +82,10 @@ type JWT struct {
 	RefreshToken string
 }
 
-type UserDomain struct {
-	ID         ID
-	FirstName  string
-	LastName   string
-	MiddleName string
-	Role       UserRole
-	CreatedAt  time.Time
-}
-
-func newUserDomainFromRepo(e repository.UserEntity) UserDomain {
-	return UserDomain{
-		ID:         ID(e.ID),
-		FirstName:  e.FirstName,
-		LastName:   e.LastName,
-		MiddleName: e.MiddleName,
-		Role:       NewUserRole(string(e.Role)),
-		CreatedAt:  e.CreatedAt,
-	}
-}
-
 type UserPutParam struct {
 	FirstName  string
 	LastName   string
 	MiddleName string
-}
-
-type UserCreateParam struct {
-	FirstName  string
-	LastName   string
-	MiddleName string
-	Email      string
-	Role       UserRole
 }
 
 func (p *UserCreateParam) trim(v validator.User) {
@@ -160,15 +101,7 @@ func (p *UserCreateParam) validate(v validator.User) bool {
 
 type Identity struct {
 	ID   ID
-	Role UserRole
-}
-
-func (i *Identity) isHigherOrEqual(role UserRole) bool {
-	return i.Role <= role
-}
-
-func (i *Identity) isHigher(role UserRole) bool {
-	return i.Role < role
+	Role domain.UserRole
 }
 
 type GroupDomain struct {
@@ -237,7 +170,7 @@ type AnswerDomain struct {
 	Score      int
 	Completed  bool
 	Quiz       QuizDomain
-	User       UserDomain
+	User       UserDTO
 	Answers    []AnsweredQuestion
 }
 
@@ -271,3 +204,5 @@ func mapFromIdentity(identity Identity) map[string]any {
 	}
 	return fields
 }
+
+*/

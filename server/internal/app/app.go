@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"server/internal/config"
 	"server/internal/logger"
-	"server/internal/transport"
+	"server/internal/rest"
 	"server/internal/usecase"
 )
 
@@ -53,7 +53,7 @@ func createHandler(app *config.App) (http.Handler, error) {
 		return nil, err
 	}
 
-	r, err := transport.NewRouter(
+	r, err := rest.NewRouter(
 		uu,
 		ug,
 		us,

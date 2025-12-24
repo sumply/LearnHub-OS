@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"server/internal/domain"
 	"server/internal/logger"
 	"server/internal/repository"
 	"server/internal/service/validator"
@@ -21,7 +22,7 @@ func (s *RealSubject) Create(ctx context.Context, identity Identity, name string
 	log := s.loggerFromCreate(ctx, identity, name)
 	log.Debug("Called a create usecase method")
 
-	if !identity.isHigherOrEqual(Admin) {
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
 		return ErrAccess
 	}
 	name = s.val.Trim(name)
@@ -29,30 +30,22 @@ func (s *RealSubject) Create(ctx context.Context, identity Identity, name string
 		return ErrInvalidField
 	}
 
-	err := s.repo.Subject().Save(ctx, repository.SubjectCreate{
-		Name:          name,
-		SpecialityIDs: []repository.ID{0},
-	})
+	err := s.repo.Subject().Save(ctx, nil)
 	if err != nil {
 		return s.mapStorageError(err)
 	}
 	return nil
 }
 
-func (s *RealSubject) Get(ctx context.Context, identity Identity) ([]SubjectDomain, error) {
+func (s *RealSubject) Get(ctx context.Context, identity Identity) ([]*domain.Subject, error) {
 	log := s.loggerFromGet(ctx, identity)
 	log.Debug("Called a get usecase method")
 
-	entities, err := s.repo.Subject().Get(ctx)
+	domains, err := s.repo.Subject().GetAll(ctx)
 	if err != nil {
 		return nil, s.mapStorageError(err)
 	}
-
-	resp := make([]SubjectDomain, len(entities))
-	for i, e := range entities {
-		resp[i] = newSubjectDomainFromEntity(e)
-	}
-	return resp, nil
+	return domains, nil
 }
 
 func (s *RealSubject) loggerFromCreate(ctx context.Context, identity Identity, name string) logger.Logger {

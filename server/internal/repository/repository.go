@@ -2,73 +2,41 @@ package repository
 
 import (
 	"context"
+	"server/internal/domain"
 )
 
-type Tx interface {
-	Commit() error
-	Rollback() error
+type GroupFilter struct {
+	ID          domain.GroupID
+	WithCurator bool
 }
 
 type User interface {
-	Create(context.Context, UserCreate) error
-	GetByID(context.Context, ID) (UserEntity, error)
-	GetByLoginPwd(ctx context.Context, login string, pwd string) (UserEntity, error)
-}
-
-type Student interface {
-	Save(context.Context, StudentCreate) error
-	GetByGroup(context.Context, ID) ([]UserEntity, error)
-}
-
-type Subject interface {
-	Save(context.Context, SubjectCreate) error
-	Get(context.Context) ([]SubjectEntity, error)
-}
-
-type Group interface {
-	Save(context.Context, GroupCreate) error
-	Get(context.Context) ([]GroupEntity, error)
+	Save(context.Context, *domain.User) error
+	GetByID(context.Context, domain.UserID) (*domain.User, error)
+	GetByLogin(ctx context.Context, login string) (*domain.User, error)
+	FindByGroup(context.Context, GroupFilter) ([]*domain.User, error)
 }
 
 type Speciality interface {
-	Save(context.Context, SpecialityCreate) error
-	Get(context.Context) ([]SpecialityEntity, error)
+	Save(context.Context, *domain.Speciality) error
+	GetAll(context.Context) ([]*domain.Speciality, error)
+}
+
+type Subject interface {
+	Save(context.Context, *domain.Subject) error
+	GetAll(context.Context) ([]*domain.Subject, error)
+}
+
+type Group interface {
+	Save(context.Context, *domain.Group) error
+	GetAll(context.Context) ([]*domain.Group, error)
+	AddStudent(context.Context, domain.GroupID, []domain.UserID) error
+	RemoveStudent(context.Context, domain.GroupID, []domain.UserID) error
 }
 
 type Repository interface {
 	User() User
-	Student() Student
 	Subject() Subject
 	Group() Group
 	Speciality() Speciality
-}
-
-type StudentCreate struct {
-	StudentID ID
-	GroupID   ID
-}
-
-type SpecialityCreate struct {
-	Name string
-}
-
-type SubjectCreate struct {
-	Name          string
-	SpecialityIDs []ID
-}
-
-type GroupCreate struct {
-	Name         string
-	TeacherID    ID
-	SpecialityID ID
-}
-
-type UserCreate struct {
-	FirstName  string
-	MiddleName string
-	LastName   string
-	Email      string
-	Role       UserRole
-	Login      string
-	HashedPwd  string
 }
