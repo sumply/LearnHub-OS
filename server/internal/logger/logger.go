@@ -182,7 +182,7 @@ func extractValue(v reflect.Value, t reflect.Type) any {
 		var printable any
 		switch fType.Tag.Get("log") {
 		case "hide":
-			continue
+			printable = "[HIDED]"
 		case "mask":
 			if fVal.Kind() != reflect.String {
 				printable = "[MASKED]"

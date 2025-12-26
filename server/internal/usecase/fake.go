@@ -117,7 +117,7 @@ func NewSubjectStub() *SubjectStub {
 func (s *SubjectStub) Create(
 	ctx context.Context,
 	identity Identity,
-	name string,
+	param SubjectCreateParam,
 ) error {
 	return ErrInvalidField
 }

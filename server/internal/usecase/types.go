@@ -32,8 +32,13 @@ type Group interface {
 }
 
 type Subject interface {
-	Create(ctx context.Context, auth Identity, name string) error
+	Create(context.Context, Identity, SubjectCreateParam) error
 	Get(ctx context.Context, auth Identity) ([]*domain.Subject, error)
+}
+
+type SubjectCreateParam struct {
+	Name          string
+	SpecialityIDs []domain.SpecialityID
 }
 
 type UserLoginParam struct {

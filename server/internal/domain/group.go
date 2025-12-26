@@ -14,6 +14,7 @@ type Group struct {
 
 	Curator    *User
 	Speciality *Speciality
+	Students   []*User
 }
 
 func NewGroup(name string, curator UserID, speciality SpecialityID) (*Group, error) {

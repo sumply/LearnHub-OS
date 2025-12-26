@@ -28,10 +28,6 @@ func (s *UserStub) GetByLogin(ctx context.Context, login string) (*domain.User, 
 	return nil, errors.New("user not found")
 }
 
-func (s *UserStub) FindByGroup(ctx context.Context, filter GroupFilter) ([]*domain.User, error) {
-	return []*domain.User{}, nil
-}
-
 // =======================
 // Speciality stub
 // =======================
@@ -102,12 +98,16 @@ func (s *GroupStub) RemoveStudent(
 	return nil
 }
 
+func (s *GroupStub) Find(ctx context.Context, filter GroupFilter) ([]*domain.Group, error) {
+	return []*domain.Group{}, nil
+}
+
 // =======================
 // Repository stub
 // =======================
 
 type RepositoryStub struct {
-	user       *UserStub
+	user       User
 	subject    *SubjectStub
 	group      *GroupStub
 	speciality *SpecialityStub
@@ -115,7 +115,7 @@ type RepositoryStub struct {
 
 func NewRepositoryStub() *RepositoryStub {
 	return &RepositoryStub{
-		user:       NewUserStub(),
+		user:       NewUserMemory(),
 		subject:    NewSubjectStub(),
 		group:      NewGroupStub(),
 		speciality: NewSpecialityStub(),

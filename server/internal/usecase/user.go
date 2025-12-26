@@ -30,6 +30,7 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 
 	user, err := u.repo.User().GetByLogin(ctx, param.Login)
 	if err != nil {
+		log.Warn(err.Error())
 		return nil, u.mapStorageError(err)
 	}
 
@@ -39,7 +40,7 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 	}
 
 	access, refresh := u.gen.GenJWTTokens(uint64(user.ID), string(user.Role))
-	log.Debug("Generated a jwt tokens")
+	log.Debug("Generated jwt tokens")
 
 	return &domain.TokenPair{
 		Access:  access,

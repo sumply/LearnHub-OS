@@ -18,22 +18,23 @@ func NewRealSubject() *RealSubject {
 	return &RealSubject{}
 }
 
-func (s *RealSubject) Create(ctx context.Context, identity Identity, name string) error {
+func (s *RealSubject) Create(ctx context.Context, identity Identity, param SubjectCreateParam) error {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
-		logger.TraceFieldFromAny(name),
+		logger.TraceFieldFromAny(param),
 	)
 	log.Debug("Called a create usecase method")
 
 	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
 		return ErrAccess
 	}
-	name = s.val.Trim(name)
-	if !s.val.ValidName(name) {
-		return ErrInvalidField
+
+	domain, err := domain.NewSubject(param.Name, param.SpecialityIDs)
+	if err != nil {
+		return err
 	}
 
-	err := s.repo.Subject().Save(ctx, nil)
+	err = s.repo.Subject().Save(ctx, domain)
 	if err != nil {
 		return s.mapStorageError(err)
 	}

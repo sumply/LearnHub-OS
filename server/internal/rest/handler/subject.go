@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"server/internal/domain"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
@@ -13,7 +14,8 @@ type subjectResp struct {
 }
 
 type subjectCreateReq struct {
-	Name string `json:"name"`
+	Name          string `json:"name"`
+	SpecialityIds []id   `json:"speciality_ids"`
 }
 
 type Subject struct {
@@ -43,7 +45,15 @@ func (h *Subject) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.usecase.Create(r.Context(), identity(auth), req.Name); err != nil {
+	ids := make([]domain.SpecialityID, len(req.SpecialityIds))
+	for i, id := range req.SpecialityIds {
+		ids[i] = domain.SpecialityID(id)
+	}
+	param := usecase.SubjectCreateParam{
+		Name:          req.Name,
+		SpecialityIDs: ids,
+	}
+	if err := h.usecase.Create(r.Context(), identity(auth), param); err != nil {
 		h.sendUsecaseError(w, err)
 		return
 	}

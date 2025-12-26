@@ -133,13 +133,15 @@ func loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
 	logger.OnDebug(func() {
 		header := r.Header.Clone()
 		auth := getAuthorization(header)
-		matches := authBearer.FindStringSubmatch(auth)
-		if len(matches) != 2 {
-			auth = "[INVALID_TOKEN_FORMAT]"
-		} else {
-			auth = "Bearer [MASKED_TOKEN]"
+		if len(auth) != 0 {
+			matches := authBearer.FindStringSubmatch(auth)
+			if len(matches) != 2 {
+				auth = "[INVALID_TOKEN_FORMAT]"
+			} else {
+				auth = "Bearer [MASKED_TOKEN]"
+			}
+			header.Set("Authorization", auth)
 		}
-		header.Set("Authorization", auth)
 		field.Value.(map[string]any)["Headers"] = header
 	})
 	return log.With(reqID, field)
