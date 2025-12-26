@@ -19,7 +19,6 @@ type User interface {
 	Create(context.Context, Identity, UserCreateParam) error
 	GetMe(context.Context, Identity) (*domain.User, error)
 	GetByID(context.Context, Identity, domain.UserID) (*domain.User, error)
-	Delete(context.Context, Identity, domain.UserID) error
 }
 
 type Speciality interface {
@@ -39,7 +38,7 @@ type Subject interface {
 
 type UserLoginParam struct {
 	Login    string
-	Password string
+	Password string `log:"hide"`
 }
 
 type Identity struct {
@@ -51,7 +50,7 @@ type UserCreateParam struct {
 	FirstName  string
 	LastName   string
 	MiddleName string
-	Email      string
+	Email      string `log:"mask"`
 	Role       domain.UserRole
 }
 

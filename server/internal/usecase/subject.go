@@ -19,7 +19,10 @@ func NewRealSubject() *RealSubject {
 }
 
 func (s *RealSubject) Create(ctx context.Context, identity Identity, name string) error {
-	log := s.loggerFromCreate(ctx, identity, name)
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.TraceFieldFromAny(name),
+	)
 	log.Debug("Called a create usecase method")
 
 	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
@@ -38,7 +41,9 @@ func (s *RealSubject) Create(ctx context.Context, identity Identity, name string
 }
 
 func (s *RealSubject) Get(ctx context.Context, identity Identity) ([]*domain.Subject, error) {
-	log := s.loggerFromGet(ctx, identity)
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+	)
 	log.Debug("Called a get usecase method")
 
 	domains, err := s.repo.Subject().GetAll(ctx)
@@ -46,21 +51,4 @@ func (s *RealSubject) Get(ctx context.Context, identity Identity) ([]*domain.Sub
 		return nil, s.mapStorageError(err)
 	}
 	return domains, nil
-}
-
-func (s *RealSubject) loggerFromCreate(ctx context.Context, identity Identity, name string) logger.Logger {
-	log := logger.FromCtx(ctx)
-	field := s.tracedFieldWithUsecase(map[string]any{
-		"identity": mapFromIdentity(identity),
-		"name":     name,
-	})
-	return log.With(field)
-}
-
-func (s *RealSubject) loggerFromGet(ctx context.Context, identity Identity) logger.Logger {
-	log := logger.FromCtx(ctx)
-	field := s.tracedFieldWithUsecase(map[string]any{
-		"identity": mapFromIdentity(identity),
-	})
-	return log.With(field)
 }

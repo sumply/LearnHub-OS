@@ -6,10 +6,10 @@ import (
 	"os"
 	"server/internal/logger"
 	"server/internal/repository"
+	"server/internal/rest/middleware"
 	"server/internal/service/generator"
 	"server/internal/service/sender"
 	"server/internal/service/validator"
-	"server/internal/transport"
 	"server/internal/usecase"
 	"strconv"
 
@@ -140,7 +140,7 @@ type AppStorage struct {
 func (a *AppStorage) CreateStorage() (repository.Repository, error) {
 	switch a.Type {
 	case ImplStub:
-		return repository.NewStub(), nil
+		return repository.NewRepositoryStub(), nil
 	default:
 		return nil, fmt.Errorf("%w: storage .type", ErrInvalid)
 	}
@@ -176,21 +176,9 @@ func NewApp(path string) (*App, error) {
 func (a *App) CreateUsecaseUser() (usecase.User, error) {
 	switch a.Usecase.User {
 	case ImplStub:
-		return usecase.NewStubUser(), nil
+		return usecase.NewUserStub(), nil
 	case ImplReal:
 		gen, err := a.Service.Generator.CreateAuth()
-		if err != nil {
-			return nil, err
-		}
-		val, err := a.Service.Validator.CreateUser()
-		if err != nil {
-			return nil, err
-		}
-		ms, err := a.Service.Sender.CreateMail()
-		if err != nil {
-			return nil, err
-		}
-		pgen, err := a.Service.Generator.CreatePage()
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +186,7 @@ func (a *App) CreateUsecaseUser() (usecase.User, error) {
 		if err != nil {
 			return nil, err
 		}
-		return usecase.NewRealUser(gen, val, ms, pgen, storage), nil
+		return usecase.NewRealUser(gen, storage), nil
 	default:
 		return nil, fmt.Errorf("%w: usecase .user", ErrInvalid)
 	}
@@ -207,7 +195,7 @@ func (a *App) CreateUsecaseUser() (usecase.User, error) {
 func (a *App) CreateUsecaseSubject() (usecase.Subject, error) {
 	switch a.Usecase.Subject {
 	case ImplStub:
-		return usecase.NewStubSubject(), nil
+		return usecase.NewSubjectStub(), nil
 	case ImplFake:
 		return nil, nil
 	default:
@@ -218,33 +206,11 @@ func (a *App) CreateUsecaseSubject() (usecase.Subject, error) {
 func (a *App) CreateUsecaseGroup() (usecase.Group, error) {
 	switch a.Usecase.Group {
 	case ImplStub:
-		return usecase.NewStubGroup(), nil
+		return usecase.NewGroupStub(), nil
 	case ImplFake:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("%w: usecase .group", ErrInvalid)
-	}
-}
-
-func (a *App) CreateUsecaseAnswer() (usecase.Answer, error) {
-	switch a.Usecase.Answer {
-	case ImplStub:
-		return usecase.NewStubAnswer(), nil
-	case ImplFake:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("%w: usecase .answer", ErrInvalid)
-	}
-}
-
-func (a *App) CreateUsecaseQuiz() (usecase.Quiz, error) {
-	switch a.Usecase.Quiz {
-	case ImplStub:
-		return usecase.NewStubQuiz(), nil
-	case ImplFake:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("%w: usecase .quiz", ErrInvalid)
 	}
 }
 
@@ -259,12 +225,12 @@ func (a *App) CreateLoggerNewFunc() (logger.NewFunc, error) {
 	}
 }
 
-func (a *App) CreateTransportJWTParser() (transport.TokenParser, error) {
+func (a *App) CreateTransportJWTParser() (middleware.TokenParser, error) {
 	switch a.Transport.JWT.Parser {
 	case ImplFake:
 		return nil, nil
 	case ImplStub:
-		return &transport.StubTokenParser{}, nil
+		return &middleware.StubTokenParser{}, nil
 	default:
 		return nil, fmt.Errorf("%w: logger .parse", ErrInvalid)
 	}

@@ -21,8 +21,8 @@ type TokenParser interface {
 
 type StubTokenParser struct{}
 
-func (p *StubTokenParser) Parse(token string) (transport.AuthData, bool) {
-	return transport.AuthData{ID: 1, Role: "root"}, true
+func (p *StubTokenParser) Parse(token string) (transport.AuthData, error) {
+	return transport.AuthData{ID: 1, Role: "root"}, nil
 }
 
 func loggerWithAuthData(log logger.Logger, auth transport.AuthData) logger.Logger {

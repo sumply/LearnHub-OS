@@ -5,7 +5,6 @@ import (
 	"server/internal/config"
 	"server/internal/logger"
 	"server/internal/rest"
-	"server/internal/usecase"
 )
 
 func Run() error {
@@ -18,54 +17,13 @@ func Run() error {
 		return err
 	}
 
-	r, err := createHandler(app)
+	r, err := rest.NewRouterStub()
 	if err != nil {
 		return err
 	}
 
 	s := config.Server{Addr: "127.0.0.1", Port: 8000}
 	return http.ListenAndServe(s.String(), r)
-}
-
-func createHandler(app *config.App) (http.Handler, error) {
-	uu, err := app.CreateUsecaseUser()
-	if err != nil {
-		return nil, err
-	}
-	ua, err := app.CreateUsecaseAnswer()
-	if err != nil {
-		return nil, err
-	}
-	ug, err := app.CreateUsecaseGroup()
-	if err != nil {
-		return nil, err
-	}
-	us, err := app.CreateUsecaseSubject()
-	if err != nil {
-		return nil, err
-	}
-	uq, err := app.CreateUsecaseQuiz()
-	if err != nil {
-		return nil, err
-	}
-	tp, err := app.CreateTransportJWTParser()
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := rest.NewRouter(
-		uu,
-		ug,
-		us,
-		uq,
-		ua,
-		usecase.NewRealSpeciality(),
-		tp,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return r, nil
 }
 
 func InitLogger(app *config.App) error {

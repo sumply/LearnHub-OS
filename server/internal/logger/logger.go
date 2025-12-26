@@ -3,7 +3,9 @@ package logger
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -29,6 +31,14 @@ const (
 	tracedKey ctxKey = "traced fields"
 	loggerKey ctxKey = "logger"
 )
+
+type Map map[string]any
+
+func (m *Map) Join(src ...Map) {
+	for _, joinable := range src {
+		maps.Copy((*m), joinable)
+	}
+}
 
 type TraceField struct {
 	Key   string
@@ -114,9 +124,7 @@ func withTracedFields(ctx context.Context, fields map[string]any) context.Contex
 
 func copyTracedFields(to map[string]any, from ...TraceField) map[string]any {
 	new := make(map[string]any)
-	for key, val := range to {
-		new[key] = val
-	}
+	maps.Copy(new, to)
 	for _, f := range from {
 		new[f.Key] = f.Value
 	}
@@ -149,6 +157,73 @@ func OnDebug(f func()) {
 	}
 }
 
-func Masking(value string) (mask string) {
+func Mask(value string) (mask string) {
 	return strings.Repeat("*", len(value))
+}
+
+func extractValue(v reflect.Value, t reflect.Type) any {
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return nil
+		}
+		v = v.Elem()
+		t = v.Type()
+	}
+	if t.Kind() != reflect.Struct || t == reflect.TypeOf(time.Time{}) {
+		return v.Interface()
+	}
+	m := make(map[string]any)
+	for i := range v.NumField() {
+		fVal := v.Field(i)
+		fType := t.Field(i)
+		if !fType.IsExported() {
+			continue
+		}
+		var printable any
+		switch fType.Tag.Get("log") {
+		case "hide":
+			continue
+		case "mask":
+			if fVal.Kind() != reflect.String {
+				printable = "[MASKED]"
+			} else {
+				printable = strings.Repeat("*", fVal.Len())
+			}
+		default:
+			printable = extractValue(fVal, fType.Type)
+		}
+		m[fType.Name] = printable
+	}
+	return m
+}
+
+func TraceFieldFromAny(a any) TraceField {
+	m := MapFromAny(a)
+	var new TraceField
+	for key, val := range m {
+		new.Key = key
+		new.Value = val
+	}
+	return new
+}
+
+func MapFromAny(a any) Map {
+	m := make(Map)
+	t := reflect.TypeOf(a)
+	v := reflect.ValueOf(a)
+	if t.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			m[t.Name()] = v.Interface()
+			return m
+		}
+		v = v.Elem()
+		t = v.Type()
+	}
+	if t.Kind() != reflect.Struct {
+		m[t.Name()] = v.Interface()
+		return m
+	}
+
+	m[t.Name()] = extractValue(v, t)
+	return m
 }
