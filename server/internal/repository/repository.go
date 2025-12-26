@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrCollision = errors.New("collision")
+	ErrNotFound  = errors.New("not found")
 )
 
 type GroupFilter struct {
@@ -18,7 +19,8 @@ type GroupFilter struct {
 type User interface {
 	Save(context.Context, *domain.User) error
 	GetByID(context.Context, domain.UserID) (*domain.User, error)
-	GetByLogin(ctx context.Context, login string) (*domain.User, error)
+	GetByLogin(context.Context, domain.Login) (*domain.User, error)
+	GetAll(context.Context) ([]*domain.User, error)
 }
 
 type Speciality interface {
@@ -36,12 +38,39 @@ type Group interface {
 	GetAll(context.Context) ([]*domain.Group, error)
 	AddStudent(context.Context, domain.GroupID, []domain.UserID) error
 	RemoveStudent(context.Context, domain.GroupID, []domain.UserID) error
-	Find(context.Context, GroupFilter) ([]*domain.Group, error)
 }
 
-type Repository interface {
-	User() User
-	Subject() Subject
-	Group() Group
-	Speciality() Speciality
+type Repository struct {
+	user       User
+	subject    Subject
+	group      Group
+	speciality Speciality
+}
+
+func New(u User, s Subject, g Group, sp Speciality) *Repository {
+	if u == nil || s == nil || g == nil || sp == nil {
+		panic("Repository params is nil")
+	}
+	return &Repository{
+		user:       u,
+		subject:    s,
+		group:      g,
+		speciality: sp,
+	}
+}
+
+func (r *Repository) User() User {
+	return r.user
+}
+
+func (r *Repository) Subject() Subject {
+	return r.subject
+}
+
+func (r *Repository) Group() Group {
+	return r.group
+}
+
+func (r *Repository) Speciality() Speciality {
+	return r.speciality
 }

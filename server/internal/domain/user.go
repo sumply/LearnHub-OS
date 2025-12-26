@@ -53,7 +53,9 @@ func NewLogin(s string) (Login, error) {
 
 type PwdHasher func(string) string
 
-var pwdHasher PwdHasher
+var pwdHasher PwdHasher = func(s string) string {
+	return s
+}
 
 type PwdHashed string
 
@@ -106,12 +108,8 @@ type Credential struct {
 	Email     Email
 }
 
-func (c *Credential) Authorization(login, pwd string) bool {
-	hash, err := NewPwdHashed(pwd)
-	if err != nil {
-		return false
-	}
-	return string(c.Login) == login && c.PwdHashed == hash
+func (c *Credential) Authorization(login Login, hash PwdHashed) bool {
+	return c.Login == login && c.PwdHashed == hash
 }
 
 func NewCredential(login, password, email string) (*Credential, error) {

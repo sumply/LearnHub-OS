@@ -38,7 +38,7 @@ func NewStub() *Stub {
 type Stub struct{}
 
 func (g *Stub) GenPassword() string {
-	return "secret"
+	return "verysecret"
 }
 
 func (g *Stub) GenLogin() string {
@@ -46,7 +46,7 @@ func (g *Stub) GenLogin() string {
 }
 
 func (g *Stub) GenHashedPwd(pwd string) (hashed string) {
-	return "hashed"
+	return "verysecret"
 }
 
 func (g *Stub) GenJWTTokens(id uint64, role string) (access, refresh string) {

@@ -2,24 +2,12 @@ package rest
 
 import (
 	"net/http"
-	"server/internal/repository"
 	"server/internal/rest/handler"
 	"server/internal/rest/middleware"
-	"server/internal/service/generator"
 	"server/internal/usecase"
 
 	"github.com/go-chi/chi/v5"
 )
-
-func NewRouterStub() (http.Handler, error) {
-	return NewRouter(
-		usecase.NewRealUser(&generator.Stub{}, repository.NewRepositoryStub()),
-		usecase.NewGroupStub(),
-		usecase.NewRealSubject(),
-		usecase.NewRealSpeciality(),
-		&middleware.StubTokenParser{},
-	)
-}
 
 func NewRouter(
 	uu usecase.User,

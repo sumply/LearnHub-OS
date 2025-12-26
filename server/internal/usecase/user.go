@@ -8,7 +8,7 @@ import (
 	"server/internal/service/generator"
 )
 
-func NewRealUser(gen generator.Generator, repo repository.Repository) *RealUser {
+func NewRealUser(gen generator.Generator, repo *repository.Repository) *RealUser {
 	return &RealUser{
 		gen:  gen,
 		repo: repo,
@@ -17,7 +17,7 @@ func NewRealUser(gen generator.Generator, repo repository.Repository) *RealUser 
 
 type RealUser struct {
 	usecase
-	repo repository.Repository
+	repo *repository.Repository
 	gen  generator.Generator
 }
 
@@ -28,24 +28,35 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 		)
 	log.Debug("Called a login usecase method")
 
-	user, err := u.repo.User().GetByLogin(ctx, param.Login)
+	login, err := domain.NewLogin(param.Login)
+	if err != nil {
+		log.Warn(err.Error())
+		return nil, err
+	}
+	user, err := u.repo.User().GetByLogin(ctx, login)
 	if err != nil {
 		log.Warn(err.Error())
 		return nil, u.mapStorageError(err)
 	}
 
-	ok := user.Credential.Authorization(param.Login, param.Password)
+	hash, err := domain.NewPwdHashed(param.Password)
+	if err != nil {
+		log.Warn(err.Error())
+		return nil, err
+	}
+	ok := user.Credential.Authorization(login, hash)
 	if !ok {
 		return nil, ErrAccess
 	}
 
-	access, refresh := u.gen.GenJWTTokens(uint64(user.ID), string(user.Role))
+	tokens, err := domain.NewTokenPair(user)
+	if err != nil {
+		log.Warn(err.Error())
+		return nil, err
+	}
 	log.Debug("Generated jwt tokens")
 
-	return &domain.TokenPair{
-		Access:  access,
-		Refresh: refresh,
-	}, nil
+	return tokens, nil
 }
 
 func (u *RealUser) Get(ctx context.Context, identity Identity) ([]*domain.User, error) {
@@ -53,7 +64,14 @@ func (u *RealUser) Get(ctx context.Context, identity Identity) ([]*domain.User, 
 		logger.TraceFieldFromAny(identity),
 	)
 	log.Debug("Called a get usecase method")
-	return nil, nil
+
+	users, err := u.repo.User().GetAll(ctx)
+	if err != nil {
+		log.Warn(err.Error())
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCreateParam) error {
@@ -65,7 +83,7 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 	log.Debug("Called a create usecase method")
 
 	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) || !identity.Role.IsHigher(param.Role) {
-		log.Warn("Access permission")
+		log.Warn(ErrAccess.Error())
 		return ErrAccess
 	}
 
@@ -82,11 +100,13 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 		domain.UserRole(param.Role),
 	)
 	if err != nil {
+		log.Warn(err.Error())
 		return err
 	}
 
 	err = u.repo.User().Save(ctx, user)
 	if err != nil {
+		log.Warn(err.Error())
 		return u.mapStorageError(err)
 	}
 

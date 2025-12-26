@@ -1,21 +1,17 @@
 package config
 
-import (
-	"errors"
-	"fmt"
-	"os"
-	"server/internal/logger"
-	"server/internal/repository"
-	"server/internal/rest/middleware"
-	"server/internal/service/generator"
-	"server/internal/service/sender"
-	"server/internal/service/validator"
-	"server/internal/usecase"
-	"strconv"
+import "fmt"
 
-	"gopkg.in/yaml.v3"
-)
+type Server struct {
+	Addr string
+	Port int
+}
 
+func (s *Server) String() string {
+	return fmt.Sprintf("%s:%d", s.Addr, s.Port)
+}
+
+/*
 var (
 	ErrEmpty   = errors.New("key is empty")
 	ErrInvalid = errors.New("value is invalid")
@@ -31,14 +27,6 @@ const (
 	ImplError = "error"
 )
 
-type Server struct {
-	Addr string
-	Port int
-}
-
-func (s *Server) String() string {
-	return fmt.Sprintf("%s:%d", s.Addr, s.Port)
-}
 
 func NewServerFromEnv() (*Server, error) {
 	addr := os.Getenv("ADDRESS_HOST")
@@ -250,3 +238,5 @@ func (a *App) CreateLoggerLevel() (logger.Level, error) {
 		return 0, ErrInvalid
 	}
 }
+
+*/

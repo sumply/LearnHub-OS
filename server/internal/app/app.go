@@ -4,40 +4,36 @@ import (
 	"net/http"
 	"server/internal/config"
 	"server/internal/logger"
+	"server/internal/repository"
 	"server/internal/rest"
+	"server/internal/rest/middleware"
+	"server/internal/service/generator"
+	"server/internal/usecase"
 )
 
 func Run() error {
-	app, err := config.NewApp("./configs/app.yaml")
-	if err != nil {
-		return err
-	}
+	logger.SetNewFunc(func() logger.Logger {
+		return logger.NewFake()
+	})
+	logger.SetLayer(logger.DEBUG)
 
-	if err := InitLogger(app); err != nil {
-		return err
-	}
-
-	r, err := rest.NewRouterStub()
+	repo := repository.New(
+		&repository.UserMemory{},
+		repository.NewSubjectStub(),
+		repository.NewGroupStub(),
+		repository.NewSpecialityStub(),
+	)
+	r, err := rest.NewRouter(
+		usecase.NewRealUser(generator.NewStub(), repo),
+		usecase.NewGroupStub(),
+		usecase.NewRealSubject(),
+		usecase.NewRealSpeciality(),
+		&middleware.StubTokenParser{},
+	)
 	if err != nil {
 		return err
 	}
 
 	s := config.Server{Addr: "127.0.0.1", Port: 8000}
 	return http.ListenAndServe(s.String(), r)
-}
-
-func InitLogger(app *config.App) error {
-	new, err := app.CreateLoggerNewFunc()
-	if err != nil {
-		return err
-	}
-	logger.SetNewFunc(func() logger.Logger {
-		return new()
-	})
-	level, err := app.CreateLoggerLevel()
-	if err != nil {
-		return err
-	}
-	logger.SetLayer(level)
-	return nil
 }

@@ -101,39 +101,3 @@ func (s *GroupStub) RemoveStudent(
 func (s *GroupStub) Find(ctx context.Context, filter GroupFilter) ([]*domain.Group, error) {
 	return []*domain.Group{}, nil
 }
-
-// =======================
-// Repository stub
-// =======================
-
-type RepositoryStub struct {
-	user       User
-	subject    *SubjectStub
-	group      *GroupStub
-	speciality *SpecialityStub
-}
-
-func NewRepositoryStub() *RepositoryStub {
-	return &RepositoryStub{
-		user:       NewUserMemory(),
-		subject:    NewSubjectStub(),
-		group:      NewGroupStub(),
-		speciality: NewSpecialityStub(),
-	}
-}
-
-func (r *RepositoryStub) User() User {
-	return r.user
-}
-
-func (r *RepositoryStub) Subject() Subject {
-	return r.subject
-}
-
-func (r *RepositoryStub) Group() Group {
-	return r.group
-}
-
-func (r *RepositoryStub) Speciality() Speciality {
-	return r.speciality
-}

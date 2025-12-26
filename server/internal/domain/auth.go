@@ -5,6 +5,10 @@ type TokenPair struct {
 	Refresh string
 }
 
-type TokenGenerator interface {
-	GenerateTokenPair(*User) (TokenPair, error)
+type GenerateTokenPair func(*User) (*TokenPair, error)
+
+var generateTokenPair GenerateTokenPair
+
+func NewTokenPair(user *User) (*TokenPair, error) {
+	return generateTokenPair(user)
 }

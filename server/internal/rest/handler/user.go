@@ -61,12 +61,6 @@ type userCreateReq struct {
 	Role       string  `json:"role"`
 }
 
-type userDTOPutRequest struct {
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-}
-
 type User struct {
 	handler
 	u usecase.User
@@ -221,7 +215,7 @@ func (h *User) Post(w http.ResponseWriter, r *http.Request) {
 		LastName:   req.LastName,
 		MiddleName: *req.MiddleName,
 		Email:      req.Email,
-		Role:       userRole(auth.Role),
+		Role:       userRole(req.Role),
 	}
 
 	err := h.u.Create(r.Context(), identity(auth), param)
