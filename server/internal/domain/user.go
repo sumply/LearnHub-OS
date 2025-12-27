@@ -59,6 +59,10 @@ var pwdHasher PwdHasher = func(s string) string {
 
 type PwdHashed string
 
+func HashPassword(s string) PwdHashed {
+	return PwdHashed(pwdHasher(s))
+}
+
 func NewPwdHashed(s string) (PwdHashed, error) {
 	s = strings.TrimSpace(s)
 	if len([]rune(s)) < 8 {

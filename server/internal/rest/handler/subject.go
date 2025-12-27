@@ -4,19 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
+	"server/internal/rest/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
-
-type subjectResp struct {
-	ID   id     `json:"id"`
-	Name string `json:"name"`
-}
-
-type subjectCreateReq struct {
-	Name          string `json:"name"`
-	SpecialityIds []id   `json:"speciality_ids"`
-}
 
 type Subject struct {
 	handler
@@ -33,7 +24,7 @@ func NewSubject(s usecase.Subject) (*Subject, error) {
 }
 
 func (h *Subject) Post(w http.ResponseWriter, r *http.Request) {
-	var req subjectCreateReq
+	var req dto.SubjectCreateReq
 	if err := transport.DecodeJSON(r.Body, &req); err != nil {
 		h.sendDecodeError(w)
 		return
@@ -74,12 +65,9 @@ func (h *Subject) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := make([]subjectResp, len(data))
+	resp := make([]*dto.SubjectResp, len(data))
 	for i, d := range data {
-		resp[i] = subjectResp{
-			ID:   id(d.ID),
-			Name: string(d.Name),
-		}
+		resp[i] = dto.NewSubjectResp(d)
 	}
 
 	if err := transport.EncodeJSON(w, &resp); err != nil {

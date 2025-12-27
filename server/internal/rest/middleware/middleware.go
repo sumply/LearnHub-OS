@@ -3,6 +3,9 @@ package middleware
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"server/internal/logger"
@@ -22,7 +25,22 @@ type TokenParser interface {
 type StubTokenParser struct{}
 
 func (p *StubTokenParser) Parse(token string) (transport.AuthData, error) {
-	return transport.AuthData{ID: 1, Role: "root"}, nil
+	return transport.AuthData{ID: 1, Role: 0}, nil
+}
+
+type TokenParserFake struct{}
+
+func (p *TokenParserFake) Parse(token string) (transport.AuthData, error) {
+	decoded, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return transport.AuthData{}, err
+	}
+	fmt.Println(string(decoded))
+	var auth transport.AuthData
+	if err := json.Unmarshal(decoded, &auth); err != nil {
+		return transport.AuthData{}, err
+	}
+	return auth, nil
 }
 
 func loggerWithAuthData(log logger.Logger, auth transport.AuthData) logger.Logger {

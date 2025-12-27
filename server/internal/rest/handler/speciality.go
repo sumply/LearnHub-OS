@@ -2,18 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"server/internal/rest/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
-
-type specialCreateReq struct {
-	Name string `json:"name"`
-}
-
-type specialResp struct {
-	ID   id     `json:"id"`
-	Name string `json:"name"`
-}
 
 type Speciality struct {
 	handler
@@ -25,7 +17,7 @@ func NewSpeciality(u usecase.Speciality) *Speciality {
 }
 
 func (h *Speciality) Post(w http.ResponseWriter, r *http.Request) {
-	var req specialCreateReq
+	var req dto.SpecialityCreateReq
 	if err := transport.DecodeJSON(r.Body, &req); err != nil {
 		h.sendDecodeError(w)
 		return
@@ -54,12 +46,9 @@ func (h *Speciality) Get(w http.ResponseWriter, r *http.Request) {
 		h.sendUsecaseError(w, err)
 		return
 	}
-	resp := make([]specialResp, len(data))
+	resp := make([]*dto.SpecialityResp, len(data))
 	for i, d := range data {
-		resp[i] = specialResp{
-			ID:   id(d.ID),
-			Name: string(d.Name),
-		}
+		resp[i] = dto.NewSpecialityResp(d)
 	}
 	if err := transport.EncodeJSON(w, &resp); err != nil {
 		h.sendEncodeError(w)

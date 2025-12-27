@@ -12,22 +12,120 @@ var credStorage = make(map[domain.Login]*domain.Credential)
 var userStorage = make(map[domain.UserID]*domain.User)
 var specStorage = make(map[domain.SpecialityID]*domain.Speciality)
 var groupStorage = make(map[domain.GroupID]*domain.Group)
-var nextID = 1
+
+var id uint64
+
+func nextID() uint64 {
+	id++
+	return id
+}
+
+func curID() uint64 {
+	return id
+}
 
 func init() {
-	credStorage["vlad"] = &domain.Credential{
-		Login:     "vlad",
-		PwdHashed: "verysecret",
-		Email:     "vlad@gmail.com",
+	PrepareMemory()
+}
+
+func PrepareMemory() {
+	now := time.Now().UTC()
+	credStorage = map[domain.Login]*domain.Credential{
+		"root": {
+			Login:     "root",
+			PwdHashed: domain.HashPassword("root"),
+			Email:     "root@root.root",
+		},
+		"admin": {
+			Login:     "admin",
+			PwdHashed: domain.HashPassword("admin"),
+			Email:     "admin@admin.admin",
+		},
+		"teacher": {
+			Login:     "teacher",
+			PwdHashed: domain.HashPassword("teacher"),
+			Email:     "teacher@teacher.teacher",
+		},
+		"student": {
+			Login:     "student",
+			PwdHashed: domain.HashPassword("student"),
+			Email:     "student@student.student",
+		},
 	}
-	userStorage[0] = &domain.User{
-		ID:         0,
-		FirstName:  "Vladislav",
-		LastName:   "Yanushkevich",
-		MiddleName: "Vitalevich",
-		Role:       domain.UserRoot,
-		Credential: credStorage["vlad"],
-		CreatedAt:  time.Now().UTC(),
+	userStorage = map[domain.UserID]*domain.User{
+		domain.UserID(nextID()): {
+			ID:         domain.UserID(curID()),
+			FirstName:  "root",
+			LastName:   "root",
+			MiddleName: "root",
+			Role:       domain.UserRoot,
+			Credential: credStorage["root"],
+			CreatedAt:  now,
+		},
+		domain.UserID(nextID()): {
+			ID:         domain.UserID(curID()),
+			FirstName:  "admin",
+			LastName:   "admin",
+			MiddleName: "admin",
+			Role:       domain.UserAdmin,
+			Credential: credStorage["admin"],
+			CreatedAt:  now,
+		},
+		domain.UserID(nextID()): {
+			ID:         domain.UserID(curID()),
+			FirstName:  "teacher",
+			LastName:   "teacher",
+			MiddleName: "teacher",
+			Role:       domain.UserTeacher,
+			Credential: credStorage["teacher"],
+			CreatedAt:  now,
+		},
+		domain.UserID(nextID()): {
+			ID:         domain.UserID(curID()),
+			FirstName:  "student",
+			LastName:   "student",
+			MiddleName: "student",
+			Role:       domain.UserStudent,
+			Credential: credStorage["student"],
+			CreatedAt:  now,
+		},
+	}
+	specStorage = map[domain.SpecialityID]*domain.Speciality{
+		domain.SpecialityID(nextID()): {
+			ID:   domain.SpecialityID(curID()),
+			Name: "Common",
+		},
+		domain.SpecialityID(nextID()): {
+			ID:   domain.SpecialityID(curID()),
+			Name: "English",
+		},
+		domain.SpecialityID(nextID()): {
+			ID:   domain.SpecialityID(curID()),
+			Name: "Math",
+		},
+	}
+	groupStorage = map[domain.GroupID]*domain.Group{
+		domain.GroupID(nextID()): {
+			ID:         domain.GroupID(curID()),
+			Name:       "9-A",
+			Curator:    userStorage[3],
+			Speciality: specStorage[5],
+			Students:   []*domain.User{userStorage[4]},
+		},
+		domain.GroupID(nextID()): {
+			ID:         domain.GroupID(curID()),
+			Name:       "10-A",
+			Curator:    userStorage[2],
+			Speciality: specStorage[6],
+			Students:   []*domain.User{},
+		},
+		domain.GroupID(nextID()): {
+			ID:         domain.GroupID(curID()),
+			Name:       "11-A",
+			Curator:    userStorage[3],
+			Speciality: specStorage[7],
+			Students:   []*domain.User{userStorage[1]},
+		},
 	}
 }
 
@@ -42,7 +140,7 @@ func (u *UserMemory) Save(ctx context.Context, user *domain.User) error {
 		logger.TraceFieldFromAny(user),
 	)
 	log.Debug("Called a save repository method")
-	user.ID = domain.UserID(nextID)
+	user.ID = domain.UserID(nextID())
 	if _, ok := credStorage[user.Credential.Login]; ok {
 		return fmt.Errorf("%w: login=%s", ErrCollision, user.Credential.Login)
 	}
@@ -51,7 +149,6 @@ func (u *UserMemory) Save(ctx context.Context, user *domain.User) error {
 		return fmt.Errorf("%w: user_id=%d", ErrCollision, user.ID)
 	}
 	userStorage[user.ID] = user
-	nextID++
 	return nil
 }
 
@@ -99,7 +196,7 @@ func (u *UserMemory) GetAll(ctx context.Context) ([]*domain.User, error) {
 type SpecialityMemory struct{}
 
 func (s *SpecialityMemory) Save(ctx context.Context, spec *domain.Speciality) error {
-	spec.ID = domain.SpecialityID(nextID)
+	spec.ID = domain.SpecialityID(nextID())
 
 	log := logger.FromCtx(ctx)
 	log.Debug("Called a save repository method")
@@ -115,7 +212,6 @@ func (s *SpecialityMemory) Save(ctx context.Context, spec *domain.Speciality) er
 	}
 
 	specStorage[spec.ID] = spec
-	nextID++
 	return nil
 }
 
@@ -146,7 +242,7 @@ func (g *GroupMemory) Save(ctx context.Context, group *domain.Group) error {
 	log.Debug("Called a save repotiroy method")
 
 	if _, ok := groupStorage[group.ID]; ok {
-		return fmt.Errorf("%w: group_i=%d", ErrCollision, group.ID)
+		return fmt.Errorf("%w: group_id=%d", ErrCollision, group.ID)
 	}
 
 	for _, g := range groupStorage {
@@ -166,12 +262,11 @@ func (g *GroupMemory) Save(ctx context.Context, group *domain.Group) error {
 	}
 
 	new := *group
-	new.ID = domain.GroupID(nextID)
+	new.ID = domain.GroupID(nextID())
 	new.Curator = curator
 	new.Speciality = speciality
 
 	groupStorage[new.ID] = &new
-	nextID++
 	return nil
 }
 func (g *GroupMemory) GetAll(ctx context.Context) ([]*domain.Group, error) {
@@ -186,7 +281,9 @@ func (g *GroupMemory) GetAll(ctx context.Context) ([]*domain.Group, error) {
 	i := 0
 	for _, g := range groupStorage {
 		new := *g
+		log.With(logger.TraceFieldFromAny(new)).Debug("new")
 		groups[i] = &new
+		i++
 	}
 	return groups, nil
 }

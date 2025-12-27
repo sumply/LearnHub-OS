@@ -54,19 +54,19 @@ func (h *handler) getParamInt(r *http.Request, key string) (int, error) {
 	return i, nil
 }
 
-func (h *handler) getParamQuizID(r *http.Request) (id, error) {
+func (h *handler) getParamQuizID(r *http.Request) (int, error) {
 	i, err := h.getParamInt(r, "quiz_id")
-	return id(i), err
+	return i, err
 }
 
-func (h *handler) getParamAnswerID(r *http.Request) (id, error) {
+func (h *handler) getParamAnswerID(r *http.Request) (int, error) {
 	i, err := h.getParamInt(r, "answer_id")
-	return id(i), err
+	return i, err
 }
 
-func (h *handler) getParamUserID(r *http.Request) (id, error) {
+func (h *handler) getParamUserID(r *http.Request) (int, error) {
 	i, err := h.getParamInt(r, "user_id")
-	return id(i), err
+	return i, err
 }
 
 func (h *handler) sendParamError(w http.ResponseWriter, what string) {
@@ -94,7 +94,7 @@ func (h *handler) sendUsecaseError(w http.ResponseWriter, err error) (int, strin
 		status = http.StatusInternalServerError
 		msg = "Internal server error"
 	}
-	transport.SendError(w, status, msg)
+	transport.SendError(w, status, err.Error())
 	return status, msg
 }
 
@@ -114,12 +114,8 @@ func userRole(s string) domain.UserRole {
 }
 
 func identity(a transport.AuthData) usecase.Identity {
-	role, ok := roleMap[a.Role]
-	if !ok {
-		role = domain.UserInvalid
-	}
 	return usecase.Identity{
 		ID:   domain.UserID(a.ID),
-		Role: role,
+		Role: domain.UserRole(a.Role),
 	}
 }

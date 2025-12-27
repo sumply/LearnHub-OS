@@ -12,8 +12,8 @@ type ctxKey string
 const authKey ctxKey = "AuthData"
 
 type AuthData struct {
-	ID   uint64
-	Role string
+	ID   uint64 `json:"id"`
+	Role uint64 `json:"role"`
 }
 
 func (d *AuthData) WithCtx(ctx context.Context) context.Context {

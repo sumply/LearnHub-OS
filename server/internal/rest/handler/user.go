@@ -5,61 +5,10 @@ import (
 	"net/http"
 	"server/internal/domain"
 	"server/internal/logger"
+	"server/internal/rest/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
-
-func formatShortName(f string, l string, m string) string {
-	if f == "" || l == "" {
-		return ""
-	}
-	name := fmt.Sprintf("%s %v.", f, l[0])
-	if m != "" {
-		name = fmt.Sprintf("%s %v.", name, m[0])
-	}
-	return name
-}
-
-type id uint64
-
-type userShortResp struct {
-	ID        id     `json:"id"`
-	ShortName string `json:"short_name"`
-}
-
-type userFullResp struct {
-	ID         id     `json:"id"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
-}
-
-func newUserFullResp(d *domain.User) userFullResp {
-	return userFullResp{
-		ID:         id(d.ID),
-		FirstName:  string(d.FirstName),
-		LastName:   string(d.LastName),
-		MiddleName: string(d.MiddleName),
-	}
-}
-
-type loginReq struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-}
-
-type loginResp struct {
-	RefreshToken string `json:"refresh_token"`
-	AccessToken  string `json:"access_token"`
-}
-
-type userCreateReq struct {
-	FirstName  string  `json:"first_name"`
-	LastName   string  `json:"last_name"`
-	MiddleName *string `json:"middle_name"`
-	Email      string  `json:"email"`
-	Role       string  `json:"role"`
-}
 
 type User struct {
 	handler
@@ -76,7 +25,7 @@ func NewUser(u usecase.User) (*User, error) {
 }
 
 func (h *User) Login(w http.ResponseWriter, r *http.Request) {
-	var req loginReq
+	var req dto.LoginReq
 	if err := transport.DecodeJSON(r.Body, &req); err != nil {
 		h.sendDecodeError(w)
 		return
@@ -93,12 +42,9 @@ func (h *User) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := loginResp{
-		RefreshToken: data.Refresh,
-		AccessToken:  data.Access,
-	}
+	resp := dto.NewLoginResp(data)
 
-	if err := transport.EncodeJSON(w, &resp); err != nil {
+	if err := transport.EncodeJSON(w, resp); err != nil {
 		h.sendEncodeError(w)
 	}
 }
@@ -125,16 +71,9 @@ func (h *User) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Debug("Mapping a usecase domain to a response struct")
-	var resp []userShortResp
+	var resp []*dto.UserShortResp
 	for _, d := range data {
-		user := userShortResp{
-			ID: id(d.ID),
-			ShortName: formatShortName(
-				string(d.FirstName),
-				string(d.LastName),
-				string(d.MiddleName),
-			),
-		}
+		user := dto.NewUserShortResp(d)
 		resp = append(resp, user)
 	}
 
@@ -157,7 +96,7 @@ func (h *User) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := newUserFullResp(data)
+	resp := dto.NewUserFullResp(data)
 
 	if err := transport.EncodeJSON(w, &resp); err != nil {
 		h.sendEncodeError(w)
@@ -184,7 +123,7 @@ func (h *User) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := newUserFullResp(data)
+	resp := dto.NewUserFullResp(data)
 	if err := transport.EncodeJSON(w, &resp); err != nil {
 		h.sendEncodeError(w)
 		return
@@ -192,7 +131,7 @@ func (h *User) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *User) Post(w http.ResponseWriter, r *http.Request) {
-	var req userCreateReq
+	var req dto.UserCreateReq
 	if err := transport.DecodeJSON(r.Body, &req); err != nil {
 		h.sendDecodeError(w)
 

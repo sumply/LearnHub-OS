@@ -28,7 +28,7 @@ func Run() error {
 		usecase.NewGroupReal(repo),
 		usecase.NewRealSubject(),
 		usecase.NewRealSpeciality(repo),
-		&middleware.StubTokenParser{},
+		&middleware.TokenParserFake{},
 	)
 	if err != nil {
 		return err

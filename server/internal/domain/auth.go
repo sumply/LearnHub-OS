@@ -1,6 +1,9 @@
 package domain
 
-import "encoding/json"
+import (
+	"encoding/base64"
+	"encoding/json"
+)
 
 type TokenPair struct {
 	Access  string
@@ -11,16 +14,17 @@ type GenerateTokenPair func(*User) (*TokenPair, error)
 
 var generateTokenPair GenerateTokenPair = func(u *User) (*TokenPair, error) {
 	m := map[string]any{
-		"ID":   u.ID,
-		"Role": u.Role,
+		"id":   u.ID,
+		"role": u.Role,
 	}
 	token, err := json.Marshal(m)
 	if err != nil {
 		return nil, err
 	}
+
 	return &TokenPair{
-		Access:  string(token),
-		Refresh: string(token),
+		Access:  base64.StdEncoding.EncodeToString(token),
+		Refresh: base64.StdEncoding.EncodeToString(token),
 	}, nil
 }
 

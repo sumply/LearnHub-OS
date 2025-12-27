@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"server/internal/domain"
 	"server/internal/logger"
 	"server/internal/repository"
@@ -40,13 +41,10 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 		return nil, u.mapStorageError(err)
 	}
 
-	hash, err := domain.NewPwdHashed(param.Password)
-	if err != nil {
-		log.Warn(err.Error())
-		return nil, err
-	}
+	hash := domain.HashPassword(param.Password)
 	ok := user.Credential.Authorization(login, hash)
 	if !ok {
+		log.Warn("bad authorization")
 		return nil, ErrAccess
 	}
 
@@ -111,6 +109,7 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 		log.Warn(err.Error())
 		return u.mapStorageError(err)
 	}
+	fmt.Println(login, pwd)
 
 	return nil
 }
@@ -124,6 +123,7 @@ func (u *RealUser) GetMe(ctx context.Context, identity Identity) (*domain.User, 
 	ctx = logger.WithLoggerCtx(ctx, log)
 	user, err := u.repo.User().GetByID(ctx, domain.UserID(identity.ID))
 	if err != nil {
+		log.Warn(err.Error())
 		return nil, u.mapStorageError(err)
 	}
 

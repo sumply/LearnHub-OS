@@ -4,22 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
+	"server/internal/rest/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
-
-type groupResp struct {
-	ID         id            `json:"id"`
-	Name       string        `json:"name"`
-	Curator    userShortResp `json:"curator"`
-	Speciality specialResp   `json:"speciality"`
-}
-
-type groupCreateReq struct {
-	Name         string `json:"name"`
-	CuratorID    id     `json:"curator_id"`
-	SpecialityID id     `json:"speciality_id"`
-}
 
 type Group struct {
 	handler
@@ -36,7 +24,7 @@ func NewGroup(g usecase.Group) (*Group, error) {
 }
 
 func (h *Group) Post(w http.ResponseWriter, r *http.Request) {
-	var req groupCreateReq
+	var req dto.GroupCreateReq
 	if err := transport.DecodeJSON(r.Body, &req); err != nil {
 		h.sendDecodeError(w)
 		return
@@ -68,12 +56,9 @@ func (h *Group) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := make([]groupResp, len(data))
+	resp := make([]*dto.GroupResp, len(data))
 	for i, d := range data {
-		resp[i] = groupResp{
-			ID:   id(d.ID),
-			Name: string(d.Name),
-		}
+		resp[i] = dto.NewGroupResp(d)
 	}
 
 	if err := transport.EncodeJSON(w, &resp); err != nil {
