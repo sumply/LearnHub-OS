@@ -3,17 +3,22 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"server/internal/domain"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
 
 type groupResp struct {
-	ID   id     `json:"id"`
-	Name string `json:"name"`
+	ID         id            `json:"id"`
+	Name       string        `json:"name"`
+	Curator    userShortResp `json:"curator"`
+	Speciality specialResp   `json:"speciality"`
 }
 
 type groupCreateReq struct {
-	Name string `json:"name"`
+	Name         string `json:"name"`
+	CuratorID    id     `json:"curator_id"`
+	SpecialityID id     `json:"speciality_id"`
 }
 
 type Group struct {
@@ -37,7 +42,18 @@ func (h *Group) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.usecase.Create(r.Context(), req.Name); err != nil {
+	auth, ok := transport.NewAuthDataFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+
+	param := usecase.GroupCreateParam{
+		Name:         req.Name,
+		CuratorID:    domain.UserID(req.CuratorID),
+		SpecialityID: domain.SpecialityID(req.SpecialityID),
+	}
+	if err := h.usecase.Create(r.Context(), identity(auth), param); err != nil {
 		h.sendUsecaseError(w, err)
 		return
 	}

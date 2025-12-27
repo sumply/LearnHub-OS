@@ -34,6 +34,7 @@ func (s *RealSubject) Create(ctx context.Context, identity Identity, param Subje
 		return err
 	}
 
+	ctx = logger.WithLoggerCtx(ctx, log)
 	err = s.repo.Subject().Save(ctx, domain)
 	if err != nil {
 		return s.mapStorageError(err)
@@ -47,6 +48,7 @@ func (s *RealSubject) Get(ctx context.Context, identity Identity) ([]*domain.Sub
 	)
 	log.Debug("Called a get usecase method")
 
+	ctx = logger.WithLoggerCtx(ctx, log)
 	domains, err := s.repo.Subject().GetAll(ctx)
 	if err != nil {
 		return nil, s.mapStorageError(err)

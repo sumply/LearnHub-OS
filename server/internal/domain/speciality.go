@@ -19,7 +19,7 @@ func NewSpecialityName(s string) (SpecialityName, error) {
 		return "", errors.New("too long")
 	}
 	for _, r := range s {
-		if !unicode.IsDigit(r) || !unicode.IsSpace(r) {
+		if !unicode.IsLetter(r) && !unicode.IsSpace(r) {
 			return "", errors.New("invalid name")
 		}
 	}

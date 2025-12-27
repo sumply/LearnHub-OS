@@ -93,7 +93,8 @@ func NewGroupStub() *GroupStub {
 
 func (s *GroupStub) Create(
 	ctx context.Context,
-	name string,
+	identity Identity,
+	param GroupCreateParam,
 ) error {
 	return ErrCollision
 }

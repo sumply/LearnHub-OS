@@ -69,6 +69,7 @@ func addSubjectsRouting(r chi.Router, h *handler.Subject) {
 
 func addSpecialityRouting(r chi.Router, h *handler.Speciality) {
 	r.Post("/speciality", h.Post)
+	r.Get("/speciality", h.Get)
 }
 
 /*

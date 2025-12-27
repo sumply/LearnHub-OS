@@ -33,6 +33,7 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 		log.Warn(err.Error())
 		return nil, err
 	}
+	ctx = logger.WithLoggerCtx(ctx, log)
 	user, err := u.repo.User().GetByLogin(ctx, login)
 	if err != nil {
 		log.Warn(err.Error())
@@ -54,7 +55,6 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 		log.Warn(err.Error())
 		return nil, err
 	}
-	log.Debug("Generated jwt tokens")
 
 	return tokens, nil
 }
@@ -65,6 +65,7 @@ func (u *RealUser) Get(ctx context.Context, identity Identity) ([]*domain.User, 
 	)
 	log.Debug("Called a get usecase method")
 
+	ctx = logger.WithLoggerCtx(ctx, log)
 	users, err := u.repo.User().GetAll(ctx)
 	if err != nil {
 		log.Warn(err.Error())
@@ -104,6 +105,7 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 		return err
 	}
 
+	ctx = logger.WithLoggerCtx(ctx, log)
 	err = u.repo.User().Save(ctx, user)
 	if err != nil {
 		log.Warn(err.Error())
@@ -119,6 +121,7 @@ func (u *RealUser) GetMe(ctx context.Context, identity Identity) (*domain.User, 
 	)
 	log.Debug("Called a getMe usecase method")
 
+	ctx = logger.WithLoggerCtx(ctx, log)
 	user, err := u.repo.User().GetByID(ctx, domain.UserID(identity.ID))
 	if err != nil {
 		return nil, u.mapStorageError(err)
@@ -134,6 +137,7 @@ func (u *RealUser) GetByID(ctx context.Context, identity Identity, id domain.Use
 	)
 	log.Debug("Called a getByID usecase method")
 
+	ctx = logger.WithLoggerCtx(ctx, log)
 	user, err := u.repo.User().GetByID(ctx, domain.UserID(id))
 	if err != nil {
 		return nil, u.mapStorageError(err)

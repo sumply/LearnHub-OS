@@ -7,8 +7,10 @@ import (
 )
 
 var (
-	ErrCollision = errors.New("collision")
-	ErrNotFound  = errors.New("not found")
+	ErrCollision  = errors.New("collision")
+	ErrNotFound   = errors.New("not found")
+	ErrDependensy = errors.New("dependency")
+	ErrInvalid    = errors.New("invalid")
 )
 
 type GroupFilter struct {

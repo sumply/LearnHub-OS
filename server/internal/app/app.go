@@ -20,14 +20,14 @@ func Run() error {
 	repo := repository.New(
 		&repository.UserMemory{},
 		repository.NewSubjectStub(),
-		repository.NewGroupStub(),
-		repository.NewSpecialityStub(),
+		&repository.GroupMemory{},
+		&repository.SpecialityMemory{},
 	)
 	r, err := rest.NewRouter(
 		usecase.NewRealUser(generator.NewStub(), repo),
-		usecase.NewGroupStub(),
+		usecase.NewGroupReal(repo),
 		usecase.NewRealSubject(),
-		usecase.NewRealSpeciality(),
+		usecase.NewRealSpeciality(repo),
 		&middleware.StubTokenParser{},
 	)
 	if err != nil {

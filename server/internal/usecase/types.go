@@ -27,13 +27,19 @@ type Speciality interface {
 }
 
 type Group interface {
-	Create(ctx context.Context, name string) error
+	Create(context.Context, Identity, GroupCreateParam) error
 	Get(ctx context.Context) ([]*domain.Group, error)
 }
 
 type Subject interface {
 	Create(context.Context, Identity, SubjectCreateParam) error
 	Get(ctx context.Context, auth Identity) ([]*domain.Subject, error)
+}
+
+type GroupCreateParam struct {
+	Name         string
+	CuratorID    domain.UserID
+	SpecialityID domain.SpecialityID
 }
 
 type SubjectCreateParam struct {
