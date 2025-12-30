@@ -2,10 +2,16 @@ package dto
 
 import (
 	"fmt"
+	"server/internal/common"
 	"server/internal/domain"
 )
 
 type ID uint64
+
+type Identity struct {
+	ID   common.ID       `json:"id"`
+	Role domain.UserRole `json:"role"`
+}
 
 type UserShortResp struct {
 	ID        ID     `json:"id"`

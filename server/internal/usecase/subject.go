@@ -5,17 +5,17 @@ import (
 	"server/internal/domain"
 	"server/internal/logger"
 	"server/internal/repository"
-	"server/internal/service/validator"
 )
 
 type RealSubject struct {
 	usecase
-	val  validator.Subject
-	repo repository.Repository
+	repo *repository.Repository
 }
 
-func NewRealSubject() *RealSubject {
-	return &RealSubject{}
+func NewRealSubject(repo *repository.Repository) *RealSubject {
+	return &RealSubject{
+		repo: repo,
+	}
 }
 
 func (s *RealSubject) Create(ctx context.Context, identity Identity, param SubjectCreateParam) error {

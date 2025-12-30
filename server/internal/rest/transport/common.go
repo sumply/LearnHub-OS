@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"server/internal/common"
+	"server/internal/domain"
+	"server/internal/dto"
 )
 
 type ctxKey string
@@ -18,6 +21,14 @@ type AuthData struct {
 
 func (d *AuthData) WithCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, authKey, *d)
+}
+
+func NewIdentityFromCtx(ctx context.Context) (*dto.Identity, bool) {
+	auth, ok := ctx.Value(authKey).(AuthData)
+	return &dto.Identity{
+		ID:   common.ID(auth.ID),
+		Role: domain.UserRole(auth.Role),
+	}, ok
 }
 
 func NewAuthDataFromCtx(ctx context.Context) (AuthData, bool) {

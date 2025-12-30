@@ -26,8 +26,9 @@ func Run() error {
 	r, err := rest.NewRouter(
 		usecase.NewRealUser(generator.NewStub(), repo),
 		usecase.NewGroupReal(repo),
-		usecase.NewRealSubject(),
+		usecase.NewRealSubject(repo),
 		usecase.NewRealSpeciality(repo),
+		&usecase.Quiz{},
 		&middleware.TokenParserFake{},
 	)
 	if err != nil {

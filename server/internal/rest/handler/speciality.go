@@ -2,7 +2,7 @@ package handler
 
 import (
 	"net/http"
-	"server/internal/rest/dto"
+	"server/internal/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )

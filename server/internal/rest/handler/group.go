@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
-	"server/internal/rest/dto"
+	"server/internal/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
