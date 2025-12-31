@@ -2,10 +2,9 @@ package domain
 
 import (
 	"errors"
+	"server/internal/common"
 	"strings"
 )
-
-type SubjectID uint64
 
 type SubjectName string
 
@@ -18,28 +17,16 @@ func NewSubjectName(s string) (SubjectName, error) {
 }
 
 type Subject struct {
-	ID   SubjectID
+	ID   common.ID
 	Name SubjectName
-
-	Speciality []*Speciality
 }
 
-func NewSubject(name string, specs []SpecialityID) (*Subject, error) {
+func NewSubject(name string) (*Subject, error) {
 	newName, err := NewSubjectName(name)
 	if err != nil {
 		return nil, err
 	}
-	if len(specs) == 0 {
-		return nil, errors.New("speciality is empty")
-	}
-	newSpec := make([]*Speciality, len(specs))
-	for i, id := range specs {
-		newSpec[i] = &Speciality{
-			ID: id,
-		}
-	}
 	return &Subject{
-		Name:       newName,
-		Speciality: newSpec,
+		Name: newName,
 	}, nil
 }

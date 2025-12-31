@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"server/internal/common"
 	"strings"
 	"time"
 	"unicode"
 )
-
-type UserID uint64
 
 type UserName string
 
@@ -107,6 +106,7 @@ func (r UserRole) IsHigher(role UserRole) bool {
 }
 
 type Credential struct {
+	ID        common.ID
 	Login     Login
 	PwdHashed PwdHashed
 	Email     Email
@@ -137,7 +137,7 @@ func NewCredential(login, password, email string) (*Credential, error) {
 }
 
 type User struct {
-	ID         UserID
+	ID         common.ID
 	FirstName  UserName
 	LastName   UserName
 	MiddleName UserName

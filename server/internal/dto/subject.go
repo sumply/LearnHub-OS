@@ -1,20 +1,22 @@
 package dto
 
-import "server/internal/domain"
+import (
+	"server/internal/common"
+	"server/internal/domain"
+)
 
 type SubjectResp struct {
-	ID   ID     `json:"id"`
-	Name string `json:"name"`
+	ID   common.ID `json:"id"`
+	Name string    `json:"name"`
 }
 
 func NewSubjectResp(d *domain.Subject) *SubjectResp {
 	return &SubjectResp{
-		ID:   ID(d.ID),
+		ID:   d.ID,
 		Name: string(d.Name),
 	}
 }
 
 type SubjectCreateReq struct {
-	Name          string `json:"name"`
-	SpecialityIds []ID   `json:"speciality_ids"`
+	Name string `json:"name"`
 }

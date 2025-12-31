@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"server/internal/domain"
+	"server/internal/dto"
 	"server/internal/logger"
 	"server/internal/repository"
 )
@@ -17,10 +18,10 @@ func NewGroupReal(repo *repository.Repository) *GroupReal {
 	}
 }
 
-func (g *GroupReal) Create(ctx context.Context, identity Identity, param GroupCreateParam) error {
+func (g *GroupReal) Create(ctx context.Context, identity *dto.Identity, req *dto.GroupCreateReq) error {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
-		logger.TraceFieldFromAny(param),
+		logger.TraceFieldFromAny(req),
 	)
 	log.Debug("Called a create usecase method")
 
@@ -29,7 +30,7 @@ func (g *GroupReal) Create(ctx context.Context, identity Identity, param GroupCr
 		return ErrAccess
 	}
 
-	group, err := domain.NewGroup(param.Name, param.CuratorID, param.SpecialityID)
+	group, err := domain.NewGroup(req.Name, req.CuratorID)
 	if err != nil {
 		log.Warn(err.Error())
 		return err

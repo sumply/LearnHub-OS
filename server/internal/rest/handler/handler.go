@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"server/internal/domain"
+	"server/internal/common"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
 	"strconv"
@@ -42,7 +42,7 @@ func (h *handler) getParam(r *http.Request, key string) (string, error) {
 	return p, nil
 }
 
-func (h *handler) getParamInt(r *http.Request, key string) (int, error) {
+func (h *handler) getParamID(r *http.Request, key string) (common.ID, error) {
 	p, err := h.getParam(r, key)
 	if err != nil {
 		return 0, nil
@@ -51,21 +51,21 @@ func (h *handler) getParamInt(r *http.Request, key string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return i, nil
+	return common.ID(i), nil
 }
 
-func (h *handler) getParamQuizID(r *http.Request) (int, error) {
-	i, err := h.getParamInt(r, "quiz_id")
+func (h *handler) getParamQuizID(r *http.Request) (common.ID, error) {
+	i, err := h.getParamID(r, "quiz_id")
 	return i, err
 }
 
-func (h *handler) getParamAnswerID(r *http.Request) (int, error) {
-	i, err := h.getParamInt(r, "answer_id")
+func (h *handler) getParamAnswerID(r *http.Request) (common.ID, error) {
+	i, err := h.getParamID(r, "answer_id")
 	return i, err
 }
 
-func (h *handler) getParamUserID(r *http.Request) (int, error) {
-	i, err := h.getParamInt(r, "user_id")
+func (h *handler) getParamUserID(r *http.Request) (common.ID, error) {
+	i, err := h.getParamID(r, "user_id")
 	return i, err
 }
 
@@ -96,26 +96,4 @@ func (h *handler) sendUsecaseError(w http.ResponseWriter, err error) (int, strin
 	}
 	transport.SendError(w, status, err.Error())
 	return status, msg
-}
-
-var roleMap = map[string]domain.UserRole{
-	"root":    domain.UserRoot,
-	"admin":   domain.UserAdmin,
-	"teacher": domain.UserTeacher,
-	"student": domain.UserStudent,
-}
-
-func userRole(s string) domain.UserRole {
-	r, ok := roleMap[s]
-	if !ok {
-		r = domain.UserInvalid
-	}
-	return r
-}
-
-func identity(a transport.AuthData) usecase.Identity {
-	return usecase.Identity{
-		ID:   domain.UserID(a.ID),
-		Role: domain.UserRole(a.Role),
-	}
 }

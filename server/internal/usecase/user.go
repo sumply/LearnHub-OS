@@ -3,33 +3,35 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"server/internal/common"
 	"server/internal/domain"
+	"server/internal/dto"
 	"server/internal/logger"
 	"server/internal/repository"
 	"server/internal/service/generator"
 )
 
-func NewRealUser(gen generator.Generator, repo *repository.Repository) *RealUser {
-	return &RealUser{
+func NewUserReal(gen generator.Generator, repo *repository.Repository) *UserReal {
+	return &UserReal{
 		gen:  gen,
 		repo: repo,
 	}
 }
 
-type RealUser struct {
+type UserReal struct {
 	usecase
 	repo *repository.Repository
 	gen  generator.Generator
 }
 
-func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.TokenPair, error) {
+func (u *UserReal) Login(ctx context.Context, req *dto.LoginReq) (*domain.TokenPair, error) {
 	log := logger.FromCtx(ctx).
 		With(
-			logger.TraceFieldFromAny(param),
+			logger.TraceFieldFromAny(req),
 		)
 	log.Debug("Called a login usecase method")
 
-	login, err := domain.NewLogin(param.Login)
+	login, err := domain.NewLogin(req.Login)
 	if err != nil {
 		log.Warn(err.Error())
 		return nil, err
@@ -41,7 +43,7 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 		return nil, u.mapStorageError(err)
 	}
 
-	hash := domain.HashPassword(param.Password)
+	hash := domain.HashPassword(req.Password)
 	ok := user.Credential.Authorization(login, hash)
 	if !ok {
 		log.Warn("bad authorization")
@@ -57,7 +59,7 @@ func (u *RealUser) Login(ctx context.Context, param UserLoginParam) (*domain.Tok
 	return tokens, nil
 }
 
-func (u *RealUser) Get(ctx context.Context, identity Identity) ([]*domain.User, error) {
+func (u *UserReal) Get(ctx context.Context, identity *dto.Identity) ([]*domain.User, error) {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
 	)
@@ -73,15 +75,15 @@ func (u *RealUser) Get(ctx context.Context, identity Identity) ([]*domain.User, 
 	return users, nil
 }
 
-func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCreateParam) error {
+func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.UserCreateReq) error {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
-		logger.TraceFieldFromAny(param),
+		logger.TraceFieldFromAny(req),
 	)
 
 	log.Debug("Called a create usecase method")
 
-	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) || !identity.Role.IsHigher(param.Role) {
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) || !identity.Role.IsHigher(req.Role) {
 		log.Warn(ErrAccess.Error())
 		return ErrAccess
 	}
@@ -92,11 +94,11 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 	user, err := domain.NewUser(
 		login,
 		pwd,
-		param.Email,
-		param.FirstName,
-		param.LastName,
-		param.MiddleName,
-		domain.UserRole(param.Role),
+		req.Email,
+		req.FirstName,
+		req.LastName,
+		*req.MiddleName,
+		req.Role,
 	)
 	if err != nil {
 		log.Warn(err.Error())
@@ -114,14 +116,14 @@ func (u *RealUser) Create(ctx context.Context, identity Identity, param UserCrea
 	return nil
 }
 
-func (u *RealUser) GetMe(ctx context.Context, identity Identity) (*domain.User, error) {
+func (u *UserReal) GetMe(ctx context.Context, identity *dto.Identity) (*domain.User, error) {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
 	)
 	log.Debug("Called a getMe usecase method")
 
 	ctx = logger.WithLoggerCtx(ctx, log)
-	user, err := u.repo.User().GetByID(ctx, domain.UserID(identity.ID))
+	user, err := u.repo.User().GetByID(ctx, identity.ID)
 	if err != nil {
 		log.Warn(err.Error())
 		return nil, u.mapStorageError(err)
@@ -130,7 +132,7 @@ func (u *RealUser) GetMe(ctx context.Context, identity Identity) (*domain.User, 
 	return user, nil
 }
 
-func (u *RealUser) GetByID(ctx context.Context, identity Identity, id domain.UserID) (*domain.User, error) {
+func (u *UserReal) GetByID(ctx context.Context, identity *dto.Identity, id common.ID) (*domain.User, error) {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
 		logger.TraceFieldFromAny(id),
@@ -138,7 +140,7 @@ func (u *RealUser) GetByID(ctx context.Context, identity Identity, id domain.Use
 	log.Debug("Called a getByID usecase method")
 
 	ctx = logger.WithLoggerCtx(ctx, log)
-	user, err := u.repo.User().GetByID(ctx, domain.UserID(id))
+	user, err := u.repo.User().GetByID(ctx, id)
 	if err != nil {
 		return nil, u.mapStorageError(err)
 	}

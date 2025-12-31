@@ -31,11 +31,6 @@ func NewIdentityFromCtx(ctx context.Context) (*dto.Identity, bool) {
 	}, ok
 }
 
-func NewAuthDataFromCtx(ctx context.Context) (AuthData, bool) {
-	auth, ok := ctx.Value(authKey).(AuthData)
-	return auth, ok
-}
-
 func DecodeJSON(r io.ReadCloser, v any) error {
 	if err := json.NewDecoder(r).Decode(v); err != nil {
 		return err

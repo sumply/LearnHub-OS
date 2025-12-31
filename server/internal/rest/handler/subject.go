@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"server/internal/domain"
 	"server/internal/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
@@ -11,10 +10,10 @@ import (
 
 type Subject struct {
 	handler
-	usecase usecase.Subject
+	usecase usecase.SubjectInterface
 }
 
-func NewSubject(s usecase.Subject) (*Subject, error) {
+func NewSubject(s usecase.SubjectInterface) (*Subject, error) {
 	if s == nil {
 		return nil, fmt.Errorf("не передана реализация интерфейса")
 	}
@@ -30,21 +29,13 @@ func (h *Subject) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, ok := transport.NewAuthDataFromCtx(r.Context())
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
 	if !ok {
 		transport.SendAuthDataError(w)
 		return
 	}
 
-	ids := make([]domain.SpecialityID, len(req.SpecialityIds))
-	for i, id := range req.SpecialityIds {
-		ids[i] = domain.SpecialityID(id)
-	}
-	param := usecase.SubjectCreateParam{
-		Name:          req.Name,
-		SpecialityIDs: ids,
-	}
-	if err := h.usecase.Create(r.Context(), identity(auth), param); err != nil {
+	if err := h.usecase.Create(r.Context(), identity, &req); err != nil {
 		h.sendUsecaseError(w, err)
 		return
 	}
@@ -53,13 +44,13 @@ func (h *Subject) Post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Subject) Get(w http.ResponseWriter, r *http.Request) {
-	auth, ok := transport.NewAuthDataFromCtx(r.Context())
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
 	if !ok {
 		transport.SendAuthDataError(w)
 		return
 	}
 
-	data, err := h.usecase.Get(r.Context(), identity(auth))
+	data, err := h.usecase.Get(r.Context(), identity)
 	if err != nil {
 		h.sendUsecaseError(w, err)
 		return

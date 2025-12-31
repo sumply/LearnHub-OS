@@ -1,6 +1,6 @@
 package domain
 
-type GroupID uint64
+import "server/internal/common"
 
 type GroupName string
 
@@ -9,22 +9,20 @@ func NewGroupName(s string) (GroupName, error) {
 }
 
 type Group struct {
-	ID   GroupID
+	ID   common.ID
 	Name GroupName
 
-	Curator    *User
-	Speciality *Speciality
-	Students   []*User
+	Curator  *User
+	Students []*User
 }
 
-func NewGroup(name string, curator UserID, speciality SpecialityID) (*Group, error) {
+func NewGroup(name string, curator common.ID) (*Group, error) {
 	n, err := NewGroupName(name)
 	if err != nil {
 		return nil, err
 	}
 	return &Group{
-		Name:       n,
-		Curator:    &User{ID: curator},
-		Speciality: &Speciality{ID: speciality},
+		Name:    n,
+		Curator: &User{ID: curator},
 	}, nil
 }

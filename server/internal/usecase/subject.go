@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"server/internal/domain"
+	"server/internal/dto"
 	"server/internal/logger"
 	"server/internal/repository"
 )
@@ -18,10 +19,10 @@ func NewRealSubject(repo *repository.Repository) *RealSubject {
 	}
 }
 
-func (s *RealSubject) Create(ctx context.Context, identity Identity, param SubjectCreateParam) error {
+func (s *RealSubject) Create(ctx context.Context, identity *dto.Identity, req *dto.SubjectCreateReq) error {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
-		logger.TraceFieldFromAny(param),
+		logger.TraceFieldFromAny(req),
 	)
 	log.Debug("Called a create usecase method")
 
@@ -29,7 +30,7 @@ func (s *RealSubject) Create(ctx context.Context, identity Identity, param Subje
 		return ErrAccess
 	}
 
-	domain, err := domain.NewSubject(param.Name, param.SpecialityIDs)
+	domain, err := domain.NewSubject(req.Name)
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func (s *RealSubject) Create(ctx context.Context, identity Identity, param Subje
 	return nil
 }
 
-func (s *RealSubject) Get(ctx context.Context, identity Identity) ([]*domain.Subject, error) {
+func (s *RealSubject) Get(ctx context.Context, identity *dto.Identity) ([]*domain.Subject, error) {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
 	)

@@ -54,6 +54,21 @@ type Logger interface {
 	With(...TraceField) Logger
 }
 
+type Stub struct{}
+
+func (m *Stub) Debug(string) {
+}
+func (m *Stub) Info(string) {
+}
+func (m *Stub) Warn(string) {
+}
+func (m *Stub) Error(string) {
+}
+
+func (m *Stub) With(...TraceField) Logger {
+	return &Stub{}
+}
+
 type Fake struct {
 	ctx context.Context
 }

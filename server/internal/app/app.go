@@ -17,18 +17,19 @@ func Run() error {
 	})
 	logger.SetLayer(logger.DEBUG)
 
+	storage := repository.NewStorage()
+	repository.PrepareStorage(storage)
 	repo := repository.New(
-		&repository.UserMemory{},
-		repository.NewSubjectStub(),
-		&repository.GroupMemory{},
-		&repository.SpecialityMemory{},
+		repository.NewUserMemory(storage),
+		repository.NewSubjectMemory(storage),
+		repository.NewGroupMemory(storage),
+		repository.NewQuizMemory(storage),
 	)
 	r, err := rest.NewRouter(
-		usecase.NewRealUser(generator.NewStub(), repo),
+		usecase.NewUserReal(generator.NewStub(), repo),
 		usecase.NewGroupReal(repo),
 		usecase.NewRealSubject(repo),
-		usecase.NewRealSpeciality(repo),
-		&usecase.Quiz{},
+		usecase.NewQuiz(repo),
 		&middleware.TokenParserFake{},
 	)
 	if err != nil {

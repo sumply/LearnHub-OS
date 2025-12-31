@@ -6,21 +6,19 @@ import (
 	"server/internal/domain"
 )
 
-type ID uint64
-
 type Identity struct {
 	ID   common.ID       `json:"id"`
 	Role domain.UserRole `json:"role"`
 }
 
 type UserShortResp struct {
-	ID        ID     `json:"id"`
-	ShortName string `json:"short_name"`
+	ID        common.ID `json:"id"`
+	ShortName string    `json:"short_name"`
 }
 
 func NewUserShortResp(d *domain.User) *UserShortResp {
 	resp := &UserShortResp{
-		ID: ID(d.ID),
+		ID: d.ID,
 	}
 	resp.ShortName = resp.formatShortName(
 		string(d.FirstName),
@@ -42,15 +40,15 @@ func (u *UserShortResp) formatShortName(f string, l string, m string) string {
 }
 
 type UserFullResp struct {
-	ID         ID     `json:"id"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	MiddleName string `json:"middle_name"`
+	ID         common.ID `json:"id"`
+	FirstName  string    `json:"first_name"`
+	LastName   string    `json:"last_name"`
+	MiddleName string    `json:"middle_name"`
 }
 
 func NewUserFullResp(d *domain.User) UserFullResp {
 	return UserFullResp{
-		ID:         ID(d.ID),
+		ID:         d.ID,
 		FirstName:  string(d.FirstName),
 		LastName:   string(d.LastName),
 		MiddleName: string(d.MiddleName),
@@ -75,9 +73,9 @@ type LoginReq struct {
 }
 
 type UserCreateReq struct {
-	FirstName  string  `json:"first_name"`
-	LastName   string  `json:"last_name"`
-	MiddleName *string `json:"middle_name"`
-	Email      string  `json:"email"`
-	Role       string  `json:"role"`
+	FirstName  string          `json:"first_name"`
+	LastName   string          `json:"last_name"`
+	MiddleName *string         `json:"middle_name"`
+	Email      string          `json:"email"`
+	Role       domain.UserRole `json:"role"`
 }

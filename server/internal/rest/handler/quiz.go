@@ -10,10 +10,10 @@ import (
 
 type Quiz struct {
 	handler
-	u *usecase.Quiz
+	u usecase.QuizInterface
 }
 
-func NewQuiz(u *usecase.Quiz) (*Quiz, error) {
+func NewQuiz(u usecase.QuizInterface) (*Quiz, error) {
 	if u == nil {
 		return nil, fmt.Errorf("usecase is nil")
 	}

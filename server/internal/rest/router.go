@@ -10,11 +10,10 @@ import (
 )
 
 func NewRouter(
-	uu usecase.User,
-	ug usecase.Group,
-	us usecase.Subject,
-	usp usecase.Speciality,
-	uq *usecase.Quiz,
+	uu usecase.UserInterface,
+	ug usecase.GroupInterface,
+	us usecase.SubjectInterface,
+	uq usecase.QuizInterface,
 	p middleware.TokenParser,
 ) (http.Handler, error) {
 	r := chi.NewRouter()
@@ -34,8 +33,6 @@ func NewRouter(
 	if err != nil {
 		return nil, err
 	}
-	sph := handler.NewSpeciality(usp)
-
 	quizHandler, err := handler.NewQuiz(uq)
 	if err != nil {
 		return nil, err
@@ -50,7 +47,6 @@ func NewRouter(
 		addUserRouting(r, uh)
 		addGroupRouting(r, gh)
 		addSubjectsRouting(r, sh)
-		addSpecialityRouting(r, sph)
 		addQuizRouting(r, quizHandler)
 	})
 
@@ -70,23 +66,10 @@ func addGroupRouting(r chi.Router, h *handler.Group) {
 }
 
 func addSubjectsRouting(r chi.Router, h *handler.Subject) {
-	//r.Post("/subjects", h.post)
+	r.Post("/subjects", h.Post)
 	//r.Get("/subjects", h.Get)
-}
-
-func addSpecialityRouting(r chi.Router, h *handler.Speciality) {
-	r.Post("/speciality", h.Post)
-	r.Get("/speciality", h.Get)
 }
 
 func addQuizRouting(r chi.Router, h *handler.Quiz) {
 	r.Post("/quizzes", h.Post)
 }
-
-/*
-func addAnswerRouting(r chi.Router, h *answerHandler) {
-	r.Post("/quizzes/{quiz_id}/answers", h.post)
-	r.Get("/answers", h.get)
-	r.Get("/answers/{answer_id}", h.getByID)
-}
-*/

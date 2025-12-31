@@ -6,12 +6,20 @@ import (
 	"server/internal/domain"
 	"server/internal/dto"
 	"server/internal/logger"
+	"server/internal/repository"
 )
 
-type Quiz struct {
+type QuizReal struct {
+	repo *repository.Repository
 }
 
-func (q *Quiz) Create(ctx context.Context, identity *dto.Identity, req *dto.QuizCreateReq) error {
+func NewQuiz(repo *repository.Repository) *QuizReal {
+	return &QuizReal{
+		repo: repo,
+	}
+}
+
+func (q *QuizReal) Create(ctx context.Context, identity *dto.Identity, req *dto.QuizCreateReq) error {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
 		logger.TraceFieldFromAny(req),
@@ -32,14 +40,19 @@ func (q *Quiz) Create(ctx context.Context, identity *dto.Identity, req *dto.Quiz
 		logger.TraceFieldFromAny(quiz),
 	).Debug("Created quiz")
 
+	if err := q.repo.Quiz().Save(ctx, quiz); err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+
 	return nil
 }
 
-func (q *Quiz) Get(ctx context.Context, identity *dto.Identity) ([]*domain.Quiz, error) {
+func (q *QuizReal) Get(ctx context.Context, identity *dto.Identity) ([]*domain.Quiz, error) {
 	return nil, nil
 }
 
-func (q *Quiz) createQuiz(identity *dto.Identity, req *dto.QuizCreateReq) (*domain.Quiz, error) {
+func (q *QuizReal) createQuiz(identity *dto.Identity, req *dto.QuizCreateReq) (*domain.Quiz, error) {
 	questions, err := q.createQuestionSlice(req)
 	if err != nil {
 		return nil, err
@@ -59,7 +72,7 @@ func (q *Quiz) createQuiz(identity *dto.Identity, req *dto.QuizCreateReq) (*doma
 	return new, nil
 }
 
-func (q *Quiz) createQuestionSlice(req *dto.QuizCreateReq) ([]*domain.Question, error) {
+func (q *QuizReal) createQuestionSlice(req *dto.QuizCreateReq) ([]*domain.Question, error) {
 	questions := make([]*domain.Question, len(req.Questions))
 	for i, question := range req.Questions {
 		options, err := q.createOptionSlice(question)
@@ -75,7 +88,7 @@ func (q *Quiz) createQuestionSlice(req *dto.QuizCreateReq) ([]*domain.Question, 
 	return questions, nil
 }
 
-func (q *Quiz) createOptionSlice(req *dto.QuestionCreateReq) ([]*domain.Option, error) {
+func (q *QuizReal) createOptionSlice(req *dto.QuestionCreateReq) ([]*domain.Option, error) {
 	options := make([]*domain.Option, len(req.Options))
 	for i, option := range req.Options {
 		new, err := domain.NewOption(option.Text, option.IsCorrect)

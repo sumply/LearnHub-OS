@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"server/internal/domain"
 	"server/internal/dto"
 	"server/internal/rest/transport"
 	"server/internal/usecase"
@@ -11,10 +10,10 @@ import (
 
 type Group struct {
 	handler
-	usecase usecase.Group
+	usecase usecase.GroupInterface
 }
 
-func NewGroup(g usecase.Group) (*Group, error) {
+func NewGroup(g usecase.GroupInterface) (*Group, error) {
 	if g == nil {
 		return nil, fmt.Errorf("не передана реализация интерфейса")
 	}
@@ -30,18 +29,13 @@ func (h *Group) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, ok := transport.NewAuthDataFromCtx(r.Context())
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
 	if !ok {
 		transport.SendAuthDataError(w)
 		return
 	}
 
-	param := usecase.GroupCreateParam{
-		Name:         req.Name,
-		CuratorID:    domain.UserID(req.CuratorID),
-		SpecialityID: domain.SpecialityID(req.SpecialityID),
-	}
-	if err := h.usecase.Create(r.Context(), identity(auth), param); err != nil {
+	if err := h.usecase.Create(r.Context(), identity, &req); err != nil {
 		h.sendUsecaseError(w, err)
 		return
 	}

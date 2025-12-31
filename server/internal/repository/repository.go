@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"server/internal/common"
 	"server/internal/domain"
 )
 
@@ -14,65 +15,64 @@ var (
 )
 
 type GroupFilter struct {
-	ID          domain.GroupID
+	ID          common.ID
 	WithCurator bool
 }
 
-type User interface {
+type UserInterface interface {
 	Save(context.Context, *domain.User) error
-	GetByID(context.Context, domain.UserID) (*domain.User, error)
+	GetByID(context.Context, common.ID) (*domain.User, error)
 	GetByLogin(context.Context, domain.Login) (*domain.User, error)
 	GetAll(context.Context) ([]*domain.User, error)
 }
 
-type Speciality interface {
-	Save(context.Context, *domain.Speciality) error
-	GetAll(context.Context) ([]*domain.Speciality, error)
-}
-
-type Subject interface {
+type SubjectInterface interface {
 	Save(context.Context, *domain.Subject) error
 	GetAll(context.Context) ([]*domain.Subject, error)
 }
 
-type Group interface {
+type GroupInterface interface {
 	Save(context.Context, *domain.Group) error
 	GetAll(context.Context) ([]*domain.Group, error)
-	AddStudent(context.Context, domain.GroupID, []domain.UserID) error
-	RemoveStudent(context.Context, domain.GroupID, []domain.UserID) error
+	AddStudent(context.Context, common.ID, []common.ID) error
+	RemoveStudent(context.Context, common.ID, []common.ID) error
+}
+
+type QuizInterface interface {
+	Save(context.Context, *domain.Quiz) error
 }
 
 type Repository struct {
-	user       User
-	subject    Subject
-	group      Group
-	speciality Speciality
+	user    UserInterface
+	subject SubjectInterface
+	group   GroupInterface
+	quiz    QuizInterface
 }
 
-func New(u User, s Subject, g Group, sp Speciality) *Repository {
-	if u == nil || s == nil || g == nil || sp == nil {
+func New(u UserInterface, s SubjectInterface, g GroupInterface, q QuizInterface) *Repository {
+	if u == nil || s == nil || g == nil {
 		panic("Repository params is nil")
 	}
 	return &Repository{
-		user:       u,
-		subject:    s,
-		group:      g,
-		speciality: sp,
+		user:    u,
+		subject: s,
+		group:   g,
+		quiz:    q,
 	}
 }
 
-func (r *Repository) User() User {
+func (r *Repository) User() UserInterface {
 	return r.user
 }
 
-func (r *Repository) Subject() Subject {
+func (r *Repository) Subject() SubjectInterface {
 	return r.subject
 }
 
-func (r *Repository) Group() Group {
+func (r *Repository) Group() GroupInterface {
 	return r.group
 }
 
-func (r *Repository) Speciality() Speciality {
-	return r.speciality
+func (r *Repository) Quiz() QuizInterface {
+	return r.quiz
 }

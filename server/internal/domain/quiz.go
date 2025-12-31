@@ -35,11 +35,12 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 	}
 
 	new := &Quiz{
-		Title:     title,
-		Summary:   summary,
-		Questions: questions,
-		Owner:     &User{ID: UserID(ownerID)},
-		Subject:   &Subject{ID: SubjectID(subjectID)},
+		Title:           title,
+		Summary:         summary,
+		Questions:       questions,
+		Owner:           &User{ID: ownerID},
+		NumberQuestions: uint8(len(questions)),
+		Subject:         &Subject{ID: subjectID},
 	}
 
 	if len(groupIDs) == 0 {
@@ -47,7 +48,7 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 	} else {
 		groups := make([]*Group, len(groupIDs))
 		for i, id := range groupIDs {
-			groups[i] = &Group{ID: GroupID(id)}
+			groups[i] = &Group{ID: id}
 		}
 		new.Groups = groups
 	}
