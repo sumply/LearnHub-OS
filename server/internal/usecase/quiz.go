@@ -26,7 +26,7 @@ func (q *QuizReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 	)
 	log.Debug("Called a create quiz method")
 
-	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
+	if !identity.Role.IsHigherOrEqual(domain.UserTeacher) {
 		log.Warn("User role is less than admin")
 		return ErrAccess
 	}
@@ -49,7 +49,41 @@ func (q *QuizReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 }
 
 func (q *QuizReal) Get(ctx context.Context, identity *dto.Identity) ([]*domain.Quiz, error) {
-	return nil, nil
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+	)
+	log.Debug("Called a get QuizReal method")
+
+	switch identity.Role {
+	case domain.UserAdmin, domain.UserRoot:
+		quizzes, err := q.repo.Quiz().GetAll(ctx)
+		if err != nil {
+			log.Warn(err.Error())
+			return nil, err
+		}
+		return quizzes, nil
+	case domain.UserTeacher:
+		quizzes, err := q.repo.Quiz().Find(ctx, &repository.QuizFilter{OwnerID: &identity.ID})
+		if err != nil {
+			log.Warn(err.Error())
+			return nil, err
+		}
+		return quizzes, nil
+	case domain.UserStudent:
+		filter := &repository.QuizFilter{
+			Group: &repository.GroupFilter{
+				StudentID: &identity.ID,
+			},
+		}
+		quizzes, err := q.repo.Quiz().Find(ctx, filter)
+		if err != nil {
+			log.Warn(err.Error())
+			return nil, err
+		}
+		return quizzes, nil
+	default:
+		return nil, nil
+	}
 }
 
 func (q *QuizReal) createQuiz(identity *dto.Identity, req *dto.QuizCreateReq) (*domain.Quiz, error) {

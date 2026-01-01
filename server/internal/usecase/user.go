@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"server/internal/common"
 	"server/internal/domain"
 	"server/internal/dto"
@@ -111,7 +110,6 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 		log.Warn(err.Error())
 		return u.mapStorageError(err)
 	}
-	fmt.Println(login, pwd)
 
 	return nil
 }

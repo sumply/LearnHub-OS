@@ -55,6 +55,27 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 	return new, nil
 }
 
+func (q Quiz) Copy() *Quiz {
+	if q.Owner != nil {
+		q.Owner = q.Owner.Copy()
+	}
+	for i, question := range q.Questions {
+		if question != nil {
+			q.Questions[i] = question.Copy()
+		}
+	}
+	for i, group := range q.Groups {
+		if group != nil {
+			q.Groups[i] = group.Copy()
+		}
+	}
+
+	if q.Subject != nil {
+		q.Subject = q.Subject.Copy()
+	}
+	return &q
+}
+
 type Question struct {
 	ID        common.ID
 	Text      string
@@ -89,6 +110,13 @@ func NewQuestion(text string, options []*Option) (*Question, error) {
 	return new, nil
 }
 
+func (q Question) Copy() *Question {
+	for i, opt := range q.Options {
+		q.Options[i] = opt.Copy()
+	}
+	return &q
+}
+
 type Option struct {
 	ID        common.ID
 	Text      string
@@ -104,4 +132,8 @@ func NewOption(text string, correct bool) (*Option, error) {
 		Text:      text,
 		IsCorrect: correct,
 	}, nil
+}
+
+func (o Option) Copy() *Option {
+	return &o
 }

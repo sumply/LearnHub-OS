@@ -30,7 +30,13 @@ type UserInterface interface {
 
 type GroupInterface interface {
 	Create(context.Context, *dto.Identity, *dto.GroupCreateReq) error
-	Get(ctx context.Context) ([]*domain.Group, error)
+	Get(context.Context) ([]*domain.Group, error)
+	AddStudents(
+		ctx context.Context,
+		identity *dto.Identity,
+		groupID common.ID,
+		req *dto.GroupAddStudentsReq,
+	) error
 }
 
 type SubjectInterface interface {

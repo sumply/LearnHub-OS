@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"server/internal/common"
 	"server/internal/domain"
 	"server/internal/logger"
+	"slices"
 	"time"
 )
 
@@ -17,6 +20,7 @@ type Storage struct {
 	question   map[common.ID]*domain.Question
 	quiz       map[common.ID]*domain.Quiz
 	subject    map[common.ID]*domain.Subject
+	id         common.ID
 }
 
 func NewStorage() *Storage {
@@ -31,11 +35,177 @@ func NewStorage() *Storage {
 	}
 }
 
-var id common.ID
+func (s *Storage) Load() error {
+	if err := s.mapFields(s.loadMap); err != nil {
+		return err
+	}
+	if err := s.joinDepencyUser(); err != nil {
+		return err
+	}
+	if err := s.joinDepencyGroup(); err != nil {
+		return err
+	}
+	if err := s.joinDepencyQuestion(); err != nil {
+		return err
+	}
+	if err := s.joinDepencyQuiz(); err != nil {
+		return err
+	}
+	fmt.Println("Data has been loaded!")
+	return nil
+}
 
-func nextID() common.ID {
-	id++
-	return id
+func (s *Storage) joinDepencyUser() error {
+	for _, user := range s.user {
+		cred, ok := s.credential[user.ID]
+		if !ok {
+			return fmt.Errorf("%w: credential_id=%d", ErrDependensy, user.ID)
+		}
+		user.Credential = cred
+	}
+	return nil
+}
+
+func (s *Storage) joinDepencyGroup() error {
+	for _, group := range s.group {
+		curator, ok := s.user[group.Curator.ID]
+		if !ok {
+			return fmt.Errorf("%w: curator_id=%d", ErrDependensy, group.Curator.ID)
+		}
+		group.Curator = curator
+		for i := range group.Students {
+			student, ok := s.user[group.Students[i].ID]
+			if !ok {
+				return fmt.Errorf("%w: student_id=%d", ErrDependensy, group.Students[i].ID)
+			}
+			group.Students[i] = student
+		}
+	}
+	return nil
+}
+
+func (s *Storage) joinDepencyQuestion() error {
+	for _, question := range s.question {
+		for i := range question.Options {
+			option, ok := s.option[question.Options[i].ID]
+			if !ok {
+				return fmt.Errorf("%w: option_id=%d", ErrDependensy, question.Options[i].ID)
+			}
+			question.Options[i] = option
+		}
+	}
+	return nil
+}
+
+func (s *Storage) joinDepencyQuiz() error {
+	for _, quiz := range s.quiz {
+		owner, ok := s.user[quiz.Owner.ID]
+		if !ok {
+			return fmt.Errorf("%w: owner_id=%d", ErrDependensy, quiz.Owner.ID)
+		}
+		quiz.Owner = owner
+		subject, ok := s.subject[quiz.Subject.ID]
+		if !ok {
+			return fmt.Errorf("%w: subject_id=%d", ErrDependensy, quiz.Subject.ID)
+		}
+		quiz.Subject = subject
+		for i := range quiz.Groups {
+			group, ok := s.group[quiz.Groups[i].ID]
+			if !ok {
+				return fmt.Errorf("%w: group_id=%d", ErrDependensy, quiz.Groups[i].ID)
+			}
+			quiz.Groups[i] = group
+		}
+		for i := range quiz.Questions {
+			question, ok := s.question[quiz.Questions[i].ID]
+			if !ok {
+				return fmt.Errorf("%w: question_id=%d", ErrDependensy, quiz.Questions[i].ID)
+			}
+			quiz.Questions[i] = question
+		}
+	}
+	return nil
+}
+
+func (s *Storage) Save() error {
+	return s.mapFields(s.saveMap)
+}
+
+func (s *Storage) mapFields(f func(any, string) error) error {
+	if err := f(&s.credential, "credential"); err != nil {
+		return err
+	}
+	if err := f(&s.user, "user"); err != nil {
+		return err
+	}
+	if len(s.user) == 0 {
+		PrepareStorage(s)
+	}
+	if err := f(&s.group, "group"); err != nil {
+		return err
+	}
+	if err := f(&s.option, "option"); err != nil {
+		return err
+	}
+	if err := f(&s.question, "question"); err != nil {
+		return err
+	}
+	if err := f(&s.quiz, "quiz"); err != nil {
+		return err
+	}
+	if err := f(&s.subject, "subject"); err != nil {
+		return err
+	}
+	if err := f(&s.id, "id"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Storage) saveMap(m any, pathName string) error {
+	data, err := json.MarshalIndent(m, "\t", "\t")
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir("save", 0777)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+	file, err := os.Create("save/" + pathName + ".json")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Storage) loadMap(m any, pathName string) error {
+	if err := os.Mkdir("save", 0777); err != nil && !os.IsExist(err) {
+		return err
+	}
+	file, err := os.Open("save/" + pathName + ".json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			file, err := os.Create("save/" + pathName + ".json")
+			if err != nil {
+				return err
+			}
+			return file.Close()
+		}
+		return err
+	}
+	if err := json.NewDecoder(file).Decode(m); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Storage) nextID() common.ID {
+	s.id++
+	return s.id
 }
 
 func PrepareStorage(s *Storage) {
@@ -71,7 +241,7 @@ func (m *UserMemory) Save(ctx context.Context, user *domain.User) error {
 		logger.TraceFieldFromAny(user),
 	)
 	log.Debug("Called a save repository method")
-	user.ID = nextID()
+	user.ID = m.storage.nextID()
 	user.Credential.ID = user.ID
 	for _, saved := range m.storage.credential {
 		if saved.Login == user.Credential.Login {
@@ -161,7 +331,7 @@ func (m *GroupMemory) Save(ctx context.Context, group *domain.Group) error {
 	}
 
 	new := *group
-	new.ID = nextID()
+	new.ID = m.storage.nextID()
 	new.Curator = curator
 
 	m.storage.group[new.ID] = &new
@@ -286,7 +456,7 @@ func (m *SubjectMemory) Save(ctx context.Context, subject *domain.Subject) error
 	}
 
 	new := *subject
-	new.ID = nextID()
+	new.ID = m.storage.nextID()
 	m.storage.subject[new.ID] = &new
 
 	return nil
@@ -326,25 +496,40 @@ func (m *QuizMemory) Save(ctx context.Context, quiz *domain.Quiz) error {
 	)
 	log.Debug("Called quizMemory method save")
 
-	if _, ok := m.storage.user[quiz.Owner.ID]; !ok {
+	log.Debug("copying a quiz")
+	new := quiz.Copy()
+
+	log.Debug("set next id")
+	new.ID = m.storage.nextID()
+
+	log.Debug("finding a owner")
+	owner, ok := m.storage.user[quiz.Owner.ID]
+	if !ok {
 		return fmt.Errorf("%w: owner_id=%d", ErrDependensy, quiz.Owner.ID)
 	}
+	new.Owner = owner
 
-	if _, ok := m.storage.subject[quiz.Subject.ID]; !ok {
+	log.Debug("finding a subject")
+	subject, ok := m.storage.subject[quiz.Subject.ID]
+	if !ok {
 		return fmt.Errorf("%w: subject_id=%d", ErrDependensy, quiz.Subject.ID)
 	}
+	new.Subject = subject
 
-	for _, group := range quiz.Groups {
-		if _, ok := m.storage.group[group.ID]; !ok {
+	log.Debug("finding groups")
+	for i, group := range quiz.Groups {
+		g, ok := m.storage.group[group.ID]
+		if !ok {
 			return fmt.Errorf("%w: group_id=%d", ErrDependensy, group.ID)
 		}
+		new.Groups[i] = g
 	}
 
-	new := *quiz
-	new.ID = nextID()
+	log.Debug("saving questions")
 	new.Questions = m.saveQuestions(new.Questions)
 
-	m.storage.quiz[new.ID] = &new
+	log.Debug("saving a quiz")
+	m.storage.quiz[new.ID] = new
 
 	return nil
 }
@@ -352,13 +537,12 @@ func (m *QuizMemory) Save(ctx context.Context, quiz *domain.Quiz) error {
 func (m *QuizMemory) saveQuestions(questions []*domain.Question) []*domain.Question {
 	copied := make([]*domain.Question, len(questions))
 	for i, quiestion := range questions {
-		new := *quiestion
-		copied[i] = &new
+		copied[i] = quiestion.Copy()
 	}
 
 	for _, question := range copied {
-		question.ID = nextID()
-		m.saveOptions(question.Options)
+		question.ID = m.storage.nextID()
+		question.Options = m.saveOptions(question.Options)
 		m.storage.question[question.ID] = question
 	}
 
@@ -368,14 +552,79 @@ func (m *QuizMemory) saveQuestions(questions []*domain.Question) []*domain.Quest
 func (m *QuizMemory) saveOptions(options []*domain.Option) []*domain.Option {
 	copied := make([]*domain.Option, len(options))
 	for i, opt := range options {
-		new := *opt
-		copied[i] = &new
+		copied[i] = opt.Copy()
 	}
 
 	for _, opt := range copied {
-		opt.ID = common.ID(nextID())
+		opt.ID = m.storage.nextID()
 		m.storage.option[opt.ID] = opt
 	}
 
 	return copied
+}
+
+func (m *QuizMemory) GetAll(ctx context.Context) ([]*domain.Quiz, error) {
+	log := logger.FromCtx(ctx)
+	log.Debug("Called a getAll quizMemory method")
+
+	if len(m.storage.quiz) == 0 {
+		return nil, ErrNotFound
+	}
+
+	quizzes := make([]*domain.Quiz, len(m.storage.quiz))
+	i := 0
+	for _, saved := range m.storage.quiz {
+		copied := saved.Copy()
+		copied.Questions = nil
+		quizzes[i] = copied
+		i++
+	}
+
+	return quizzes, nil
+}
+
+func (m *QuizMemory) Find(ctx context.Context, filter *QuizFilter) ([]*domain.Quiz, error) {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(filter),
+	)
+	log.Debug("Called a find quizMemory method")
+
+	var quizzes []*domain.Quiz
+	for _, saved := range m.storage.quiz {
+		if m.satisfiesFilter(filter, saved) {
+			quizzes = append(quizzes, saved.Copy())
+		}
+	}
+	return quizzes, nil
+}
+
+func (m *QuizMemory) satisfiesFilter(filter *QuizFilter, quiz *domain.Quiz) bool {
+	if quiz.IsForEveryone {
+		return true
+	}
+	if filter.OwnerID != nil && *filter.OwnerID != quiz.Owner.ID {
+		return false
+	}
+	if filter.Group != nil && !m.satisfiesGroupFilter(filter.Group, quiz.Groups) {
+		return false
+	}
+	return true
+}
+
+func (m *QuizMemory) satisfiesGroupFilter(filter *GroupFilter, groups []*domain.Group) bool {
+	if filter.StudentID == nil {
+		return true
+	}
+	if len(groups) == 0 {
+		return false
+	}
+	for _, group := range groups {
+		ok := slices.ContainsFunc(group.Students, func(u *domain.User) bool {
+			return u.ID == *filter.StudentID
+		})
+		if ok {
+			return true
+		}
+	}
+	return false
 }

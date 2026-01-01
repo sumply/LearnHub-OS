@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"server/internal/common"
 	"server/internal/domain"
 	"server/internal/dto"
 	"server/internal/logger"
@@ -56,4 +57,30 @@ func (g *GroupReal) Get(ctx context.Context) ([]*domain.Group, error) {
 	}
 
 	return groups, nil
+}
+
+func (g *GroupReal) AddStudents(
+	ctx context.Context,
+	identity *dto.Identity,
+	groupID common.ID,
+	req *dto.GroupAddStudentsReq,
+) error {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.TraceFieldFromAny(groupID),
+		logger.TraceFieldFromAny(req),
+	)
+	log.Debug("Called a addStudents groupReal method")
+
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
+		log.Warn("A user role less a admin")
+		return ErrAccess
+	}
+
+	err := g.repo.Group().AddStudent(ctx, groupID, req.StudentIDs)
+	if err != nil {
+		log.Warn(err.Error())
+		return err
+	}
+	return nil
 }

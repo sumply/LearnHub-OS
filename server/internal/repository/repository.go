@@ -14,11 +14,6 @@ var (
 	ErrInvalid    = errors.New("invalid")
 )
 
-type GroupFilter struct {
-	ID          common.ID
-	WithCurator bool
-}
-
 type UserInterface interface {
 	Save(context.Context, *domain.User) error
 	GetByID(context.Context, common.ID) (*domain.User, error)
@@ -31,15 +26,25 @@ type SubjectInterface interface {
 	GetAll(context.Context) ([]*domain.Subject, error)
 }
 
+type GroupFilter struct {
+	StudentID *common.ID
+}
+
 type GroupInterface interface {
 	Save(context.Context, *domain.Group) error
 	GetAll(context.Context) ([]*domain.Group, error)
 	AddStudent(context.Context, common.ID, []common.ID) error
 	RemoveStudent(context.Context, common.ID, []common.ID) error
 }
+type QuizFilter struct {
+	OwnerID *common.ID
+	Group   *GroupFilter
+}
 
 type QuizInterface interface {
 	Save(context.Context, *domain.Quiz) error
+	GetAll(context.Context) ([]*domain.Quiz, error)
+	Find(context.Context, *QuizFilter) ([]*domain.Quiz, error)
 }
 
 type Repository struct {

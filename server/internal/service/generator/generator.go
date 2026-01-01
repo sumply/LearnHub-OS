@@ -1,34 +1,8 @@
 package generator
 
-import "encoding/json"
-
 type Generator interface {
 	GenPassword() string
 	GenLogin() string
-	GenHashedPwd(pwd string) (hashed string)
-	GenJWTTokens(id uint64, role string) (access, refresh string)
-}
-
-type WelcomePageParam struct {
-	FirstName  string
-	LastName   string
-	MiddleName string
-	Login      string
-	Password   string
-}
-
-func NewStubPageGenerator() *StubPageGenerator {
-	return &StubPageGenerator{}
-}
-
-type PageGenerator interface {
-	GenWelcomePage(WelcomePageParam) string
-}
-
-type StubPageGenerator struct{}
-
-func (g *StubPageGenerator) GenWelcomePage(WelcomePageParam) string {
-	return ""
 }
 
 func NewStub() *Stub {
@@ -43,17 +17,4 @@ func (g *Stub) GenPassword() string {
 
 func (g *Stub) GenLogin() string {
 	return "r12345"
-}
-
-func (g *Stub) GenHashedPwd(pwd string) (hashed string) {
-	return "verysecret"
-}
-
-func (g *Stub) GenJWTTokens(id uint64, role string) (access, refresh string) {
-	token := map[string]any{
-		"id":   id,
-		"role": role,
-	}
-	d, _ := json.Marshal(&token)
-	return string(d), string(d)
 }

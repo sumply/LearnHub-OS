@@ -30,3 +30,7 @@ func NewSubject(name string) (*Subject, error) {
 		Name: newName,
 	}, nil
 }
+
+func (s Subject) Copy() *Subject {
+	return &s
+}

@@ -63,13 +63,15 @@ func addUserRouting(r chi.Router, h *handler.User) {
 func addGroupRouting(r chi.Router, h *handler.Group) {
 	r.Post("/groups", h.Post)
 	r.Get("/groups", h.Get)
+	r.Post("/groups/{group_id}/students", h.PostStudents)
 }
 
 func addSubjectsRouting(r chi.Router, h *handler.Subject) {
 	r.Post("/subjects", h.Post)
-	//r.Get("/subjects", h.Get)
+	r.Get("/subjects", h.Get)
 }
 
 func addQuizRouting(r chi.Router, h *handler.Quiz) {
 	r.Post("/quizzes", h.Post)
+	r.Get("/quizzes", h.Get)
 }

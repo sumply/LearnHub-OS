@@ -43,6 +43,24 @@ func (h *Quiz) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (h *Quiz) Get(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	data, err := h.u.Get(r.Context(), identity)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+	resp := dto.NewSliceQuizShortResp(data)
+	if err := transport.EncodeJSON(w, resp); err != nil {
+		h.sendEncodeError(w)
+		return
+	}
+}
+
 /*
 type quizOptionsCreate struct {
 	Text      string `json:"text"`

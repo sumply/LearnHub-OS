@@ -136,6 +136,10 @@ func NewCredential(login, password, email string) (*Credential, error) {
 	}, nil
 }
 
+func (c Credential) Copy() *Credential {
+	return &c
+}
+
 type User struct {
 	ID         common.ID
 	FirstName  UserName
@@ -170,4 +174,11 @@ func NewUser(login, pwd, email, firstName, lastName, middleName string, role Use
 		Role:       role,
 		Credential: credential,
 	}, nil
+}
+
+func (u User) Copy() *User {
+	if u.Credential != nil {
+		u.Credential = u.Credential.Copy()
+	}
+	return &u
 }

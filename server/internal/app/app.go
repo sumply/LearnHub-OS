@@ -1,7 +1,10 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"server/internal/config"
 	"server/internal/logger"
 	"server/internal/repository"
@@ -18,7 +21,20 @@ func Run() error {
 	logger.SetLayer(logger.DEBUG)
 
 	storage := repository.NewStorage()
-	repository.PrepareStorage(storage)
+	if err := storage.Load(); err != nil {
+		return err
+	}
+
+	signs := make(chan os.Signal, 1)
+	signal.Notify(signs, os.Interrupt)
+	go func() {
+		<-signs
+		fmt.Print("Saving storage data...")
+		if err := storage.Save(); err != nil {
+			fmt.Printf("error: %v\n", err)
+		}
+		os.Exit(0)
+	}()
 	repo := repository.New(
 		repository.NewUserMemory(storage),
 		repository.NewSubjectMemory(storage),
@@ -26,7 +42,7 @@ func Run() error {
 		repository.NewQuizMemory(storage),
 	)
 	r, err := rest.NewRouter(
-		usecase.NewUserReal(generator.NewStub(), repo),
+		usecase.NewUserReal(generator.NewReal(), repo),
 		usecase.NewGroupReal(repo),
 		usecase.NewRealSubject(repo),
 		usecase.NewQuiz(repo),

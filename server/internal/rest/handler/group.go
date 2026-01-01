@@ -43,6 +43,31 @@ func (h *Group) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (h *Group) PostStudents(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	groupID, err := h.getParamGroupID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+	var req dto.GroupAddStudentsReq
+	if err := transport.DecodeJSON(r.Body, &req); err != nil {
+		h.sendDecodeError(w)
+		return
+	}
+
+	err = h.usecase.AddStudents(r.Context(), identity, groupID, &req)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Group) Get(w http.ResponseWriter, r *http.Request) {
 	data, err := h.usecase.Get(r.Context())
 	if err != nil {

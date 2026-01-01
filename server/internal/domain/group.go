@@ -26,3 +26,15 @@ func NewGroup(name string, curator common.ID) (*Group, error) {
 		Curator: &User{ID: curator},
 	}, nil
 }
+
+func (g Group) Copy() *Group {
+	if g.Curator != nil {
+		g.Curator = g.Curator.Copy()
+	}
+	for i, student := range g.Students {
+		if student != nil {
+			g.Students[i] = student.Copy()
+		}
+	}
+	return &g
+}
