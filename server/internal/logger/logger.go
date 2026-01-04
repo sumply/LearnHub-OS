@@ -45,6 +45,13 @@ type TraceField struct {
 	Value any
 }
 
+func NewTracedField(key string, value any) TraceField {
+	return TraceField{
+		Key:   key,
+		Value: value,
+	}
+}
+
 type Logger interface {
 	Debug(string)
 	Info(string)

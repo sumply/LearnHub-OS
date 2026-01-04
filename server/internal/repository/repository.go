@@ -10,7 +10,7 @@ import (
 var (
 	ErrCollision  = errors.New("collision")
 	ErrNotFound   = errors.New("not found")
-	ErrDependensy = errors.New("dependency")
+	ErrDependence = errors.New("dependence")
 	ErrInvalid    = errors.New("invalid")
 )
 
@@ -36,6 +36,7 @@ type GroupInterface interface {
 	AddStudent(context.Context, common.ID, []common.ID) error
 	RemoveStudent(context.Context, common.ID, []common.ID) error
 }
+
 type QuizFilter struct {
 	OwnerID *common.ID
 	Group   *GroupFilter
@@ -44,25 +45,41 @@ type QuizFilter struct {
 type QuizInterface interface {
 	Save(context.Context, *domain.Quiz) error
 	GetAll(context.Context) ([]*domain.Quiz, error)
-	Find(context.Context, *QuizFilter) ([]*domain.Quiz, error)
+	GetByID(context.Context, common.ID) (*domain.Quiz, error)
+	GetWithFilter(context.Context, *QuizFilter) ([]*domain.Quiz, error)
+	Delete(context.Context, common.ID) error
+}
+
+type ProgressFilter struct {
+	UserID *common.ID
+	Quiz   *QuizFilter
+}
+
+type ProgressInterface interface {
+	UpdateAnswer(context.Context, *domain.Answer) error
+	GetByID(context.Context, common.ID) (*domain.QuizProgress, error)
+	Get(context.Context, *ProgressFilter) ([]*domain.QuizProgress, error)
+	Update(*domain.QuizProgress) error
 }
 
 type Repository struct {
-	user    UserInterface
-	subject SubjectInterface
-	group   GroupInterface
-	quiz    QuizInterface
+	user     UserInterface
+	subject  SubjectInterface
+	group    GroupInterface
+	quiz     QuizInterface
+	progress ProgressInterface
 }
 
-func New(u UserInterface, s SubjectInterface, g GroupInterface, q QuizInterface) *Repository {
+func New(u UserInterface, s SubjectInterface, g GroupInterface, q QuizInterface, p ProgressInterface) *Repository {
 	if u == nil || s == nil || g == nil {
 		panic("Repository params is nil")
 	}
 	return &Repository{
-		user:    u,
-		subject: s,
-		group:   g,
-		quiz:    q,
+		user:     u,
+		subject:  s,
+		group:    g,
+		quiz:     q,
+		progress: p,
 	}
 }
 
@@ -80,4 +97,8 @@ func (r *Repository) Group() GroupInterface {
 
 func (r *Repository) Quiz() QuizInterface {
 	return r.quiz
+}
+
+func (r *Repository) Progress() ProgressInterface {
+	return r.progress
 }

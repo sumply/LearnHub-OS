@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"server/internal/common"
+	"slices"
 	"strings"
 	"time"
 )
@@ -12,6 +13,7 @@ type Quiz struct {
 	Title           string
 	Summary         string
 	NumberQuestions uint8
+	HasWritten      bool
 	IsForEveryone   bool
 	CreatedAt       time.Time
 
@@ -34,10 +36,15 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 		return nil, fmt.Errorf("a quiz does not have questions")
 	}
 
+	hasWritten := slices.ContainsFunc(questions, func(q *Question) bool {
+		return q.IsWritten
+	})
+
 	new := &Quiz{
 		Title:           title,
 		Summary:         summary,
 		Questions:       questions,
+		HasWritten:      hasWritten,
 		Owner:           &User{ID: ownerID},
 		NumberQuestions: uint8(len(questions)),
 		Subject:         &Subject{ID: subjectID},
@@ -53,6 +60,10 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 		new.Groups = groups
 	}
 	return new, nil
+}
+
+func (q *Quiz) IsOwner(userID common.ID) bool {
+	return q.Owner.ID == userID
 }
 
 func (q Quiz) Copy() *Quiz {

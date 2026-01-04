@@ -1,0 +1,156 @@
+{
+		"11": {
+			"ID": 11,
+			"Quiz": {
+				"ID": 0,
+				"Title": "Основы Go-разработки",
+				"Summary": "Небольшой тест на проверку базовых знаний синтаксиса Go и работы с JSON.",
+				"NumberQuestions": 2,
+				"HasWritten": true,
+				"IsForEveryone": false,
+				"CreatedAt": "0001-01-01T00:00:00Z",
+				"Owner": {
+					"ID": 1,
+					"FirstName": "Teacher",
+					"LastName": "Teacher",
+					"MiddleName": "Teacher",
+					"Role": 2,
+					"Credential": {
+						"ID": 1,
+						"Login": "u430225",
+						"PwdHashed": "4.yZoX0OD_NCEoS",
+						"Email": "Teacher.Teacher@yandex.ru"
+					},
+					"CreatedAt": "0001-01-01T00:00:00Z"
+				},
+				"Subject": {
+					"ID": 4,
+					"Name": "Русский язык"
+				},
+				"Groups": [
+					{
+						"ID": 3,
+						"Name": "9-А",
+						"Curator": {
+							"ID": 0,
+							"FirstName": "admin",
+							"LastName": "admin",
+							"MiddleName": "admin",
+							"Role": 4,
+							"Credential": {
+								"ID": 0,
+								"Login": "admin",
+								"PwdHashed": "admin",
+								"Email": "admin@admin.ru"
+							},
+							"CreatedAt": "2026-01-04T17:42:35.502973+03:00"
+						},
+						"Students": [
+							{
+								"ID": 2,
+								"FirstName": "Student",
+								"LastName": "Student",
+								"MiddleName": "Student",
+								"Role": 1,
+								"Credential": {
+									"ID": 2,
+									"Login": "u140465",
+									"PwdHashed": "CZNE3AjFwWUjwlI",
+									"Email": "Student.Student@yandex.ru"
+								},
+								"CreatedAt": "0001-01-01T00:00:00Z"
+							}
+						]
+					}
+				],
+				"Questions": [
+					{
+						"ID": 6,
+						"Text": "Какой тег используется для маппинга полей в JSON?",
+						"IsWritten": false,
+						"Options": [
+							{
+								"ID": 7,
+								"Text": "xml",
+								"IsCorrect": false
+							},
+							{
+								"ID": 8,
+								"Text": "json",
+								"IsCorrect": true
+							},
+							{
+								"ID": 9,
+								"Text": "map",
+								"IsCorrect": false
+							}
+						]
+					},
+					{
+						"ID": 10,
+						"Text": "Как вам квиз?",
+						"IsWritten": true,
+						"Options": []
+					}
+				]
+			},
+			"User": {
+				"ID": 2,
+				"FirstName": "Student",
+				"LastName": "Student",
+				"MiddleName": "Student",
+				"Role": 1,
+				"Credential": {
+					"ID": 2,
+					"Login": "u140465",
+					"PwdHashed": "CZNE3AjFwWUjwlI",
+					"Email": "Student.Student@yandex.ru"
+				},
+				"CreatedAt": "0001-01-01T00:00:00Z"
+			},
+			"Status": 3,
+			"Score": 0,
+			"Answers": [
+				{
+					"ID": 12,
+					"Text": "xml",
+					"Status": 2,
+					"Question": {
+						"ID": 6,
+						"Text": "Какой тег используется для маппинга полей в JSON?",
+						"IsWritten": false,
+						"Options": [
+							{
+								"ID": 7,
+								"Text": "xml",
+								"IsCorrect": false
+							},
+							{
+								"ID": 8,
+								"Text": "json",
+								"IsCorrect": true
+							},
+							{
+								"ID": 9,
+								"Text": "map",
+								"IsCorrect": false
+							}
+						]
+					}
+				},
+				{
+					"ID": 13,
+					"Text": "Мне очень понравился!",
+					"Status": 3,
+					"Question": {
+						"ID": 10,
+						"Text": "Как вам квиз?",
+						"IsWritten": true,
+						"Options": []
+					}
+				}
+			],
+			"CompletedDate": "2026-01-04T15:48:37.666926Z",
+			"StartDate": "2026-01-04T15:42:56.880153Z"
+		}
+	}

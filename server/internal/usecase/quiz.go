@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"server/internal/common"
 	"server/internal/domain"
 	"server/internal/dto"
 	"server/internal/logger"
@@ -63,7 +64,7 @@ func (q *QuizReal) Get(ctx context.Context, identity *dto.Identity) ([]*domain.Q
 		}
 		return quizzes, nil
 	case domain.UserTeacher:
-		quizzes, err := q.repo.Quiz().Find(ctx, &repository.QuizFilter{OwnerID: &identity.ID})
+		quizzes, err := q.repo.Quiz().GetWithFilter(ctx, &repository.QuizFilter{OwnerID: &identity.ID})
 		if err != nil {
 			log.Warn(err.Error())
 			return nil, err
@@ -75,7 +76,7 @@ func (q *QuizReal) Get(ctx context.Context, identity *dto.Identity) ([]*domain.Q
 				StudentID: &identity.ID,
 			},
 		}
-		quizzes, err := q.repo.Quiz().Find(ctx, filter)
+		quizzes, err := q.repo.Quiz().GetWithFilter(ctx, filter)
 		if err != nil {
 			log.Warn(err.Error())
 			return nil, err
@@ -132,4 +133,45 @@ func (q *QuizReal) createOptionSlice(req *dto.QuestionCreateReq) ([]*domain.Opti
 		options[i] = new
 	}
 	return options, nil
+}
+
+func (q *QuizReal) Delete(ctx context.Context, identity *dto.Identity, quizID common.ID) error {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.NewTracedField("quizID", quizID),
+	)
+	log.Debug("Called usecase")
+
+	switch identity.Role {
+	case domain.UserAdmin, domain.UserRoot:
+		log.Debug("Deleting as admin")
+		err := q.repo.Quiz().Delete(ctx, quizID)
+		if err != nil {
+			log.Warn(err.Error())
+			return err
+		}
+	case domain.UserTeacher:
+		log.Debug("Deleting as teacher")
+		quiz, err := q.repo.Quiz().GetByID(ctx, quizID)
+		if err != nil {
+			log.Warn(err.Error())
+			return err
+		}
+		log.With(
+			logger.TraceFieldFromAny(quiz),
+		).Debug("Getted quiz by id")
+		if !quiz.IsOwner(identity.ID) {
+			log.Warn("teacher is not owner")
+			return ErrAccess
+		}
+		err = q.repo.Quiz().Delete(ctx, quizID)
+		if err != nil {
+			log.Warn(err.Error())
+			return err
+		}
+	case domain.UserStudent:
+		log.Debug("Deleting as student")
+		return ErrAccess
+	}
+	return nil
 }

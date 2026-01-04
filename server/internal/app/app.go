@@ -40,12 +40,14 @@ func Run() error {
 		repository.NewSubjectMemory(storage),
 		repository.NewGroupMemory(storage),
 		repository.NewQuizMemory(storage),
+		repository.NewProgressMemory(storage),
 	)
 	r, err := rest.NewRouter(
 		usecase.NewUserReal(generator.NewReal(), repo),
 		usecase.NewGroupReal(repo),
 		usecase.NewRealSubject(repo),
 		usecase.NewQuiz(repo),
+		usecase.NewProgressUsecase(repo),
 		&middleware.TokenParserFake{},
 	)
 	if err != nil {

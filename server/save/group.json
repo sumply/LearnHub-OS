@@ -1,0 +1,36 @@
+{
+		"3": {
+			"ID": 3,
+			"Name": "9-А",
+			"Curator": {
+				"ID": 0,
+				"FirstName": "admin",
+				"LastName": "admin",
+				"MiddleName": "admin",
+				"Role": 4,
+				"Credential": {
+					"ID": 0,
+					"Login": "admin",
+					"PwdHashed": "admin",
+					"Email": "admin@admin.ru"
+				},
+				"CreatedAt": "2026-01-04T17:42:35.502973+03:00"
+			},
+			"Students": [
+				{
+					"ID": 2,
+					"FirstName": "Student",
+					"LastName": "Student",
+					"MiddleName": "Student",
+					"Role": 1,
+					"Credential": {
+						"ID": 2,
+						"Login": "u140465",
+						"PwdHashed": "CZNE3AjFwWUjwlI",
+						"Email": "Student.Student@yandex.ru"
+					},
+					"CreatedAt": "0001-01-01T00:00:00Z"
+				}
+			]
+		}
+	}

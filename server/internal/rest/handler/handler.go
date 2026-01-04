@@ -73,6 +73,10 @@ func (h *handler) getParamGroupID(r *http.Request) (common.ID, error) {
 	return h.getParamID(r, "group_id")
 }
 
+func (h *handler) getParamProgressID(r *http.Request) (common.ID, error) {
+	return h.getParamID(r, "progress_id")
+}
+
 func (h *handler) sendParamError(w http.ResponseWriter, what string) {
 	transport.SendError(
 		w,

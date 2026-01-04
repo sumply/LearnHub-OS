@@ -107,12 +107,12 @@ func TestQuizSave(t *testing.T) {
 		t.Errorf("a method 'Save' is mutable")
 	}
 	quiz.Owner.ID = 0
-	if err := repo.Save(context.Background(), quiz); !errors.Is(err, ErrDependensy) {
+	if err := repo.Save(context.Background(), quiz); !errors.Is(err, ErrDependence) {
 		t.Errorf("a quiz can be created without owner_id")
 	}
 	quiz.Owner.ID = 1
 	quiz.Subject.ID = 0
-	if err := repo.Save(context.Background(), quiz); !errors.Is(err, ErrDependensy) {
+	if err := repo.Save(context.Background(), quiz); !errors.Is(err, ErrDependence) {
 		t.Errorf("a quiz can be created without subject_id")
 	}
 	quiz.Subject.ID = 1
@@ -121,7 +121,7 @@ func TestQuizSave(t *testing.T) {
 			ID: 0,
 		},
 	}
-	if err := repo.Save(context.Background(), quiz); !errors.Is(err, ErrDependensy) {
+	if err := repo.Save(context.Background(), quiz); !errors.Is(err, ErrDependence) {
 		t.Errorf("a quiz can be created without group_id")
 	}
 	quiz.Groups = []*domain.Group{

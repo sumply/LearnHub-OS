@@ -14,6 +14,7 @@ func NewRouter(
 	ug usecase.GroupInterface,
 	us usecase.SubjectInterface,
 	uq usecase.QuizInterface,
+	up usecase.ProgressInterface,
 	p middleware.TokenParser,
 ) (http.Handler, error) {
 	r := chi.NewRouter()
@@ -37,6 +38,10 @@ func NewRouter(
 	if err != nil {
 		return nil, err
 	}
+	progressHandler, err := handler.NewProgress(up)
+	if err != nil {
+		return nil, err
+	}
 
 	r.Post("/login", uh.Login)
 
@@ -48,6 +53,7 @@ func NewRouter(
 		addGroupRouting(r, gh)
 		addSubjectsRouting(r, sh)
 		addQuizRouting(r, quizHandler)
+		addProgressRouting(r, progressHandler)
 	})
 
 	return r, nil
@@ -74,4 +80,14 @@ func addSubjectsRouting(r chi.Router, h *handler.Subject) {
 func addQuizRouting(r chi.Router, h *handler.Quiz) {
 	r.Post("/quizzes", h.Post)
 	r.Get("/quizzes", h.Get)
+	r.Delete("/quizzes/{quiz_id}", h.Delete)
+}
+
+func addProgressRouting(r chi.Router, h *handler.Progress) {
+	r.Get("/progress", h.Get)
+	r.Post("/progress/{progress_id}/start", h.PostStart)
+	r.Post("/progress/{progress_id}/finish", h.PostFinish)
+	r.Patch("/progress/{progress_id}/answer/{answer_id}", h.PatchAnswer)
+	r.Post("/progress/{progress_id}/answer/{answer_id}/correct", h.PostAnswerCorrect)
+	r.Post("/progress/{progress_id}/answer/{answer_id}/incorrect", h.PostAnswerIncorrect)
 }

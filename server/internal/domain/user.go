@@ -87,7 +87,7 @@ func NewEmail(s string) (Email, error) {
 	return Email(s), nil
 }
 
-type UserRole uint8
+type UserRole common.Enum
 
 const (
 	UserInvalid UserRole = iota

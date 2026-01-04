@@ -28,9 +28,8 @@ func NewSliceGroupResp(domains []*domain.Group) []*GroupResp {
 }
 
 type GroupCreateReq struct {
-	Name         string    `json:"name"`
-	CuratorID    common.ID `json:"curator_id"`
-	SpecialityID common.ID `json:"speciality_id"`
+	Name      string    `json:"name"`
+	CuratorID common.ID `json:"curator_id"`
 }
 
 type GroupAddStudentsReq struct {

@@ -61,6 +61,26 @@ func (h *Quiz) Get(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Quiz) Delete(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	quizID, err := h.getParamQuizID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+
+	err = h.u.Delete(r.Context(), identity, quizID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 /*
 type quizOptionsCreate struct {
 	Text      string `json:"text"`
