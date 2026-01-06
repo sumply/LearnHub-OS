@@ -10,15 +10,15 @@
 				"IsForEveryone": false,
 				"CreatedAt": "0001-01-01T00:00:00Z",
 				"Owner": {
-					"ID": 1,
+					"ID": 2,
 					"FirstName": "Teacher",
 					"LastName": "Teacher",
 					"MiddleName": "Teacher",
 					"Role": 2,
 					"Credential": {
-						"ID": 1,
-						"Login": "u430225",
-						"PwdHashed": "4.yZoX0OD_NCEoS",
+						"ID": 2,
+						"Login": "u390553",
+						"PwdHashed": "PRCEE9FjHkPSLtD",
 						"Email": "Teacher.Teacher@yandex.ru"
 					},
 					"CreatedAt": "0001-01-01T00:00:00Z"
@@ -43,19 +43,19 @@
 								"PwdHashed": "admin",
 								"Email": "admin@admin.ru"
 							},
-							"CreatedAt": "2026-01-04T17:42:35.502973+03:00"
+							"CreatedAt": "2026-01-04T21:29:57.1359994+03:00"
 						},
 						"Students": [
 							{
-								"ID": 2,
+								"ID": 1,
 								"FirstName": "Student",
 								"LastName": "Student",
 								"MiddleName": "Student",
 								"Role": 1,
 								"Credential": {
-									"ID": 2,
-									"Login": "u140465",
-									"PwdHashed": "CZNE3AjFwWUjwlI",
+									"ID": 1,
+									"Login": "u179319",
+									"PwdHashed": "wD_6_CtQjyrUtb4",
 									"Email": "Student.Student@yandex.ru"
 								},
 								"CreatedAt": "0001-01-01T00:00:00Z"
@@ -95,26 +95,26 @@
 				]
 			},
 			"User": {
-				"ID": 2,
+				"ID": 1,
 				"FirstName": "Student",
 				"LastName": "Student",
 				"MiddleName": "Student",
 				"Role": 1,
 				"Credential": {
-					"ID": 2,
-					"Login": "u140465",
-					"PwdHashed": "CZNE3AjFwWUjwlI",
+					"ID": 1,
+					"Login": "u179319",
+					"PwdHashed": "wD_6_CtQjyrUtb4",
 					"Email": "Student.Student@yandex.ru"
 				},
 				"CreatedAt": "0001-01-01T00:00:00Z"
 			},
-			"Status": 3,
+			"Status": 1,
 			"Score": 0,
 			"Answers": [
 				{
 					"ID": 12,
-					"Text": "xml",
-					"Status": 2,
+					"Text": "json",
+					"Status": 3,
 					"Question": {
 						"ID": 6,
 						"Text": "Какой тег используется для маппинга полей в JSON?",
@@ -140,8 +140,8 @@
 				},
 				{
 					"ID": 13,
-					"Text": "Мне очень понравился!",
-					"Status": 3,
+					"Text": "Очень круто, спс бро!",
+					"Status": 1,
 					"Question": {
 						"ID": 10,
 						"Text": "Как вам квиз?",
@@ -150,7 +150,7 @@
 					}
 				}
 			],
-			"CompletedDate": "2026-01-04T15:48:37.666926Z",
-			"StartDate": "2026-01-04T15:42:56.880153Z"
+			"CompletedDate": null,
+			"StartDate": "2026-01-04T18:35:31.710258Z"
 		}
 	}

@@ -14,19 +14,19 @@
 					"PwdHashed": "admin",
 					"Email": "admin@admin.ru"
 				},
-				"CreatedAt": "2026-01-04T17:42:35.502973+03:00"
+				"CreatedAt": "2026-01-04T21:29:57.1359994+03:00"
 			},
 			"Students": [
 				{
-					"ID": 2,
+					"ID": 1,
 					"FirstName": "Student",
 					"LastName": "Student",
 					"MiddleName": "Student",
 					"Role": 1,
 					"Credential": {
-						"ID": 2,
-						"Login": "u140465",
-						"PwdHashed": "CZNE3AjFwWUjwlI",
+						"ID": 1,
+						"Login": "u179319",
+						"PwdHashed": "wD_6_CtQjyrUtb4",
 						"Email": "Student.Student@yandex.ru"
 					},
 					"CreatedAt": "0001-01-01T00:00:00Z"

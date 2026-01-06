@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"server/internal/common"
 	"server/internal/domain"
@@ -215,40 +216,43 @@ func (s *Storage) mapFields(f func(any, string) error) error {
 func (s *Storage) saveMap(m any, pathName string) error {
 	data, err := json.MarshalIndent(m, "\t", "\t")
 	if err != nil {
-		return err
+		return fmt.Errorf("storage: %w", err)
 	}
 	err = os.Mkdir("save", 0777)
 	if err != nil && !os.IsExist(err) {
-		return err
+		return fmt.Errorf("storage: %w", err)
 	}
 	file, err := os.Create("save/" + pathName + ".json")
 	if err != nil {
-		return err
+		return fmt.Errorf("storage: %w", err)
 	}
 	defer file.Close()
 	if _, err := file.Write(data); err != nil {
-		return err
+		return fmt.Errorf("storage: %w", err)
 	}
 	return nil
 }
 
 func (s *Storage) loadMap(m any, pathName string) error {
 	if err := os.Mkdir("save", 0777); err != nil && !os.IsExist(err) {
-		return err
+		return fmt.Errorf("%w: make directory", err)
 	}
 	file, err := os.Open("save/" + pathName + ".json")
 	if err != nil {
 		if os.IsNotExist(err) {
 			file, err := os.Create("save/" + pathName + ".json")
 			if err != nil {
-				return err
+				return fmt.Errorf("%w: open file", err)
 			}
 			return file.Close()
 		}
-		return err
+		return fmt.Errorf("%w: open file", err)
 	}
 	if err := json.NewDecoder(file).Decode(m); err != nil {
-		return err
+		if err == io.EOF {
+			return nil
+		}
+		return fmt.Errorf("%w: decoding file info", err)
 	}
 	return nil
 }

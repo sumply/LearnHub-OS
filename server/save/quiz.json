@@ -1,1 +1,95 @@
-{}
+{
+		"0": {
+			"ID": 0,
+			"Title": "Основы Go-разработки",
+			"Summary": "Небольшой тест на проверку базовых знаний синтаксиса Go и работы с JSON.",
+			"NumberQuestions": 2,
+			"HasWritten": true,
+			"IsForEveryone": false,
+			"CreatedAt": "0001-01-01T00:00:00Z",
+			"Owner": {
+				"ID": 2,
+				"FirstName": "Teacher",
+				"LastName": "Teacher",
+				"MiddleName": "Teacher",
+				"Role": 2,
+				"Credential": {
+					"ID": 2,
+					"Login": "u390553",
+					"PwdHashed": "PRCEE9FjHkPSLtD",
+					"Email": "Teacher.Teacher@yandex.ru"
+				},
+				"CreatedAt": "0001-01-01T00:00:00Z"
+			},
+			"Subject": {
+				"ID": 4,
+				"Name": "Русский язык"
+			},
+			"Groups": [
+				{
+					"ID": 3,
+					"Name": "9-А",
+					"Curator": {
+						"ID": 0,
+						"FirstName": "admin",
+						"LastName": "admin",
+						"MiddleName": "admin",
+						"Role": 4,
+						"Credential": {
+							"ID": 0,
+							"Login": "admin",
+							"PwdHashed": "admin",
+							"Email": "admin@admin.ru"
+						},
+						"CreatedAt": "2026-01-04T21:29:57.1359994+03:00"
+					},
+					"Students": [
+						{
+							"ID": 1,
+							"FirstName": "Student",
+							"LastName": "Student",
+							"MiddleName": "Student",
+							"Role": 1,
+							"Credential": {
+								"ID": 1,
+								"Login": "u179319",
+								"PwdHashed": "wD_6_CtQjyrUtb4",
+								"Email": "Student.Student@yandex.ru"
+							},
+							"CreatedAt": "0001-01-01T00:00:00Z"
+						}
+					]
+				}
+			],
+			"Questions": [
+				{
+					"ID": 6,
+					"Text": "Какой тег используется для маппинга полей в JSON?",
+					"IsWritten": false,
+					"Options": [
+						{
+							"ID": 7,
+							"Text": "xml",
+							"IsCorrect": false
+						},
+						{
+							"ID": 8,
+							"Text": "json",
+							"IsCorrect": true
+						},
+						{
+							"ID": 9,
+							"Text": "map",
+							"IsCorrect": false
+						}
+					]
+				},
+				{
+					"ID": 10,
+					"Text": "Как вам квиз?",
+					"IsWritten": true,
+					"Options": []
+				}
+			]
+		}
+	}

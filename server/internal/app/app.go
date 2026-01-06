@@ -12,6 +12,7 @@ import (
 	"server/internal/rest/middleware"
 	"server/internal/service/generator"
 	"server/internal/usecase"
+	"syscall"
 )
 
 func Run() error {
@@ -26,7 +27,7 @@ func Run() error {
 	}
 
 	signs := make(chan os.Signal, 1)
-	signal.Notify(signs, os.Interrupt)
+	signal.Notify(signs, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-signs
 		fmt.Print("Saving storage data...")
@@ -54,6 +55,6 @@ func Run() error {
 		return err
 	}
 
-	s := config.Server{Addr: "127.0.0.1", Port: 8000}
+	s := config.Server{Addr: "0.0.0.0", Port: 8000}
 	return http.ListenAndServe(s.String(), r)
 }
