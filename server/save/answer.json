@@ -1,0 +1,40 @@
+{
+		"12": {
+			"ID": 12,
+			"Text": "json",
+			"Status": 3,
+			"Question": {
+				"ID": 6,
+				"Text": "Какой тег используется для маппинга полей в JSON?",
+				"IsWritten": false,
+				"Options": [
+					{
+						"ID": 7,
+						"Text": "xml",
+						"IsCorrect": false
+					},
+					{
+						"ID": 8,
+						"Text": "json",
+						"IsCorrect": true
+					},
+					{
+						"ID": 9,
+						"Text": "map",
+						"IsCorrect": false
+					}
+				]
+			}
+		},
+		"13": {
+			"ID": 13,
+			"Text": "Очень круто, спс бро!",
+			"Status": 1,
+			"Question": {
+				"ID": 10,
+				"Text": "Как вам квиз?",
+				"IsWritten": true,
+				"Options": []
+			}
+		}
+	}

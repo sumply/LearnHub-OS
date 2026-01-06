@@ -2,161 +2,63 @@ package usecase
 
 import (
 	"context"
-	"time"
+	"errors"
+	"server/internal/common"
+	"server/internal/domain"
+	"server/internal/dto"
 )
 
-type User interface {
-	Login(context.Context, UserLoginParam) (JWT, error)
-	Get(context.Context, Identity) ([]UserDomain, error)
-	Create(context.Context, Identity, UserCreateParam) error
-	GetMe(context.Context, Identity) (UserDomain, error)
-	GetByID(context.Context, Identity, ID) (UserDomain, error)
-	Put(context.Context, Identity, ID, UserPutParam) error
-	Delete(context.Context, Identity, ID) error
-}
-
-type Quiz interface {
-	Create(context.Context, Identity, QuizCreateParam) error
-	Get(context.Context, Identity) ([]QuizDomain, error)
-	GetByID(context.Context, Identity, ID) (QuizDomain, error)
-}
-
-type Answer interface {
-	Create(context.Context, Identity, AnswerCreateParam) error
-	Get(context.Context, Identity) ([]AnswerDomain, error)
-	GetByID(context.Context, Identity, ID) (AnswerDomain, error)
-}
-
-type Group interface {
-	Create(ctx context.Context, name string) error
-	Get(ctx context.Context) ([]GroupDomain, error)
-}
-
-type Subject interface {
-	Create(ctx context.Context, auth Identity, name string) error
-	Get(ctx context.Context, auth Identity) ([]SubjectDomain, error)
-}
-
-type Email string
-
-type Password string
-
-type UserRole uint8
-
-const (
-	Root UserRole = iota
-	Admin
-	Teacher
-	Student
+var (
+	ErrAccess       = errors.New("access permission")
+	ErrNotFound     = errors.New("not found")
+	ErrCollision    = errors.New("collision")
+	ErrInvalidField = errors.New("invalid field")
 )
 
-type ID uint64
-
-type UserLoginParam struct {
-	Login    string
-	Password Password
+type ProgressInterface interface {
+	UpdateAnswer(
+		ctx context.Context,
+		identity *dto.Identity,
+		req *dto.AnswerPatchReq,
+		progressID, answerID common.ID,
+	) error
+	ReviewAnswer(
+		ctx context.Context,
+		identity *dto.Identity,
+		isCorrect bool,
+		progressID, answerID common.ID,
+	) error
+	Get(context.Context, *dto.Identity) ([]*domain.QuizProgress, error)
+	Start(ctx context.Context, identity *dto.Identity, progressID common.ID) error
+	Finish(ctx context.Context, idenity *dto.Identity, progressID common.ID) error
 }
 
-type JWT struct {
-	AccessToken  string
-	RefreshToken string
+type QuizInterface interface {
+	Create(context.Context, *dto.Identity, *dto.QuizCreateReq) error
+	Delete(ctx context.Context, identity *dto.Identity, quizID common.ID) error
+	Get(context.Context, *dto.Identity) ([]*domain.Quiz, error)
 }
 
-type UserDomain struct {
-	ID         ID
-	FirstName  string
-	LastName   string
-	MiddleName string
-	Role       UserRole
-	CreatedAt  time.Time
+type UserInterface interface {
+	Login(context.Context, *dto.LoginReq) (*domain.TokenPair, error)
+	Get(context.Context, *dto.Identity) ([]*domain.User, error)
+	Create(context.Context, *dto.Identity, *dto.UserCreateReq) error
+	GetMe(context.Context, *dto.Identity) (*domain.User, error)
+	GetByID(context.Context, *dto.Identity, common.ID) (*domain.User, error)
 }
 
-type UserPutParam struct {
-	FirstName  string
-	LastName   string
-	MiddleName string
+type GroupInterface interface {
+	Create(context.Context, *dto.Identity, *dto.GroupCreateReq) error
+	Get(context.Context) ([]*domain.Group, error)
+	AddStudents(
+		ctx context.Context,
+		identity *dto.Identity,
+		groupID common.ID,
+		req *dto.GroupAddStudentsReq,
+	) error
 }
 
-type UserCreateParam struct {
-	FirstName  string
-	LastName   string
-	MiddleName string
-}
-
-type Identity struct {
-	ID   ID
-	Role UserRole
-}
-
-type GroupDomain struct {
-	ID        ID
-	Name      string
-	CreatedAt time.Time
-}
-
-type SubjectDomain struct {
-	ID        ID
-	Name      string
-	CreatedAt time.Time
-}
-
-type QuizCreateOption struct {
-	Text      string
-	IsCorrect bool
-}
-
-type QuizCreateQuestion struct {
-	Title   string
-	Options []QuizCreateOption
-}
-
-type QuizCreateParam struct {
-	Name      string
-	Summary   string
-	SubjectID ID
-	Questions []QuizCreateQuestion
-}
-
-type QuizOptionsDomain struct {
-	ID        ID
-	Text      string
-	IsCorrect bool
-}
-
-type QuizQuestionDomain struct {
-	ID      ID
-	Name    string
-	Answers []QuizOptionsDomain
-}
-
-type QuizDomain struct {
-	ID        ID
-	Name      string
-	Summary   string
-	Questions []QuizQuestionDomain
-}
-
-type AnsweredQuestion struct {
-	Question QuizQuestionDomain
-	Answered QuizOptionsDomain
-}
-
-type AnswerDomain struct {
-	ID         ID
-	TotalScore int
-	Score      int
-	Completed  bool
-	Quiz       QuizDomain
-	User       UserDomain
-	Answers    []AnsweredQuestion
-}
-
-type SelectedOption struct {
-	QuestionID ID
-	OptionID   ID
-}
-
-type AnswerCreateParam struct {
-	QuizID  ID
-	Answers []SelectedOption
+type SubjectInterface interface {
+	Create(context.Context, *dto.Identity, *dto.SubjectCreateReq) error
+	Get(context.Context, *dto.Identity) ([]*domain.Subject, error)
 }

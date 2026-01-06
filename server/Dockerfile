@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o app ./cmd/main.go
+RUN go build -o app ./cmd/server/main.go
 
 
 FROM alpine:3.21
@@ -16,5 +16,7 @@ FROM alpine:3.21
 WORKDIR /app
 
 COPY --from=builder /data/app/app .
+
+EXPOSE 8000
 
 CMD ["./app"]

@@ -3,66 +3,58 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"server/internal/config"
 	"server/internal/logger"
-	"server/internal/transport"
+	"server/internal/repository"
+	"server/internal/rest"
+	"server/internal/rest/middleware"
+	"server/internal/service/generator"
+	"server/internal/usecase"
+	"syscall"
 )
 
 func Run() error {
 	logger.SetNewFunc(func() logger.Logger {
 		return logger.NewFake()
 	})
+	logger.SetLayer(logger.DEBUG)
 
-	app, err := config.NewApp("./configs/app.yaml")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%v\n", app)
-	r, err := createHandler(app)
-	if err != nil {
+	storage := repository.NewStorage()
+	if err := storage.Load(); err != nil {
 		return err
 	}
 
-	s := config.Server{Addr: "127.0.0.1", Port: 8000}
-	return http.ListenAndServe(s.String(), r)
-}
-
-func createHandler(app *config.App) (http.Handler, error) {
-	uu, err := app.CreateUsecaseUser()
-	if err != nil {
-		return nil, err
-	}
-	ua, err := app.CreateUsecaseAnswer()
-	if err != nil {
-		return nil, err
-	}
-	ug, err := app.CreateUsecaseGroup()
-	if err != nil {
-		return nil, err
-	}
-	us, err := app.CreateUsecaseSubject()
-	if err != nil {
-		return nil, err
-	}
-	uq, err := app.CreateUsecaseQuiz()
-	if err != nil {
-		return nil, err
-	}
-	tp, err := app.CreateTransportJWTParser()
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := transport.NewRouter(
-		uu,
-		ug,
-		us,
-		uq,
-		ua,
-		tp,
+	signs := make(chan os.Signal, 1)
+	signal.Notify(signs, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signs
+		fmt.Print("Saving storage data...")
+		if err := storage.Save(); err != nil {
+			fmt.Printf("error: %v\n", err)
+		}
+		os.Exit(0)
+	}()
+	repo := repository.New(
+		repository.NewUserMemory(storage),
+		repository.NewSubjectMemory(storage),
+		repository.NewGroupMemory(storage),
+		repository.NewQuizMemory(storage),
+		repository.NewProgressMemory(storage),
+	)
+	r, err := rest.NewRouter(
+		usecase.NewUserReal(generator.NewReal(), repo),
+		usecase.NewGroupReal(repo),
+		usecase.NewRealSubject(repo),
+		usecase.NewQuiz(repo),
+		usecase.NewProgressUsecase(repo),
+		&middleware.TokenParserFake{},
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return r, nil
+
+	s := config.Server{Addr: "0.0.0.0", Port: 8000}
+	return http.ListenAndServe(s.String(), r)
 }

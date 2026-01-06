@@ -1,11 +1,87 @@
-package transport
+package handler
 
 import (
 	"fmt"
 	"net/http"
+	"server/internal/dto"
+	"server/internal/rest/transport"
 	"server/internal/usecase"
 )
 
+type Quiz struct {
+	handler
+	u usecase.QuizInterface
+}
+
+func NewQuiz(u usecase.QuizInterface) (*Quiz, error) {
+	if u == nil {
+		return nil, fmt.Errorf("usecase is nil")
+	}
+	return &Quiz{
+		u: u,
+	}, nil
+}
+
+func (h *Quiz) Post(w http.ResponseWriter, r *http.Request) {
+	var req dto.QuizCreateReq
+	if err := transport.DecodeJSON(r.Body, &req); err != nil {
+		h.sendDecodeError(w)
+		return
+	}
+
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+
+	if err := h.u.Create(r.Context(), identity, &req); err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *Quiz) Get(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	data, err := h.u.Get(r.Context(), identity)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+	resp := dto.NewSliceQuizShortResp(data)
+	if err := transport.EncodeJSON(w, resp); err != nil {
+		h.sendEncodeError(w)
+		return
+	}
+}
+
+func (h *Quiz) Delete(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	quizID, err := h.getParamQuizID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+
+	err = h.u.Delete(r.Context(), identity, quizID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+/*
 type quizOptionsCreate struct {
 	Text      string `json:"text"`
 	IsCorrect bool   `json:"is_correct"`
@@ -123,6 +199,7 @@ func quizShortRespFromDomain(d usecase.QuizDomain) quizShortResp {
 }
 
 type quizHandler struct {
+	handler
 	usecase usecase.Quiz
 }
 
@@ -138,13 +215,13 @@ func newQuizHandler(u usecase.Quiz) (*quizHandler, error) {
 func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 	var req quizCreateReq
 	if err := decodeJSON(r.Body, &req); err != nil {
-		sendDecodeError(w)
+		h.sendDecodeError(w)
 		return
 	}
 
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
@@ -154,7 +231,7 @@ func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 		req.toUCParam(),
 	)
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -162,15 +239,15 @@ func (h *quizHandler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *quizHandler) get(w http.ResponseWriter, r *http.Request) {
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	data, err := h.usecase.Get(r.Context(), auth.toIdentity())
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
@@ -180,32 +257,33 @@ func (h *quizHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }
 
 func (h *quizHandler) getByID(w http.ResponseWriter, r *http.Request) {
-	quizID, err := getParamQuizID(r)
+	quizID, err := h.getParamQuizID(r)
 	if err != nil {
-		sendParamError(w, err.Error())
+		h.sendParamError(w, err.Error())
 		return
 	}
-	auth, ok := getAuthData(r.Context())
+	auth, ok := h.getAuthData(r.Context())
 	if !ok {
-		sendGetAuthDataError(w)
+		h.sendGetAuthDataError(w)
 		return
 	}
 
 	data, err := h.usecase.GetByID(r.Context(), auth.toIdentity(), usecase.ID(quizID))
 	if err != nil {
-		sendUsecaseError(w, err)
+		h.sendUsecaseError(w, err)
 		return
 	}
 
 	resp := quizFullRespFromDomain(data)
 	if err := encodeJSON(w, &resp); err != nil {
-		sendEncodeError(w)
+		h.sendEncodeError(w)
 		return
 	}
 }
+*/
