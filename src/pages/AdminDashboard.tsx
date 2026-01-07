@@ -1,9 +1,10 @@
-import { createSignal, For, Show } from 'solid-js';
-import { users } from '../config/users';
-import { subjects as allSubjects } from '../config/subjectsGroups';
-import { addUser, getAllUsers, findUserByEmail, isEmailTaken } from '../config/users';
+import { createSignal, For, Show, createResource } from 'solid-js';
 import Header from '../components/Header';
 import { A } from '@solidjs/router';
+import { getAllUsers } from '../services/userService';
+import { getSubjects, getGroups } from '../services/subjectGroupService';
+import { createUser } from '../utils/apiClient';
+import * as apiClient from '../utils/apiClient';
 
 const tableStyle = {
   width: '100%',
@@ -25,10 +26,27 @@ const tdStyle = {
 };
 
 const AdminDashboard = () => {
-  // Получаем всех студентов
-  const students = users.filter(u => u.role === 'student');
-  // Получаем все уникальные группы
-  const groups = Array.from(new Set(students.map(s => s.group)));
+  // Загружаем данные через API
+  const [usersData] = createResource(getAllUsers);
+  const [subjectsData] = createResource(getSubjects);
+  const [groupsData] = createResource(getGroups);
+  
+  // Получаем всех студентов (из API данных)
+  const students = () => {
+    const users = usersData();
+    if (!users) return [];
+    // В API нет прямого поля role в UserShort, нужно будет получать полную информацию
+    // Пока возвращаем пустой массив, так как структура данных другая
+    return [];
+  };
+  
+  // Получаем все уникальные группы из API
+  const groups = () => {
+    const groups = groupsData();
+    if (!groups) return [];
+    return groups.map(g => g.name);
+  };
+  
   // Сигнал для выбранного студента (для подробного просмотра)
   const [selectedStudent, setSelectedStudent] = createSignal(null);
   const [editUser, setEditUser] = createSignal(null);
@@ -93,36 +111,41 @@ const AdminDashboard = () => {
       setAddFields({ ...addFields(), subjects: [...current, subjId] });
     }
   }
-  function saveNewUser() {
-    const base = {
-      id: Date.now().toString(),
-      name: addFields().name,
-      surname: addFields().surname,
-      email: addFields().email,
-      password: addFields().password,
-      role: addRole(),
-    };
-    let newUser;
-    if (addRole() === 'student') {
-      newUser = { ...base, group: addFields().group };
-    } else if (addRole() === 'teacher') {
-      newUser = { ...base, subjects: addFields().subjects };
+  async function saveNewUser() {
+    try {
+      // Маппинг ролей
+      const roleMap: Record<string, apiClient.UserRole> = {
+        'student': apiClient.UserRole.STUDENT,
+        'teacher': apiClient.UserRole.TEACHER,
+        'admin': apiClient.UserRole.ADMIN,
+      };
+      
+      await createUser({
+        first_name: addFields().name,
+        last_name: addFields().surname,
+        email: addFields().email,
+        role: roleMap[addRole()] || apiClient.UserRole.STUDENT,
+      });
+      
+      setShowAddModal(false);
+      // Обновляем данные
+      usersData.refetch();
+      window.location.reload();
+    } catch (error) {
+      console.error('Ошибка создания пользователя:', error);
+      alert('Ошибка создания пользователя: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
     }
-    addUser(newUser);
-    setShowAddModal(false);
-    window.location.reload();
   }
 
-  // Преподаватели
-  const teachers = users.filter(u => u.role === 'teacher');
-  // Для каждой группы: какие преподаватели ведут предметы в этой группе (по совпадению subject id)
-  // Для простоты: покажем все группы, если у преподавателя есть хотя бы один предмет, совпадающий с предметом группы
-  // (или просто список всех групп, если нет строгой связи)
-
-  // Получить список групп, где есть студенты
-  const studentGroups = Array.from(new Set(users.filter(u => u.role === 'student').map(s => s.group)));
-
-  // Для каждого преподавателя — список групп, где есть студенты (можно доработать логику связи)
+  // Преподаватели (пока пустой массив, так как нужно получать полную информацию о пользователях)
+  const teachers = () => [];
+  
+  // Получить список групп из API
+  const studentGroups = () => {
+    const groups = groupsData();
+    if (!groups) return [];
+    return groups.map(g => g.name);
+  };
 
   return (
     <>
@@ -132,7 +155,7 @@ const AdminDashboard = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5em' }}>
           <button style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.5em 1.5em', cursor: 'pointer', fontWeight: 500 }} onClick={() => setShowAddModal(true)}>Добавить пользователя</button>
         </div>
-        <For each={groups}>{(group, idx) => (
+        <For each={groups()}>{(group, idx) => (
           <div style={{ marginBottom: '2.5em' }}>
             <h3 style={{ color: '#213547', marginBottom: '0.7em' }}>Класс: {group}</h3>
             <table style={tableStyle}>
@@ -144,7 +167,7 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                <For each={students.filter(s => s.group === group)}>{(student, sidx) => (
+                <For each={students().filter(s => (s as any).group === group)}>{(student, sidx) => (
                   <tr style={sidx % 2 === 1 ? { background: '#f9fafb' } : {}}>
                     <td style={tdStyle}>{student.surname} {student.name}</td>
                     <td style={tdStyle}>{student.email}</td>
@@ -201,9 +224,9 @@ const AdminDashboard = () => {
               <Show when={editUser()?.role === 'teacher'}>
                 <div style={{ marginBottom: '0.7em' }}>
                   <label>Предметы:</label><br />
-                  <For each={allSubjects}>{subj => (
+                  <For each={subjectsData() || []}>{subj => (
                     <label style={{ marginRight: '1em' }}>
-                      <input type="checkbox" checked={editFields().subjects.includes(subj.id)} onChange={() => handleEditSubjects(subj.id)} /> {subj.name}
+                      <input type="checkbox" checked={editFields().subjects.includes(subj.id.toString())} onChange={() => handleEditSubjects(subj.id.toString())} /> {subj.name}
                     </label>
                   )}</For>
                 </div>
@@ -253,9 +276,9 @@ const AdminDashboard = () => {
               <Show when={addRole() === 'teacher'}>
                 <div style={{ marginBottom: '0.7em' }}>
                   <label>Предметы:</label><br />
-                  <For each={allSubjects}>{subj => (
+                  <For each={subjectsData() || []}>{subj => (
                     <label style={{ marginRight: '1em' }}>
-                      <input type="checkbox" checked={addFields().subjects.includes(subj.id)} onChange={() => handleAddSubjects(subj.id)} /> {subj.name}
+                      <input type="checkbox" checked={addFields().subjects.includes(subj.id.toString())} onChange={() => handleAddSubjects(subj.id.toString())} /> {subj.name}
                     </label>
                   )}</For>
                 </div>
@@ -280,12 +303,12 @@ const AdminDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            <For each={teachers}>{(teacher, tidx) => (
+            <For each={teachers()}>{(teacher, tidx) => (
               <tr style={tidx % 2 === 1 ? { background: '#f9fafb' } : {}}>
                 <td style={tdStyle}>{teacher.surname} {teacher.name}</td>
                 <td style={tdStyle}>{teacher.email}</td>
-                <td style={tdStyle}>{(teacher.subjects || []).map(sid => (allSubjects.find(s => s.id === sid)?.name || sid)).join(', ')}</td>
-                <td style={tdStyle}>{studentGroups.join(', ')}</td>
+                <td style={tdStyle}>{(teacher.subjects || []).map((sid: string) => (subjectsData()?.find(s => s.id.toString() === sid)?.name || sid)).join(', ')}</td>
+                <td style={tdStyle}>{studentGroups().join(', ')}</td>
                 <td style={tdStyle}>
                   <button style={{ background: 'none', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '3px', padding: '0.2em 0.7em', cursor: 'pointer', fontWeight: 400, fontSize: '0.95em' }}>
                     <A href={`/admin/profile/${teacher.id}`} style={{ color: '#2563eb', textDecoration: 'none' }}>К данным</A>

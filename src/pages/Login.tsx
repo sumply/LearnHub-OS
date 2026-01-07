@@ -2,8 +2,7 @@ import type { Component } from 'solid-js';
 import { createSignal } from 'solid-js';
 import Header from '../components/Header';
 import { login, register, handleAuthError } from '../utils/api';
-import { findUserByEmail, checkUserPassword, addUser, isEmailTaken } from '../config/users';
-import type { UserRole, User } from '../config/users';
+import type { UserRole } from '../config/users';
 
 const Login: Component = () => {
   const [isRegister, setIsRegister] = createSignal(false);
@@ -28,19 +27,18 @@ const Login: Component = () => {
     setIsLoading(true);
 
     try {
-      const user = findUserByEmail(email());
-      if (!user) {
-        setError('Пользователь не найден');
-        return;
-      }
-      if (!checkUserPassword(user, password())) {
-        setError('Неверный пароль');
-        return;
-      }
-      // Сохраняем пользователя в localStorage
-      localStorage.setItem('user', JSON.stringify(user));
+      // Используем API для входа
+      const result = await login({
+        email: email(),
+        password: password(),
+      });
+
+      if (result.success) {
         // Перенаправляем на главную страницу
-      window.location.href = '/';
+        window.location.href = '/';
+      } else {
+        setError(result.message || 'Ошибка входа');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка входа';
       setError(errorMessage);
@@ -67,35 +65,26 @@ const Login: Component = () => {
       setError('Пароль должен содержать минимум 6 символов');
       return;
     }
-    if (isEmailTaken(regEmail())) {
-      setError('Пользователь с таким email уже существует!');
+    if (!regFirstname() || !regLastname()) {
+      setError('Имя и фамилия обязательны для заполнения');
       return;
     }
 
     setIsLoading(true);
 
-    // Формируем пользователя нужной роли
-    const base = {
-      id: Date.now().toString(),
-      email: regEmail(),
-      password: regPassword(),
-      name: regFirstname(),
-      surname: regLastname(),
-      role: role() as UserRole,
-    };
-    let newUser: User;
-    if (role() === 'admin') newUser = { ...base, role: 'admin' };
-    else if (role() === 'teacher') {
-      newUser = { ...base, role: 'teacher', subjects: [] };
-    } else if (role() === 'parent') {
-      newUser = { ...base, role: 'parent', childrenIds: [] };
-    } else {
-      newUser = { ...base, role: 'student', group: regGroup() };
-    }
-
     try {
-      addUser(newUser);
-        alert('Регистрация успешна! Теперь вы можете войти в систему.');
+      // Используем API для регистрации
+      const result = await register({
+        email: regEmail(),
+        password: regPassword(),
+        name: regFirstname(),
+        surname: regLastname(),
+        role: role() as UserRole,
+        group: regGroup() || undefined,
+      });
+
+      if (result.success) {
+        alert('Регистрация успешна! Логин и пароль будут сгенерированы сервером. Ожидайте письмо с данными для входа.');
         setIsRegister(false);
         // Очищаем форму регистрации
         setRegEmail('');
@@ -106,6 +95,9 @@ const Login: Component = () => {
         setRegSecondname('');
         setRegLastname('');
         setRegGroup('');
+      } else {
+        setError(result.message || 'Ошибка регистрации');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка регистрации';
       setError(errorMessage);

@@ -1,5 +1,5 @@
-import { createSignal, For } from "solid-js";
-import { subjects } from '../config/subjectsGroups';
+import { createSignal, For, createResource } from "solid-js";
+import { getSubjects } from '../services/subjectGroupService';
 import type { MaterialType } from '../config/materials';
 
 const materialTypes: { value: MaterialType, label: string }[] = [
@@ -31,16 +31,27 @@ interface AddMaterialFormProps {
 }
 
 const AddMaterialForm = (props: AddMaterialFormProps) => {
+  // Загружаем предметы через API
+  const [subjectsData] = createResource(getSubjects);
+  
   const [title, setTitle] = createSignal("");
   const [description, setDescription] = createSignal("");
   const [file, setFile] = createSignal<File | null>(null);
-  const [category, setCategory] = createSignal(subjects[0]?.id || "");
+  const [category, setCategory] = createSignal("");
   const [grade, setGrade] = createSignal(grades[0]);
   const [type, setType] = createSignal<MaterialType>('pdf');
   const [visible, setVisible] = createSignal(true);
   const [tags, setTags] = createSignal("");
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal("");
+  
+  // Устанавливаем первый предмет по умолчанию когда данные загрузятся
+  createResource(() => {
+    const subjects = subjectsData();
+    if (subjects && subjects.length > 0 && !category()) {
+      setCategory(subjects[0].id.toString());
+    }
+  });
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -104,7 +115,7 @@ const AddMaterialForm = (props: AddMaterialFormProps) => {
         <label>
           Предмет*:<br />
           <select value={category()} onInput={e => setCategory((e.target as HTMLSelectElement).value)} style={{ width: "100%", "margin-bottom": "8px" }}>
-            <For each={subjects}>{subject => <option value={subject.id}>{subject.name}</option>}</For>
+            <For each={subjectsData() || []}>{subject => <option value={subject.id.toString()}>{subject.name}</option>}</For>
           </select>
         </label>
       </div>

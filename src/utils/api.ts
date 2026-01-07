@@ -1,6 +1,8 @@
 // Утилиты для работы с API
+// Импортируем новый API клиент
+import * as apiClient from './apiClient';
 
-const API_BASE_URL = 'http://188.225.24.208:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export interface User {
   id: string;
@@ -72,13 +74,14 @@ export interface Quiz {
   category: string;
 }
 
-export const getAuthToken = (): string | null => localStorage.getItem('authToken');
-export const setAuthToken = (token: string): void => localStorage.setItem('authToken', token);
-export const removeAuthToken = (): void => localStorage.removeItem('authToken');
+// Реэкспортируем функции работы с токенами из нового клиента
+export const getAuthToken = apiClient.getAuthToken;
+export const setAuthToken = apiClient.setAuthToken;
+export const removeAuthToken = apiClient.removeAuthToken;
 
-export const getRefreshToken = (): string | null => localStorage.getItem('refreshToken');
-export const setRefreshToken = (token: string): void => localStorage.setItem('refreshToken', token);
-export const removeRefreshToken = (): void => localStorage.removeItem('refreshToken');
+export const getRefreshToken = apiClient.getRefreshToken;
+export const setRefreshToken = apiClient.setRefreshToken;
+export const removeRefreshToken = apiClient.removeRefreshToken;
 
 export const getCurrentUser = (): User | null => {
   const userStr = localStorage.getItem('user');
@@ -116,30 +119,87 @@ export const isAuthenticated = (): boolean => !!getAuthToken();
 
 // Регистрация пользователя
 export const register = async (userData: RegisterRequest): Promise<ApiResponse> => {
-  // const response = await fetch(`${API_BASE_URL}/registration`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(userData),
-  // });
-  // return await response.json();
-  return { success: true, message: 'Заглушка регистрации (сервер отключён)' };
+  try {
+    // Маппинг ролей из старого формата в новый
+    const roleMap: Record<string, apiClient.UserRole> = {
+      'student': apiClient.UserRole.STUDENT,
+      'teacher': apiClient.UserRole.TEACHER,
+      'admin': apiClient.UserRole.ADMIN,
+      'parent': apiClient.UserRole.STUDENT, // parent маппится в student
+    };
+    
+    const createUserData: apiClient.UserCreateRequest = {
+      first_name: userData.name,
+      last_name: userData.surname,
+      email: userData.email,
+      role: roleMap[userData.role] || apiClient.UserRole.STUDENT,
+    };
+    
+    await apiClient.createUser(createUserData);
+    
+    return { 
+      success: true, 
+      message: 'Пользователь успешно создан. Логин и пароль будут сгенерированы сервером.' 
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Ошибка регистрации';
+    return { success: false, message: errorMessage };
+  }
 };
 
 // Вход пользователя
 export const login = async (credentials: LoginRequest): Promise<ApiResponse> => {
-  // const response = await fetch(`${API_BASE_URL}/authorization`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(credentials),
-  // });
-  // const data = await response.json();
-  // if (data.access && data.refresh) {
-  //   setAuthToken(data.access);
-  //   setRefreshToken(data.refresh);
-  //   return { success: true, message: 'Вход выполнен успешно' };
-  // }
-  // return { success: false, message: 'Ошибка авторизации' };
-  return { success: true, message: 'Заглушка входа (сервер отключён)' };
+  try {
+    // Используем новый API клиент
+    // Преобразуем email в login (API использует login)
+    const loginData = {
+      login: credentials.email,
+      password: credentials.password,
+    };
+    
+    const response = await apiClient.login(loginData);
+    
+    // Получаем информацию о текущем пользователе
+    const userInfo = await apiClient.getCurrentUser();
+    
+    // Парсим роль из токена (токен в base64 содержит {id, role})
+    let role: 'student' | 'parent' | 'teacher' | 'admin' = 'student';
+    try {
+      const token = response.access_token;
+      // Токен - это base64 закодированный JSON объект {id, role}
+      const payload = JSON.parse(atob(token));
+      const apiRole = payload.role;
+      // Маппинг ролей: 1=student, 2=teacher, 3=admin, 4=root
+      if (apiRole === 1) role = 'student';
+      else if (apiRole === 2) role = 'teacher';
+      else if (apiRole === 3) role = 'admin';
+      else if (apiRole === 4) role = 'admin'; // root маппится в admin
+    } catch {
+      // Если не удалось распарсить, используем значение по умолчанию
+    }
+    
+    // Преобразуем в старый формат для совместимости
+    const user: User = {
+      id: userInfo.id.toString(),
+      email: credentials.email,
+      name: userInfo.first_name,
+      surname: userInfo.last_name,
+      role,
+    };
+    
+    setCurrentUser(user);
+    
+    return { 
+      success: true, 
+      message: 'Вход выполнен успешно',
+      token: response.access_token,
+      refresh_token: response.refresh_token,
+      user,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Ошибка авторизации';
+    return { success: false, message: errorMessage };
+  }
 };
 
 // Обновление access-токена
@@ -172,8 +232,7 @@ export const refreshToken = async (): Promise<boolean> => {
 };
 
 export const logout = async (): Promise<ApiResponse> => {
-  removeAuthToken();
-  removeRefreshToken();
+  apiClient.logout();
   removeCurrentUser();
   return {
     success: true,
@@ -183,8 +242,7 @@ export const logout = async (): Promise<ApiResponse> => {
 
 export const handleAuthError = (error: Error): void => {
   console.error('Ошибка авторизации:', error);
-  removeAuthToken();
-  removeRefreshToken();
+  apiClient.logout();
   removeCurrentUser();
   window.location.href = '/login';
 };

@@ -1,9 +1,9 @@
-import { type Component, createSignal, For, Show } from 'solid-js';
+import { type Component, createSignal, For, Show, createResource } from 'solid-js';
 import { getCurrentUser } from '../utils/api';
 import { getAllActivities, type TaskUnion, addActivity, updateActivity, removeActivity } from '../utils/activitiesService';
 import Header from '../components/Header';
-import { subjects } from '../config/subjectsGroups';
-import { users, getAllUsers } from '../config/users';
+import { getSubjects } from '../services/subjectGroupService';
+import { getAllUsers } from '../services/userService';
 import type { MaterialAttachment } from '../utils/api';
 
 const Tasks: Component = () => {
@@ -58,17 +58,28 @@ const Tasks: Component = () => {
   // Получаем список уникальных учителей
   const allTeachers = Array.from(new Set(allTasks().map(t => t.teacher)));
 
+  // Загружаем предметы через API
+  const [subjectsData] = createResource(getSubjects);
+  const [usersData] = createResource(getAllUsers);
+
   // Получить предметы для учителя
   const teacherSubjects = () => {
+    const subjects = subjectsData();
+    if (!subjects) return [];
     if (user && user.role === 'teacher' && 'subjects' in user) {
       const teacher = user as { subjects: string[] };
-      return subjects.filter(s => teacher.subjects.includes(s.id));
+      return subjects.filter(s => teacher.subjects.includes(s.id.toString()));
     }
     return subjects;
   };
 
   // Получить список учителей для выбора (для админа)
-  const teacherNames = Array.from(new Set(users.filter(u => u.role === 'teacher').map(u => u.name)));
+  const teacherNames = () => {
+    const users = usersData();
+    if (!users) return [];
+    // TODO: Получить полную информацию о пользователях для фильтрации по роли
+    return [];
+  };
 
   // Сброс формы
   function resetForm() {
