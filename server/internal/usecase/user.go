@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"server/internal/common"
 	"server/internal/domain"
 	"server/internal/dto"
 	"server/internal/logger"
 	"server/internal/repository"
+	"server/internal/service/client"
 	"server/internal/service/generator"
 )
 
@@ -19,8 +21,9 @@ func NewUserReal(gen generator.Generator, repo *repository.Repository) *UserReal
 
 type UserReal struct {
 	usecase
-	repo *repository.Repository
-	gen  generator.Generator
+	repo   *repository.Repository
+	gen    generator.Generator
+	mailer client.Mail
 }
 
 func (u *UserReal) Login(ctx context.Context, req *dto.LoginReq) (*domain.TokenPair, error) {
@@ -90,14 +93,17 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 	login := u.gen.GenLogin()
 	pwd := u.gen.GenPassword()
 
+	credential, err := domain.NewCredential(login, pwd, req.Email)
+	if err != nil {
+		log.Warn(err.Error())
+		return err
+	}
 	user, err := domain.NewUser(
-		login,
-		pwd,
-		req.Email,
 		req.FirstName,
 		req.LastName,
 		*req.MiddleName,
 		req.Role,
+		credential,
 	)
 	if err != nil {
 		log.Warn(err.Error())
@@ -109,6 +115,12 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 	if err != nil {
 		log.Warn(err.Error())
 		return u.mapStorageError(err)
+	}
+
+	err = u.mailer.Send(req.Email, "LearnHub-OS", fmt.Sprintf("логин: %s\nпароль: %s", login, pwd))
+	if err != nil {
+		log.Warn(err.Error())
+		return err
 	}
 
 	return nil
