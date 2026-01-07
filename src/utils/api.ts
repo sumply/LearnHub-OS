@@ -167,14 +167,24 @@ export const login = async (credentials: LoginRequest): Promise<ApiResponse> => 
     try {
       const token = response.access_token;
       // Токен - это base64 закодированный JSON объект {id, role}
-      const payload = JSON.parse(atob(token));
+      // Пробуем декодировать
+      let payload;
+      try {
+        payload = JSON.parse(atob(token));
+      } catch {
+        // Если не получилось, возможно токен уже в другом формате
+        // Пробуем получить роль из информации о пользователе
+        payload = { role: 1 }; // По умолчанию student
+      }
+      
       const apiRole = payload.role;
       // Маппинг ролей: 1=student, 2=teacher, 3=admin, 4=root
       if (apiRole === 1) role = 'student';
       else if (apiRole === 2) role = 'teacher';
       else if (apiRole === 3) role = 'admin';
       else if (apiRole === 4) role = 'admin'; // root маппится в admin
-    } catch {
+    } catch (err) {
+      console.warn('Не удалось распарсить роль из токена:', err);
       // Если не удалось распарсить, используем значение по умолчанию
     }
     

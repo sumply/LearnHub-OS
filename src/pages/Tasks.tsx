@@ -4,6 +4,7 @@ import { getAllActivities, type TaskUnion, addActivity, updateActivity, removeAc
 import Header from '../components/Header';
 import { getSubjects } from '../services/subjectGroupService';
 import { getAllUsers } from '../services/userService';
+import { getAuthToken } from '../utils/api';
 import type { MaterialAttachment } from '../utils/api';
 
 const Tasks: Component = () => {
@@ -58,9 +59,15 @@ const Tasks: Component = () => {
   // Получаем список уникальных учителей
   const allTeachers = Array.from(new Set(allTasks().map(t => t.teacher)));
 
-  // Загружаем предметы через API
-  const [subjectsData] = createResource(getSubjects);
-  const [usersData] = createResource(getAllUsers);
+  // Загружаем предметы через API только если пользователь авторизован
+  const [subjectsData] = createResource(() => {
+    if (!user || !getAuthToken()) return Promise.resolve([]);
+    return getSubjects();
+  });
+  const [usersData] = createResource(() => {
+    if (!user || !getAuthToken()) return Promise.resolve([]);
+    return getAllUsers();
+  });
 
   // Получить предметы для учителя
   const teacherSubjects = () => {
@@ -231,9 +238,13 @@ const Tasks: Component = () => {
             <label style={{ 'font-weight': 500, color: '#213547', 'margin-right': '0.5em' }}>Предмет:</label>
             <select value={subjectFilter()} onInput={e => setSubjectFilter(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
               <option value="all">Все</option>
-              {subjects.map(subj => (
-                <option value={subj.id}>{subj.name}</option>
-              ))}
+              <Show when={subjectsData()} fallback={<option disabled>Загрузка...</option>}>
+                <For each={subjectsData() || []}>
+                  {(subj) => (
+                    <option value={subj.id.toString()}>{subj.name}</option>
+                  )}
+                </For>
+              </Show>
             </select>
           </div>
           <div>
@@ -365,11 +376,11 @@ const Tasks: Component = () => {
                     Тест по категории: {(selectedTask() as any).category}
                   </div>
                   <ol>
-                    {(selectedTask() as any).questions.map((q: any, idx: number) => (
+                    {((selectedTask() as any)?.questions || []).map((q: any, idx: number) => (
                       <li style={{ 'margin-bottom': '1em' }}>
                         <div style={{ 'font-weight': 500 }}>{q.question}</div>
                         <ul style={{ 'padding-left': '1.2em', 'margin-top': '0.5em' }}>
-                          {q.options.map((opt: string, i: number) => (
+                          {(q.options || []).map((opt: string, i: number) => (
                             <li>{opt}</li>
                           ))}
                         </ul>

@@ -123,11 +123,11 @@ const Login: Component = () => {
 
           {!isRegister() ? (
             <form class="auth-form" onSubmit={handleLogin}>
-              <label>Email</label>
+              <label>Email / Логин</label>
               <input 
-                type="email" 
-                placeholder="Введите email" 
-                required 
+                type="text" 
+                placeholder="Введите email или логин" 
+                // required 
                 value={email()} 
                 onInput={e => setEmail(e.currentTarget.value)}
                 disabled={isLoading()}
@@ -136,7 +136,7 @@ const Login: Component = () => {
               <input 
                 type="password" 
                 placeholder="Введите пароль" 
-                required 
+                // required 
                 value={password()} 
                 onInput={e => setPassword(e.currentTarget.value)}
                 disabled={isLoading()}

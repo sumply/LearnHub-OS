@@ -1,6 +1,7 @@
 // API клиент для работы с бэкендом
 // Базовый URL API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// В режиме разработки используем прокси Vite для обхода CORS
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:3000');
 
 // Типы согласно документации API
 export enum UserRole {
@@ -174,28 +175,57 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorMessage = `HTTP error! status: ${response.status}`;
-    try {
-      const errorData: ApiError = await response.json();
-      errorMessage = errorData.error || errorMessage;
-    } catch {
-      // Если не удалось распарсить ошибку, используем стандартное сообщение
+  try {
+    // Отладочная информация
+    if (import.meta.env.DEV) {
+      console.log(`[API] ${options.method || 'GET'} ${endpoint}`, {
+        hasToken: !!token,
+        url: `${API_BASE_URL}${endpoint}`
+      });
     }
-    throw new Error(errorMessage);
-  }
+    
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  // Если ответ пустой (например, для DELETE запросов)
-  if (response.status === 204 || response.headers.get('content-length') === '0') {
-    return {} as T;
-  }
+    // Обработка сетевых ошибок
+    if (!response.ok) {
+      // Если 401 - неавторизован, возможно токен истек
+      if (response.status === 401) {
+        // Очищаем токен и перенаправляем на логин
+        logout();
+        throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
+      }
 
-  return await response.json();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData: ApiError = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        // Если не удалось распарсить ошибку, используем стандартное сообщение
+        if (response.status === 404) {
+          errorMessage = 'Ресурс не найден';
+        } else if (response.status === 500) {
+          errorMessage = 'Ошибка сервера';
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Если ответ пустой (например, для DELETE запросов)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return {} as T;
+    }
+
+    return await response.json();
+  } catch (error) {
+    // Обработка сетевых ошибок (CORS, таймаут, и т.д.)
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Не удалось подключиться к серверу. Проверьте, что бэкенд запущен на http://localhost:3000');
+    }
+    throw error;
+  }
 }
 
 // API методы
@@ -337,5 +367,4 @@ export const logout = (): void => {
   removeRefreshToken();
   localStorage.removeItem('user');
 };
-
 

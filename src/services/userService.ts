@@ -16,11 +16,22 @@ export async function getAllUsers(): Promise<apiClient.UserShort[]> {
   }
 
   try {
+    // Проверяем авторизацию перед запросом
+    if (!apiClient.isAuthenticated()) {
+      console.warn('Пользователь не авторизован. Пользователи не загружены.');
+      return [];
+    }
+    
     usersCache = await apiClient.getUsers();
     cacheTimestamp = now;
     return usersCache;
   } catch (error) {
     console.error('Ошибка загрузки пользователей:', error);
+    // Если ошибка авторизации, очищаем кэш
+    if (error instanceof Error && error.message.includes('Сессия истекла')) {
+      usersCache = null;
+      cacheTimestamp = 0;
+    }
     // Возвращаем кэш, если есть, иначе пустой массив
     return usersCache || [];
   }
@@ -89,5 +100,4 @@ export function clearUsersCache(): void {
   usersCache = null;
   cacheTimestamp = 0;
 }
-
 

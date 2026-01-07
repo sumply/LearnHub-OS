@@ -55,4 +55,3 @@ export function clearCache(): void {
   cacheTimestamp = 0;
 }
 
-

@@ -16,11 +16,22 @@ export async function getSubjects(): Promise<apiClient.SubjectResponse[]> {
   }
 
   try {
+    // Проверяем авторизацию перед запросом
+    if (!apiClient.isAuthenticated()) {
+      console.warn('Пользователь не авторизован. Предметы не загружены.');
+      return [];
+    }
+    
     subjectsCache = await apiClient.getSubjects();
     subjectsCacheTimestamp = now;
     return subjectsCache;
   } catch (error) {
     console.error('Ошибка загрузки предметов:', error);
+    // Если ошибка авторизации, очищаем кэш
+    if (error instanceof Error && error.message.includes('Сессия истекла')) {
+      subjectsCache = null;
+      subjectsCacheTimestamp = 0;
+    }
     return subjectsCache || [];
   }
 }
@@ -85,5 +96,4 @@ export function clearCache(): void {
   subjectsCacheTimestamp = 0;
   groupsCacheTimestamp = 0;
 }
-
 
