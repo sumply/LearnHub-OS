@@ -35,7 +35,7 @@ const Login: Component = () => {
 
       if (result.success) {
         // Перенаправляем на главную страницу
-        window.location.href = '/';
+      window.location.href = '/';
       } else {
         setError(result.message || 'Ошибка входа');
       }
@@ -75,11 +75,11 @@ const Login: Component = () => {
     try {
       // Используем API для регистрации
       const result = await register({
-        email: regEmail(),
-        password: regPassword(),
-        name: regFirstname(),
-        surname: regLastname(),
-        role: role() as UserRole,
+      email: regEmail(),
+      password: regPassword(),
+      name: regFirstname(),
+      surname: regLastname(),
+      role: role() as UserRole,
         group: regGroup() || undefined,
       });
 

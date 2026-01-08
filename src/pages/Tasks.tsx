@@ -94,8 +94,8 @@ const Tasks: Component = () => {
   const teacherNames = () => {
     const users = usersData();
     if (!users) return [];
-    // TODO: Получить полную информацию о пользователях для фильтрации по роли
-    return [];
+    // API /users возвращает short_name; пока не фильтруем по роли, чтобы не ломать UX
+    return users.map(u => u.short_name);
   };
 
   // Сброс формы
@@ -155,7 +155,7 @@ const Tasks: Component = () => {
           title: formTitle(),
           summary: formSummary() || formTitle(), // Используем summary или title как fallback
           subject_id: formSubjectId()!,
-          group_ids: formGroupIds().length > 0 ? formGroupIds() : undefined,
+          group_ids: formGroupIds(), // Всегда массив, может быть пустым
           questions: apiQuestions
         };
 
@@ -603,17 +603,46 @@ const Tasks: Component = () => {
                 </div>
                 <div style={{ 'margin-bottom': '1em' }}>
                   <label style={{ 'font-weight': 500 }}>Предмет:</label><br />
-                  <select value={formCategory()} onInput={e => setFormCategory(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
-                    {teacherSubjects().map(subj => (
-                      <option value={subj.id}>{subj.name}</option>
-                    ))}
+                  <select value={formSubjectId()?.toString() || ''} onInput={e => {
+                    const value = e.currentTarget.value;
+                    setFormSubjectId(value ? parseInt(value, 10) : null);
+                  }} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }} required>
+                    <option value="">Выберите предмет</option>
+                    <For each={teacherSubjects()}>
+                      {(subj) => (
+                        <option value={subj.id.toString()}>{subj.name}</option>
+                      )}
+                    </For>
                   </select>
                 </div>
+                {formType() === 'quiz' && (
+                  <div style={{ 'margin-bottom': '1em' }}>
+                    <label style={{ 'font-weight': 500 }}>Группы (необязательно):</label><br />
+                    <select 
+                      multiple 
+                      value={formGroupIds().map(id => id.toString())} 
+                      onInput={e => {
+                        const selected = Array.from(e.currentTarget.selectedOptions, opt => parseInt(opt.value, 10));
+                        setFormGroupIds(selected);
+                      }} 
+                      style={{ width: '100%', padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600, minHeight: '100px' }}
+                    >
+                      <Show when={groupsData()} fallback={<option disabled>Загрузка...</option>}>
+                        <For each={groupsData() || []}>
+                          {(group) => (
+                            <option value={group.id.toString()}>{group.name}</option>
+                          )}
+                        </For>
+                      </Show>
+                    </select>
+                    <div style={{ fontSize: '0.85em', color: '#888', marginTop: '0.3em' }}>Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп</div>
+                  </div>
+                )}
                 {user && user.role === 'admin' && (
                   <div style={{ 'margin-bottom': '1em' }}>
                     <label style={{ 'font-weight': 500 }}>Учитель:</label><br />
                     <select value={formTeacher()} onInput={e => setFormTeacher(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
-                      {teacherNames.map(name => (
+                      {teacherNames().map(name => (
                         <option value={name}>{name}</option>
                       ))}
                     </select>
@@ -623,6 +652,12 @@ const Tasks: Component = () => {
                   <label style={{ 'font-weight': 500 }}>{formType() === 'quiz' ? 'Название теста' : 'Вопрос'}:</label><br />
                   <input type="text" value={formTitle()} onInput={e => setFormTitle(e.currentTarget.value)} style={{ width: '100%', padding: '0.5em', 'border-radius': '8px', border: '1.5px solid #e3eafc' }} required />
                 </div>
+                {formType() === 'quiz' && (
+                  <div style={{ 'margin-bottom': '1em' }}>
+                    <label style={{ 'font-weight': 500 }}>Описание (summary):</label><br />
+                    <textarea value={formSummary()} onInput={e => setFormSummary(e.currentTarget.value)} style={{ width: '100%', padding: '0.5em', 'border-radius': '8px', border: '1.5px solid #e3eafc', minHeight: '80px', resize: 'vertical' }} placeholder="Краткое описание квиза" />
+                  </div>
+                )}
                 {formType() === 'quiz' ? (
                   <div style={{ 'margin-bottom': '1em' }}>
                     <label style={{ 'font-weight': 500 }}>Вопросы теста:</label>
@@ -716,17 +751,23 @@ const Tasks: Component = () => {
                 </div>
                 <div style={{ 'margin-bottom': '1em' }}>
                   <label style={{ 'font-weight': 500 }}>Предмет:</label><br />
-                  <select value={formCategory()} onInput={e => setFormCategory(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
-                    {teacherSubjects().map(subj => (
-                      <option value={subj.id}>{subj.name}</option>
-                    ))}
+                  <select value={formSubjectId()?.toString() || ''} onInput={e => {
+                    const value = e.currentTarget.value;
+                    setFormSubjectId(value ? parseInt(value, 10) : null);
+                  }} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }} required>
+                    <option value="">Выберите предмет</option>
+                    <For each={teacherSubjects()}>
+                      {(subj) => (
+                        <option value={subj.id.toString()}>{subj.name}</option>
+                      )}
+                    </For>
                   </select>
                 </div>
                 {user && user.role === 'admin' && (
                   <div style={{ 'margin-bottom': '1em' }}>
                     <label style={{ 'font-weight': 500 }}>Учитель:</label><br />
                     <select value={formTeacher()} onInput={e => setFormTeacher(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
-                      {teacherNames.map(name => (
+                      {teacherNames().map(name => (
                         <option value={name}>{name}</option>
                       ))}
                     </select>
