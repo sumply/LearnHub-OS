@@ -6,20 +6,21 @@ import (
 	"os"
 	"os/signal"
 	"server/internal/config"
-	"server/internal/logger"
+	"server/internal/domain"
 	"server/internal/repository"
 	"server/internal/rest"
-	"server/internal/rest/middleware"
 	"server/internal/service/generator"
 	"server/internal/usecase"
 	"syscall"
 )
 
 func Run() error {
-	logger.SetNewFunc(func() logger.Logger {
-		return logger.NewFake()
-	})
-	logger.SetLayer(logger.DEBUG)
+	env := config.NewENV()
+	env.InitLogger()
+
+	jwt := env.CreateAuthJWT()
+	domain.InitGenerateTokenPair(jwt.GenerateTokenPair)
+	client := env.CreateSMTPClient()
 
 	storage := repository.NewStorage()
 	if err := storage.Load(); err != nil {
@@ -44,12 +45,12 @@ func Run() error {
 		repository.NewProgressMemory(storage),
 	)
 	r, err := rest.NewRouter(
-		usecase.NewUserReal(generator.NewReal(), repo),
+		usecase.NewUserReal(generator.NewReal(), repo, client),
 		usecase.NewGroupReal(repo),
 		usecase.NewRealSubject(repo),
 		usecase.NewQuiz(repo),
 		usecase.NewProgressUsecase(repo),
-		&middleware.TokenParserFake{},
+		jwt,
 	)
 	if err != nil {
 		return err

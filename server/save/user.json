@@ -27,6 +27,90 @@
 			},
 			"CreatedAt": "0001-01-01T00:00:00Z"
 		},
+		"14": {
+			"ID": 14,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 14,
+				"Login": "u862558",
+				"PwdHashed": "zFSZMKex1geHWvn",
+				"Email": "Teacher.Teacher@yandex.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"15": {
+			"ID": 15,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 15,
+				"Login": "u58124",
+				"PwdHashed": "yJQ.N9sg0j0kse2",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"16": {
+			"ID": 16,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 16,
+				"Login": "u725168",
+				"PwdHashed": "jmZPdl20Z_rhBjs",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"17": {
+			"ID": 17,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 17,
+				"Login": "u605025",
+				"PwdHashed": "kO_yL9OB9.PbQUr",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"18": {
+			"ID": 18,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 18,
+				"Login": "u39217",
+				"PwdHashed": "qWTLkjO4Tew0ceQ",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"19": {
+			"ID": 19,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 19,
+				"Login": "u197469",
+				"PwdHashed": "JV9cy8LPYBLhQeY",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
 		"2": {
 			"ID": 2,
 			"FirstName": "Teacher",
@@ -38,6 +122,104 @@
 				"Login": "u390553",
 				"PwdHashed": "PRCEE9FjHkPSLtD",
 				"Email": "Teacher.Teacher@yandex.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"20": {
+			"ID": 20,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 20,
+				"Login": "u402028",
+				"PwdHashed": "b5C8wqafMoZZG7X",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"21": {
+			"ID": 21,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 21,
+				"Login": "u455451",
+				"PwdHashed": "hypDQ7bQCRw6PY6",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"22": {
+			"ID": 22,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 22,
+				"Login": "u479954",
+				"PwdHashed": "J1hDL1mKwt4aomS",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"23": {
+			"ID": 23,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 23,
+				"Login": "u441191",
+				"PwdHashed": "Sm7kvN982VuemTc",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"24": {
+			"ID": 24,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 24,
+				"Login": "u845913",
+				"PwdHashed": "A.2tyJCWQP6gzbi",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"25": {
+			"ID": 25,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "Teacher",
+			"Role": 2,
+			"Credential": {
+				"ID": 25,
+				"Login": "u282078",
+				"PwdHashed": "mq3pQ28DoAVIVBT",
+				"Email": "yanushkevichvladislav@mail.ru"
+			},
+			"CreatedAt": "0001-01-01T00:00:00Z"
+		},
+		"26": {
+			"ID": 26,
+			"FirstName": "Teacher",
+			"LastName": "Teacher",
+			"MiddleName": "",
+			"Role": 2,
+			"Credential": {
+				"ID": 26,
+				"Login": "u783138",
+				"PwdHashed": "_AZYSyGWOFpQzjD",
+				"Email": "yanushkevichvladislav@mail.ru"
 			},
 			"CreatedAt": "0001-01-01T00:00:00Z"
 		}

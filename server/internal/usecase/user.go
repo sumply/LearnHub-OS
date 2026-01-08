@@ -7,20 +7,23 @@ import (
 	"server/internal/dto"
 	"server/internal/logger"
 	"server/internal/repository"
+	"server/internal/service/client"
 	"server/internal/service/generator"
 )
 
-func NewUserReal(gen generator.Generator, repo *repository.Repository) *UserReal {
+func NewUserReal(gen generator.Generator, repo *repository.Repository, mailer client.SMTP) *UserReal {
 	return &UserReal{
-		gen:  gen,
-		repo: repo,
+		gen:    gen,
+		repo:   repo,
+		mailer: mailer,
 	}
 }
 
 type UserReal struct {
 	usecase
-	repo *repository.Repository
-	gen  generator.Generator
+	repo   *repository.Repository
+	gen    generator.Generator
+	mailer client.SMTP
 }
 
 func (u *UserReal) Login(ctx context.Context, req *dto.LoginReq) (*domain.TokenPair, error) {
@@ -90,14 +93,17 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 	login := u.gen.GenLogin()
 	pwd := u.gen.GenPassword()
 
+	credential, err := domain.NewCredential(login, pwd, req.Email)
+	if err != nil {
+		log.Warn(err.Error())
+		return err
+	}
 	user, err := domain.NewUser(
-		login,
-		pwd,
-		req.Email,
 		req.FirstName,
 		req.LastName,
-		*req.MiddleName,
+		req.MiddleName,
 		req.Role,
+		credential,
 	)
 	if err != nil {
 		log.Warn(err.Error())
@@ -109,6 +115,18 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 	if err != nil {
 		log.Warn(err.Error())
 		return u.mapStorageError(err)
+	}
+
+	page := &client.UserCreatePage{
+		FirstName:  string(user.FirstName),
+		LastName:   string(user.LastName),
+		MiddleName: string(user.MiddleName),
+		Login:      login,
+		Password:   pwd,
+	}
+	if err := u.mailer.SendCreateUserInfo(req.Email, page); err != nil {
+		log.Warn(err.Error())
+		return err
 	}
 
 	return nil
