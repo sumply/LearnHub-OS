@@ -1,6 +1,26 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"server/internal/auth"
+	"server/internal/logger"
+	"server/internal/service/client"
+	"strconv"
+	"time"
+)
+
+const (
+	JWT_SECRET_KEY       = "JWT_SECRET_KEY"
+	JWT_ACCESS_DURATION  = "JWT_ACCESS_DURATION"
+	JWT_REFRESH_DURATION = "JWT_REFRESH_DURATION"
+	JWT_ISSUER           = "JWT_ISSUER"
+	SMTP_FROM            = "SMTP_FROM"
+	SMTP_PASSWORD        = "SMTP_PASSWORD"
+	SMTP_HOST            = "SMTP_HOST"
+	SMTP_PORT            = "SMTP_PORT"
+	LOG_LEVEL            = "LOG_LEVEL"
+)
 
 type Server struct {
 	Addr string
@@ -11,232 +31,85 @@ func (s *Server) String() string {
 	return fmt.Sprintf("%s:%d", s.Addr, s.Port)
 }
 
-/*
-var (
-	ErrEmpty   = errors.New("key is empty")
-	ErrInvalid = errors.New("value is invalid")
-)
+type ENV struct {
+	JWTSecretKey  []byte
+	JWTAccessDur  time.Duration
+	JWTRefreshDur time.Duration
+	JWTIssur      string
+	SMTPEmailFrom string
+	SMTPPassword  string
+	SMTPHost      string
+	SMTPPort      string
+	LOGLevel      string
+}
 
-const (
-	ImplStub  = "stub"
-	ImplFake  = "fake"
-	ImplReal  = "real"
-	ImplDebug = "debug"
-	ImplInfo  = "info"
-	ImplWarn  = "warn"
-	ImplError = "error"
-)
-
-
-func NewServerFromEnv() (*Server, error) {
-	addr := os.Getenv("ADDRESS_HOST")
-	if addr == "" {
-		return nil, fmt.Errorf("ADDRESS_HOST: %w", ErrEmpty)
+func NewENV() *ENV {
+	return &ENV{
+		JWTSecretKey:  getByte(JWT_SECRET_KEY),
+		JWTAccessDur:  getTimeDuration(JWT_ACCESS_DURATION),
+		JWTRefreshDur: getTimeDuration(JWT_REFRESH_DURATION),
+		JWTIssur:      getValue(JWT_ISSUER),
+		SMTPEmailFrom: getValue(SMTP_FROM),
+		SMTPPassword:  getValue(SMTP_PASSWORD),
+		SMTPHost:      getValue(SMTP_HOST),
+		SMTPPort:      getValue(SMTP_PORT),
+		LOGLevel:      getValue(LOG_LEVEL),
 	}
-	port := os.Getenv("PORT_HOST")
-	if port == "" {
-		return nil, fmt.Errorf("PORT_HOST: %w", ErrEmpty)
+}
+
+func (env *ENV) CreateAuthJWT() *auth.JWT {
+	return auth.NewJWT(
+		env.JWTSecretKey,
+		env.JWTAccessDur,
+		env.JWTRefreshDur,
+		env.JWTIssur,
+	)
+}
+
+func (env *ENV) CreateSMTPClient() client.SMTP {
+	return client.NewSMTPClient(
+		env.SMTPEmailFrom,
+		env.SMTPPassword,
+		env.SMTPHost,
+		env.SMTPPort,
+	)
+}
+
+func (env *ENV) InitLogger() {
+	logger.SetNewFunc(func() logger.Logger {
+		return logger.NewFake()
+	})
+	switch env.LOGLevel {
+	case "DEBUG":
+		logger.SetLayer(logger.DEBUG)
+	case "INFO":
+		logger.SetLayer(logger.INFO)
+	case "WARN":
+		logger.SetLayer(logger.WARN)
+	case "ERROR":
+		logger.SetLayer(logger.ERROR)
+	default:
+		panic(fmt.Errorf("%s value is invalid: %s", LOG_LEVEL, getValue(LOG_LEVEL)))
 	}
-	p, err := strconv.Atoi(port)
+}
+
+func getTimeDuration(key string) time.Duration {
+	d := getValue(key)
+	dInt, err := strconv.Atoi(d)
 	if err != nil {
-		return nil, fmt.Errorf("PORT_HOST: %w", err)
+		panic(fmt.Errorf("%s: %w", key, err))
 	}
-	return &Server{
-		Addr: addr,
-		Port: p,
-	}, nil
+	return time.Minute * time.Duration(dInt)
 }
 
-type AppCommonLogger struct {
-	Type  string `yaml:"type"`
-	Level string `yaml:"level"`
+func getByte(key string) []byte {
+	return []byte(getValue(key))
 }
 
-type AppCommon struct {
-	Logger AppCommonLogger `yaml:"logger"`
-}
-
-type AppUsecase struct {
-	User    string `yaml:"user"`
-	Quiz    string `yaml:"quiz"`
-	Group   string `yaml:"group"`
-	Answer  string `yaml:"answer"`
-	Subject string `yaml:"subject"`
-}
-
-type AppJWT struct {
-	Parser string `yaml:"parser"`
-}
-
-type AppTransport struct {
-	JWT AppJWT `yaml:"jwt"`
-}
-
-type AppGenerator struct {
-	Auth string `yaml:"auth"`
-	Page string `yaml:"page"`
-}
-
-func (a *AppGenerator) CreateAuth() (generator.Generator, error) {
-	switch a.Auth {
-	case ImplStub:
-		return generator.NewStub(), nil
-	default:
-		return nil, fmt.Errorf("%w: generator .auth", ErrInvalid)
+func getValue(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Errorf("%s is empty", key))
 	}
+	return value
 }
-
-func (a *AppGenerator) CreatePage() (generator.PageGenerator, error) {
-	switch a.Page {
-	case ImplStub:
-		return generator.NewStubPageGenerator(), nil
-	default:
-		return nil, fmt.Errorf("%w: generator .page", ErrInvalid)
-	}
-}
-
-type AppSender struct {
-	Mail string `yaml:"mail"`
-}
-
-func (a *AppSender) CreateMail() (sender.Mail, error) {
-	switch a.Mail {
-	case ImplStub:
-		return sender.NewStubMail(), nil
-	default:
-		return nil, fmt.Errorf("%w: sender .mail", ErrInvalid)
-	}
-}
-
-type AppValidator struct {
-	User string `yaml:"user"`
-}
-
-func (a *AppValidator) CreateUser() (validator.User, error) {
-	switch a.User {
-	case ImplStub:
-		return validator.NewStubUser(), nil
-	default:
-		return nil, fmt.Errorf("%w: validator .user", ErrInvalid)
-	}
-}
-
-type AppStorage struct {
-	Type string `yaml:"type"`
-}
-
-func (a *AppStorage) CreateStorage() (repository.Repository, error) {
-	switch a.Type {
-	case ImplStub:
-		return repository.NewRepositoryStub(), nil
-	default:
-		return nil, fmt.Errorf("%w: storage .type", ErrInvalid)
-	}
-}
-
-type AppService struct {
-	Generator AppGenerator `yaml:"generator"`
-	Sender    AppSender    `yaml:"sender"`
-	Storage   AppStorage   `yaml:"storage"`
-	Validator AppValidator `yaml:"validator"`
-}
-
-type App struct {
-	Common    AppCommon    `yaml:"common"`
-	Usecase   AppUsecase   `yaml:"usecase"`
-	Service   AppService   `yaml:"service"`
-	Transport AppTransport `yaml:"transport"`
-}
-
-func NewApp(path string) (*App, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	var app App
-	if err := yaml.NewDecoder(f).Decode(&app); err != nil {
-		return nil, err
-	}
-	return &app, nil
-}
-
-func (a *App) CreateUsecaseUser() (usecase.User, error) {
-	switch a.Usecase.User {
-	case ImplStub:
-		return usecase.NewUserStub(), nil
-	case ImplReal:
-		gen, err := a.Service.Generator.CreateAuth()
-		if err != nil {
-			return nil, err
-		}
-		storage, err := a.Service.Storage.CreateStorage()
-		if err != nil {
-			return nil, err
-		}
-		return usecase.NewRealUser(gen, storage), nil
-	default:
-		return nil, fmt.Errorf("%w: usecase .user", ErrInvalid)
-	}
-}
-
-func (a *App) CreateUsecaseSubject() (usecase.Subject, error) {
-	switch a.Usecase.Subject {
-	case ImplStub:
-		return usecase.NewSubjectStub(), nil
-	case ImplFake:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("%w: usecase .subject", ErrInvalid)
-	}
-}
-
-func (a *App) CreateUsecaseGroup() (usecase.Group, error) {
-	switch a.Usecase.Group {
-	case ImplStub:
-		return usecase.NewGroupStub(), nil
-	case ImplFake:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("%w: usecase .group", ErrInvalid)
-	}
-}
-
-func (a *App) CreateLoggerNewFunc() (logger.NewFunc, error) {
-	switch a.Common.Logger.Type {
-	case ImplFake:
-		return func() logger.Logger {
-			return logger.NewFake()
-		}, nil
-	default:
-		return nil, fmt.Errorf("%w: logger .type", ErrInvalid)
-	}
-}
-
-func (a *App) CreateTransportJWTParser() (middleware.TokenParser, error) {
-	switch a.Transport.JWT.Parser {
-	case ImplFake:
-		return nil, nil
-	case ImplStub:
-		return &middleware.StubTokenParser{}, nil
-	default:
-		return nil, fmt.Errorf("%w: logger .parse", ErrInvalid)
-	}
-}
-
-func (a *App) CreateLoggerLevel() (logger.Level, error) {
-	switch a.Common.Logger.Level {
-	case ImplDebug:
-		return logger.DEBUG, nil
-	case ImplInfo:
-		return logger.INFO, nil
-	case ImplWarn:
-		return logger.WARN, nil
-	case ImplError:
-		return logger.ERROR, nil
-	default:
-		return 0, ErrInvalid
-	}
-}
-
-*/

@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"server/internal/common"
 	"server/internal/domain"
 	"server/internal/dto"
@@ -12,10 +11,11 @@ import (
 	"server/internal/service/generator"
 )
 
-func NewUserReal(gen generator.Generator, repo *repository.Repository) *UserReal {
+func NewUserReal(gen generator.Generator, repo *repository.Repository, mailer client.SMTP) *UserReal {
 	return &UserReal{
-		gen:  gen,
-		repo: repo,
+		gen:    gen,
+		repo:   repo,
+		mailer: mailer,
 	}
 }
 
@@ -23,7 +23,7 @@ type UserReal struct {
 	usecase
 	repo   *repository.Repository
 	gen    generator.Generator
-	mailer client.Mail
+	mailer client.SMTP
 }
 
 func (u *UserReal) Login(ctx context.Context, req *dto.LoginReq) (*domain.TokenPair, error) {
@@ -101,7 +101,7 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 	user, err := domain.NewUser(
 		req.FirstName,
 		req.LastName,
-		*req.MiddleName,
+		req.MiddleName,
 		req.Role,
 		credential,
 	)
@@ -117,8 +117,14 @@ func (u *UserReal) Create(ctx context.Context, identity *dto.Identity, req *dto.
 		return u.mapStorageError(err)
 	}
 
-	err = u.mailer.Send(req.Email, "LearnHub-OS", fmt.Sprintf("логин: %s\nпароль: %s", login, pwd))
-	if err != nil {
+	page := &client.UserCreatePage{
+		FirstName:  string(user.FirstName),
+		LastName:   string(user.LastName),
+		MiddleName: string(user.MiddleName),
+		Login:      login,
+		Password:   pwd,
+	}
+	if err := u.mailer.SendCreateUserInfo(req.Email, page); err != nil {
 		log.Warn(err.Error())
 		return err
 	}

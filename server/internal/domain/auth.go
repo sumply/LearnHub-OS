@@ -28,6 +28,10 @@ var generateTokenPair GenerateTokenPair = func(u *User) (*TokenPair, error) {
 	}, nil
 }
 
+func InitGenerateTokenPair(f GenerateTokenPair) {
+	generateTokenPair = f
+}
+
 func NewTokenPair(user *User) (*TokenPair, error) {
 	return generateTokenPair(user)
 }

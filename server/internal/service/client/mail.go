@@ -1,41 +1,101 @@
 package client
 
 import (
-	"fmt"
+	"bytes"
+	"net"
 	"net/smtp"
+	"text/template"
 )
 
-type Mail interface {
-	Send(email, subject, body string) error
+type SMTP interface {
+	SendCreateUserInfo(email string, page *UserCreatePage) error
 }
 
-type MailSMTP struct {
-	from    string
-	pasword string
-	addr    string
-	auth    smtp.Auth
+type SMTPStub struct{}
+
+func (SMTPStub) SendCreateUserInfo(email string, page *UserCreatePage) error {
+	return nil
 }
 
-func NewMailSMTP(from, password, host, port string) *MailSMTP {
-	return &MailSMTP{
-		from:    from,
-		pasword: password,
-		addr:    host + ":" + port,
-		auth:    smtp.PlainAuth("", from, password, host),
+type MailMsg struct {
+	From    string
+	To      string
+	Subject string
+	Msg     string
+}
+
+type SMTPClient struct {
+	from string
+	auth smtp.Auth
+	addr string
+}
+
+const templateContext = `From: {{ .From }}
+To: {{ .To }}
+Subject: {{ .Subject }}
+
+{{ .Msg }}`
+
+const templateUserCreate = `Здравствуйте, {{ .LastName }} {{ .FirstName }} {{ .MiddleName }}!
+Вы были зарегестрированы на платформе LearnHub.
+
+Данные для входа:
+
+Логин: {{ .Login }}
+Пароль: {{ .Password }}
+
+Это сообщение сгенерированно автоматически. На него отвечать не нужно.
+`
+
+var tmpContext *template.Template
+var tmpUserCreate *template.Template
+
+func init() {
+	var err error
+	tmpContext, err = template.New("context").Parse(templateContext)
+	if err != nil {
+		panic(err)
+	}
+	tmpUserCreate, err = template.New("user create").Parse(templateUserCreate)
+	if err != nil {
+		panic(err)
 	}
 }
 
-func (m *MailSMTP) Send(email, subject, body string) error {
-	msg := fmt.Sprintf("subject: %s\n%s", subject, body)
-	return smtp.SendMail(email, m.auth, m.from, []string{email}, []byte(msg))
+func NewSMTPClient(from, pwd, host, port string) *SMTPClient {
+	return &SMTPClient{
+		from: from,
+		auth: smtp.PlainAuth("", from, pwd, host),
+		addr: net.JoinHostPort(host, port),
+	}
 }
 
-func NewStubMail() *StubMail {
-	return &StubMail{}
+func (c *SMTPClient) send(subject, email, msg string) error {
+	tempMsg := MailMsg{
+		From:    c.from,
+		To:      email,
+		Subject: subject,
+		Msg:     msg,
+	}
+	var buf bytes.Buffer
+	if err := tmpContext.Execute(&buf, &tempMsg); err != nil {
+		return err
+	}
+	return smtp.SendMail(c.addr, c.auth, c.from, []string{email}, buf.Bytes())
 }
 
-type StubMail struct{}
+func (c *SMTPClient) SendCreateUserInfo(email string, page *UserCreatePage) error {
+	var buf bytes.Buffer
+	if err := tmpUserCreate.Execute(&buf, page); err != nil {
+		return err
+	}
+	return c.send("LearnHub-OS: Данные для входа", email, buf.String())
+}
 
-func (s *StubMail) Send(email, subject, body string) error {
-	return nil
+type UserCreatePage struct {
+	FirstName  string
+	LastName   string
+	MiddleName string
+	Login      string
+	Password   string
 }

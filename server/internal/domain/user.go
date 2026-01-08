@@ -63,9 +63,13 @@ func NewUser(firstName, lastName, middleName string, role UserRole, credential *
 	if err != nil {
 		return nil, fmt.Errorf("%w: last name", err)
 	}
-	m, err := NewUserName(middleName)
-	if err != nil {
-		return nil, fmt.Errorf("%w: middle name", err)
+	var m UserName
+	if middleName != "" {
+		var err error
+		m, err = NewUserName(middleName)
+		if err != nil {
+			return nil, fmt.Errorf("%w: middle name", err)
+		}
 	}
 	return &User{
 		FirstName:  f,

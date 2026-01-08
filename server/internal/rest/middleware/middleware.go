@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"server/internal/dto"
 	"server/internal/logger"
 	"server/internal/rest/transport"
 
@@ -19,36 +20,36 @@ type ctxKey string
 const tokenKey ctxKey = "token"
 
 type TokenParser interface {
-	Parse(token string) (transport.AuthData, error)
+	Parse(token string) (*dto.Identity, error)
 }
 
 type StubTokenParser struct{}
 
-func (p *StubTokenParser) Parse(token string) (transport.AuthData, error) {
-	return transport.AuthData{ID: 1, Role: 0}, nil
+func (p *StubTokenParser) Parse(token string) (*dto.Identity, error) {
+	return &dto.Identity{ID: 1, Role: 0}, nil
 }
 
 type TokenParserFake struct{}
 
-func (p *TokenParserFake) Parse(token string) (transport.AuthData, error) {
+func (p *TokenParserFake) Parse(token string) (*dto.Identity, error) {
 	decoded, err := base64.StdEncoding.DecodeString(token)
 	if err != nil {
-		return transport.AuthData{}, err
+		return nil, err
 	}
 	fmt.Println(string(decoded))
-	var auth transport.AuthData
-	if err := json.Unmarshal(decoded, &auth); err != nil {
-		return transport.AuthData{}, err
+	var identity dto.Identity
+	if err := json.Unmarshal(decoded, &identity); err != nil {
+		return nil, err
 	}
-	return auth, nil
+	return &identity, nil
 }
 
-func loggerWithAuthData(log logger.Logger, auth transport.AuthData) logger.Logger {
+func loggerWithIdentity(log logger.Logger, identity *dto.Identity) logger.Logger {
 	field := logger.TraceField{
-		Key: "Auth",
+		Key: "identity",
 		Value: map[string]any{
-			"ID":   auth.ID,
-			"Role": auth.Role,
+			"ID":   identity.ID,
+			"Role": identity.Role,
 		},
 	}
 	return log.With(field)
@@ -104,9 +105,9 @@ func ValidateToken(p TokenParser) func(http.Handler) http.Handler {
 				return
 			}
 
-			log = loggerWithAuthData(log, auth)
+			log = loggerWithIdentity(log, auth)
 
-			ctx := auth.WithCtx(r.Context())
+			ctx := transport.ContextWithIdentity(r.Context(), auth)
 			ctx = logger.WithLoggerCtx(ctx, log)
 
 			next.ServeHTTP(w, r.WithContext(ctx))

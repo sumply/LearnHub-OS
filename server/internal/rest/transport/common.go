@@ -5,30 +5,20 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"server/internal/common"
-	"server/internal/domain"
 	"server/internal/dto"
 )
 
 type ctxKey string
 
-const authKey ctxKey = "AuthData"
+const identityKey ctxKey = "identity"
 
-type AuthData struct {
-	ID   uint64 `json:"id"`
-	Role uint64 `json:"role"`
-}
-
-func (d *AuthData) WithCtx(ctx context.Context) context.Context {
-	return context.WithValue(ctx, authKey, *d)
+func ContextWithIdentity(ctx context.Context, identity *dto.Identity) context.Context {
+	return context.WithValue(ctx, identityKey, identity)
 }
 
 func NewIdentityFromCtx(ctx context.Context) (*dto.Identity, bool) {
-	auth, ok := ctx.Value(authKey).(AuthData)
-	return &dto.Identity{
-		ID:   common.ID(auth.ID),
-		Role: domain.UserRole(auth.Role),
-	}, ok
+	identity, ok := ctx.Value(identityKey).(*dto.Identity)
+	return identity, ok
 }
 
 func DecodeJSON(r io.ReadCloser, v any) error {
