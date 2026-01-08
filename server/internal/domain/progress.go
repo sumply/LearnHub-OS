@@ -20,7 +20,7 @@ type QuizProgress struct {
 	Quiz          *Quiz
 	User          *User
 	Status        ProgressStatus
-	Score         uint8
+	Score         int
 	Answers       []*Answer
 	CompletedDate *time.Time
 	StartDate     *time.Time
@@ -81,8 +81,18 @@ func (p *QuizProgress) Complete() error {
 		p.Status = ProgressStatusPendingReview
 	} else {
 		p.Status = ProgressStatusCompleted
+		p.countScore()
 	}
 	return nil
+}
+
+func (p *QuizProgress) countScore() {
+	p.Score = 0
+	for i := range p.Answers {
+		if p.Answers[i].Status == AnswerStatusCorrect {
+			p.Score++
+		}
+	}
 }
 
 func (p *QuizProgress) CompleteReview() error {
@@ -90,6 +100,7 @@ func (p *QuizProgress) CompleteReview() error {
 		return fmt.Errorf("quiz progress (id=%d) is not pending review", p.ID)
 	}
 	p.Status = ProgressStatusCompleted
+	p.countScore()
 	return nil
 }
 

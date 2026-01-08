@@ -84,3 +84,18 @@ func (g *GroupReal) AddStudents(
 	}
 	return nil
 }
+
+func (g *GroupReal) GetByID(ctx context.Context, identity *dto.Identity, groupID common.ID) (*domain.Group, error) {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.NewTracedField("groupID", groupID),
+	)
+	log.Debug("Called a getByID group usecase")
+
+	group, err := g.repo.Group().GetByID(logger.WithLoggerCtx(ctx, log), groupID)
+	if err != nil {
+		log.Warn(err.Error())
+		return nil, err
+	}
+	return group, nil
+}

@@ -33,6 +33,7 @@ type GroupFilter struct {
 type GroupInterface interface {
 	Save(context.Context, *domain.Group) error
 	GetAll(context.Context) ([]*domain.Group, error)
+	GetByID(context.Context, common.ID) (*domain.Group, error)
 	AddStudent(context.Context, common.ID, []common.ID) error
 	RemoveStudent(context.Context, common.ID, []common.ID) error
 }

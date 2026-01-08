@@ -16,6 +16,7 @@ type Quiz struct {
 	HasWritten      bool
 	IsForEveryone   bool
 	CreatedAt       time.Time
+	TotalScore      int
 
 	Owner     *User
 	Subject   *Subject
@@ -36,6 +37,19 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 		return nil, fmt.Errorf("a quiz does not have questions")
 	}
 
+	totalScore := 0
+	for i := range questions {
+		if questions[i].IsWritten {
+			totalScore++
+		} else {
+			for _, opt := range questions[i].Options {
+				if opt.IsCorrect {
+					totalScore++
+				}
+			}
+		}
+	}
+
 	hasWritten := slices.ContainsFunc(questions, func(q *Question) bool {
 		return q.IsWritten
 	})
@@ -47,6 +61,7 @@ func NewQuiz(title, summary string, questions []*Question, ownerID common.ID, su
 		HasWritten:      hasWritten,
 		Owner:           &User{ID: ownerID},
 		NumberQuestions: uint8(len(questions)),
+		TotalScore:      totalScore,
 		Subject:         &Subject{ID: subjectID},
 	}
 

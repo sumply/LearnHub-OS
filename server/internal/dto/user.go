@@ -28,6 +28,14 @@ func NewUserShortResp(d *domain.User) *UserShortResp {
 	return resp
 }
 
+func NewSliceUserShortResp(d []*domain.User) []*UserShortResp {
+	resp := make([]*UserShortResp, len(d))
+	for i := range resp {
+		resp[i] = NewUserShortResp(d[i])
+	}
+	return resp
+}
+
 func (u *UserShortResp) formatShortName(f string, l string, m string) string {
 	if f == "" || l == "" {
 		return ""

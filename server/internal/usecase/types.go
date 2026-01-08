@@ -50,6 +50,7 @@ type UserInterface interface {
 type GroupInterface interface {
 	Create(context.Context, *dto.Identity, *dto.GroupCreateReq) error
 	Get(context.Context) ([]*domain.Group, error)
+	GetByID(context.Context, *dto.Identity, common.ID) (*domain.Group, error)
 	AddStudents(
 		ctx context.Context,
 		identity *dto.Identity,

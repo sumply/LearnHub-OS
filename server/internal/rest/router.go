@@ -76,17 +76,22 @@ func addUserRouting(r chi.Router, h *handler.User) {
 	r.Get("/users", h.Get)
 	r.Get("/users/me", h.GetMe)
 	r.Get("/users/{user_id}", h.GetByID)
+	r.Delete("/users/{user_id}", h.DeleteByID)
 }
 
 func addGroupRouting(r chi.Router, h *handler.Group) {
 	r.Post("/groups", h.Post)
 	r.Get("/groups", h.Get)
+	r.Get("/groups/{group_id}", h.GetByID)
 	r.Post("/groups/{group_id}/students", h.PostStudents)
+	r.Delete("/groups/{group_id}/students/{user_id}", h.DeleteStudentByID)
+	r.Delete("/groups/{group_id}", h.DeleteByID)
 }
 
 func addSubjectsRouting(r chi.Router, h *handler.Subject) {
 	r.Post("/subjects", h.Post)
 	r.Get("/subjects", h.Get)
+	r.Delete("/subjects/{subject_id}", h.DeleteByID)
 }
 
 func addQuizRouting(r chi.Router, h *handler.Quiz) {

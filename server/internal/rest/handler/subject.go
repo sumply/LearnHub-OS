@@ -66,3 +66,5 @@ func (h *Subject) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *Subject) DeleteByID(w http.ResponseWriter, r *http.Request) {}

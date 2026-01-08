@@ -5,24 +5,24 @@ import (
 	"server/internal/domain"
 )
 
-type GroupResp struct {
+type GroupShortResp struct {
 	ID      common.ID      `json:"id"`
 	Name    string         `json:"name"`
 	Curator *UserShortResp `json:"curator"`
 }
 
-func NewGroupResp(d *domain.Group) *GroupResp {
-	return &GroupResp{
+func NewGroupShortResp(d *domain.Group) *GroupShortResp {
+	return &GroupShortResp{
 		ID:      d.ID,
 		Name:    string(d.Name),
 		Curator: NewUserShortResp(d.Curator),
 	}
 }
 
-func NewSliceGroupResp(domains []*domain.Group) []*GroupResp {
-	resp := make([]*GroupResp, len(domains))
+func NewSliceGroupShortResp(domains []*domain.Group) []*GroupShortResp {
+	resp := make([]*GroupShortResp, len(domains))
 	for i, d := range domains {
-		resp[i] = NewGroupResp(d)
+		resp[i] = NewGroupShortResp(d)
 	}
 	return resp
 }
@@ -34,4 +34,20 @@ type GroupCreateReq struct {
 
 type GroupAddStudentsReq struct {
 	StudentIDs []common.ID `json:"student_ids"`
+}
+
+type GroupFullResp struct {
+	ID       common.ID        `json:"id"`
+	Name     string           `json:"name"`
+	Curator  *UserShortResp   `json:"curator"`
+	Students []*UserShortResp `json:"students"`
+}
+
+func NewGroupFullResp(d *domain.Group) *GroupFullResp {
+	return &GroupFullResp{
+		ID:       d.ID,
+		Name:     string(d.Name),
+		Curator:  NewUserShortResp(d.Curator),
+		Students: NewSliceUserShortResp(d.Students),
+	}
 }

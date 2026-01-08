@@ -77,6 +77,7 @@ func NewUser(firstName, lastName, middleName string, role UserRole, credential *
 		MiddleName: m,
 		Role:       role,
 		Credential: credential,
+		CreatedAt:  time.Now().UTC(),
 	}, nil
 }
 

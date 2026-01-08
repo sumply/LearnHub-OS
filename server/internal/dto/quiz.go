@@ -24,22 +24,24 @@ type QuizCreateReq struct {
 }
 
 type QuizShortResp struct {
-	ID      common.ID      `json:"id"`
-	Title   string         `json:"title"`
-	Summary string         `json:"summary"`
-	Owner   *UserShortResp `json:"owner"`
-	Subject *SubjectResp   `json:"subject"`
-	Groups  []*GroupResp   `json:"group,omitempty"`
+	ID         common.ID         `json:"id"`
+	Title      string            `json:"title"`
+	Summary    string            `json:"summary"`
+	TotalScore int               `json:"total_score"`
+	Owner      *UserShortResp    `json:"owner"`
+	Subject    *SubjectResp      `json:"subject"`
+	Groups     []*GroupShortResp `json:"group,omitempty"`
 }
 
 func NewQuizShortResp(d *domain.Quiz) *QuizShortResp {
 	return &QuizShortResp{
-		ID:      d.ID,
-		Title:   d.Title,
-		Summary: d.Summary,
-		Owner:   NewUserShortResp(d.Owner),
-		Subject: NewSubjectResp(d.Subject),
-		Groups:  NewSliceGroupResp(d.Groups),
+		ID:         d.ID,
+		Title:      d.Title,
+		Summary:    d.Summary,
+		TotalScore: d.TotalScore,
+		Owner:      NewUserShortResp(d.Owner),
+		Subject:    NewSubjectResp(d.Subject),
+		Groups:     NewSliceGroupShortResp(d.Groups),
 	}
 }
 

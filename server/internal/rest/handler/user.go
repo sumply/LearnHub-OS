@@ -150,3 +150,5 @@ func (h *User) Post(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 }
+
+func (h *User) DeleteByID(w http.ResponseWriter, r *http.Request) {}
