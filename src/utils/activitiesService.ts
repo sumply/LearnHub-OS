@@ -1,12 +1,13 @@
-import { quizzes, flashcards, type Quiz, type Flashcard } from '../config/activities';
+import { flashcards, type Quiz, type Flashcard } from '../config/activities';
 
 export type TaskUnion = ((Quiz & { type: 'quiz' }) | (Flashcard & { type: 'flashcard' })) & { hidden?: boolean; requiresConfirmation?: boolean };
 
 const STORAGE_KEY = 'activities';
 
 function getDefaultTasks(): TaskUnion[] {
+  // Временные квизы удалены - теперь используем API
+  // Оставляем только карточки, так как для них пока нет API
   return [
-    ...quizzes.map(q => ({ ...q, type: 'quiz' as const })),
     ...flashcards.map(f => ({ ...f, type: 'flashcard' as const })),
   ];
 }

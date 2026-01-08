@@ -2,9 +2,11 @@ import { type Component, createSignal, For, Show, createResource } from 'solid-j
 import { getCurrentUser } from '../utils/api';
 import { getAllActivities, type TaskUnion, addActivity, updateActivity, removeActivity } from '../utils/activitiesService';
 import Header from '../components/Header';
-import { getSubjects } from '../services/subjectGroupService';
+import { getSubjects, getGroups } from '../services/subjectGroupService';
 import { getAllUsers } from '../services/userService';
 import { getAuthToken } from '../utils/api';
+import { createQuiz } from '../services/quizService';
+import * as apiClient from '../utils/apiClient';
 import type { MaterialAttachment } from '../utils/api';
 
 const Tasks: Component = () => {
@@ -22,7 +24,10 @@ const Tasks: Component = () => {
   // Управляемые поля формы
   const [formType, setFormType] = createSignal<'quiz' | 'flashcard'>('quiz');
   const [formCategory, setFormCategory] = createSignal('math');
+  const [formSubjectId, setFormSubjectId] = createSignal<number | null>(null);
+  const [formGroupIds, setFormGroupIds] = createSignal<number[]>([]);
   const [formTitle, setFormTitle] = createSignal('');
+  const [formSummary, setFormSummary] = createSignal('');
   const [formAnswer, setFormAnswer] = createSignal('');
   const [formQuestions, setFormQuestions] = createSignal([
     { question: '', options: ['', '', '', ''], correct: 0 },
@@ -33,6 +38,7 @@ const Tasks: Component = () => {
   const [newAttachmentUrl, setNewAttachmentUrl] = createSignal('');
   const [newAttachmentName, setNewAttachmentName] = createSignal('');
   const [formRequiresConfirmation, setFormRequiresConfirmation] = createSignal(false);
+  const [isCreatingQuiz, setIsCreatingQuiz] = createSignal(false);
 
   // Проверка авторизации
   const user = getCurrentUser();
@@ -68,6 +74,10 @@ const Tasks: Component = () => {
     if (!user || !getAuthToken()) return Promise.resolve([]);
     return getAllUsers();
   });
+  const [groupsData] = createResource(() => {
+    if (!user || !getAuthToken()) return Promise.resolve([]);
+    return getGroups();
+  });
 
   // Получить предметы для учителя
   const teacherSubjects = () => {
@@ -92,7 +102,10 @@ const Tasks: Component = () => {
   function resetForm() {
     setFormType('quiz');
     setFormCategory('math');
+    setFormSubjectId(null);
+    setFormGroupIds([]);
     setFormTitle('');
+    setFormSummary('');
     setFormAnswer('');
     setFormQuestions([{ question: '', options: ['', '', '', ''], correct: 0 }]);
     setFormTeacher(user.name);
@@ -104,21 +117,64 @@ const Tasks: Component = () => {
   }
 
   // Добавление задания
-  function handleAddTask(e: Event) {
+  async function handleAddTask(e: Event) {
     e.preventDefault();
-    const id = `${formType()}_${Date.now()}`;
+    
     if (formType() === 'quiz') {
-      addActivity({
-        id,
-        type: 'quiz',
-        title: formTitle(),
-        category: formCategory(),
-        teacher: user.role === 'admin' ? formTeacher() : user.name,
-        questions: formQuestions(),
-        attachments: formAttachments(),
-        requiresConfirmation: formRequiresConfirmation(),
-      });
+      // Создаем квиз через API
+      if (!formSubjectId()) {
+        alert('Пожалуйста, выберите предмет');
+        return;
+      }
+      
+      setIsCreatingQuiz(true);
+      try {
+        // Преобразуем вопросы в формат API
+        const apiQuestions: apiClient.QuizQuestion[] = formQuestions().map(q => {
+          // Если есть варианты ответов, создаем options
+          if (q.options && q.options.length > 0 && q.options.some(opt => opt.trim() !== '')) {
+            return {
+              text: q.question,
+              options: q.options
+                .filter(opt => opt.trim() !== '')
+                .map((opt, idx) => ({
+                  text: opt,
+                  is_correct: idx === q.correct
+                }))
+            };
+          } else {
+            // Если вариантов нет - открытый вопрос (пустой массив options)
+            return {
+              text: q.question,
+              options: []
+            };
+          }
+        });
+
+        const quizData: apiClient.QuizCreateRequest = {
+          title: formTitle(),
+          summary: formSummary() || formTitle(), // Используем summary или title как fallback
+          subject_id: formSubjectId()!,
+          group_ids: formGroupIds().length > 0 ? formGroupIds() : undefined,
+          questions: apiQuestions
+        };
+
+        await createQuiz(quizData);
+        
+        // Обновляем список заданий (для квизов теперь из API, для карточек - локально)
+        setAllTasks(getAllActivities());
+        setShowAddModal(false);
+        resetForm();
+        alert('Квиз успешно создан!');
+      } catch (error) {
+        console.error('Ошибка создания квиза:', error);
+        alert('Ошибка создания квиза: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
+      } finally {
+        setIsCreatingQuiz(false);
+      }
     } else {
+      // Карточки пока сохраняем локально (API для них нет)
+      const id = `flashcard_${Date.now()}`;
       addActivity({
         id,
         type: 'flashcard',
@@ -129,10 +185,10 @@ const Tasks: Component = () => {
         attachments: formAttachments(),
         requiresConfirmation: formRequiresConfirmation(),
       });
+      setAllTasks(getAllActivities());
+      setShowAddModal(false);
+      resetForm();
     }
-    setAllTasks(getAllActivities());
-    setShowAddModal(false);
-    resetForm();
   }
 
   // Открыть модалку редактирования

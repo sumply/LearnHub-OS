@@ -261,11 +261,10 @@ const AdminDashboard = () => {
               </div>
               <div style={{ marginBottom: '0.7em' }}>
                 <label>Email:</label><br />
-                <input type="email" value={addFields().email} onInput={e => handleAddField('email', e.currentTarget.value)} style={{ width: '100%', padding: '0.4em', marginBottom: '0.5em' }} />
+                <input type="email" value={addFields().email} onInput={e => handleAddField('email', e.currentTarget.value)} style={{ width: '100%', padding: '0.4em', marginBottom: '0.5em' }} required />
               </div>
-              <div style={{ marginBottom: '0.7em' }}>
-                <label>Пароль:</label><br />
-                <input type="text" value={addFields().password} onInput={e => handleAddField('password', e.currentTarget.value)} style={{ width: '100%', padding: '0.4em', marginBottom: '0.5em' }} />
+              <div style={{ marginBottom: '0.7em', padding: '0.7em', background: '#e3eafc', borderRadius: '6px', fontSize: '0.9em', color: '#2563eb' }}>
+                <strong>Примечание:</strong> Логин и пароль будут автоматически сгенерированы сервером и отправлены на указанный email.
               </div>
               <Show when={addRole() === 'student'}>
                 <div style={{ marginBottom: '0.7em' }}>

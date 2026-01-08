@@ -287,14 +287,14 @@ export const addStudentsToGroup = async (
 
 // Предметы
 export const createSubject = async (subjectData: SubjectCreateRequest): Promise<void> => {
-  await apiRequest<void>('/subjects', {
+  await apiRequest<void>('/subject', {
     method: 'POST',
     body: JSON.stringify(subjectData),
   });
 };
 
 export const getSubjects = async (): Promise<SubjectResponse[]> => {
-  return await apiRequest<SubjectResponse[]>('/subjects');
+  return await apiRequest<SubjectResponse[]>('/subject');
 };
 
 // Квизы
