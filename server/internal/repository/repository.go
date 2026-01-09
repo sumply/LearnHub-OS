@@ -19,6 +19,7 @@ type UserInterface interface {
 	GetByID(context.Context, common.ID) (*domain.User, error)
 	GetByLogin(context.Context, domain.Login) (*domain.User, error)
 	GetAll(context.Context) ([]*domain.User, error)
+	DeleteByID(context.Context, common.ID) error
 }
 
 type SubjectInterface interface {
@@ -33,8 +34,11 @@ type GroupFilter struct {
 type GroupInterface interface {
 	Save(context.Context, *domain.Group) error
 	GetAll(context.Context) ([]*domain.Group, error)
+	GetByID(context.Context, common.ID) (*domain.Group, error)
+	GetByStudentID(context.Context, common.ID) (*domain.Group, error)
 	AddStudent(context.Context, common.ID, []common.ID) error
-	RemoveStudent(context.Context, common.ID, []common.ID) error
+	RemoveStudent(context.Context, common.ID, common.ID) error
+	DeleteByID(context.Context, common.ID) error
 }
 
 type QuizFilter struct {

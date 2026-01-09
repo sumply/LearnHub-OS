@@ -44,17 +44,26 @@ type UserInterface interface {
 	Get(context.Context, *dto.Identity) ([]*domain.User, error)
 	Create(context.Context, *dto.Identity, *dto.UserCreateReq) error
 	GetMe(context.Context, *dto.Identity) (*domain.User, error)
-	GetByID(context.Context, *dto.Identity, common.ID) (*domain.User, error)
+	GetByID(context.Context, *dto.Identity, common.ID) (*dto.UserFullResp, error)
+	Delete(context.Context, *dto.Identity, common.ID) error
 }
 
 type GroupInterface interface {
 	Create(context.Context, *dto.Identity, *dto.GroupCreateReq) error
 	Get(context.Context) ([]*domain.Group, error)
+	GetByID(context.Context, *dto.Identity, common.ID) (*domain.Group, error)
 	AddStudents(
 		ctx context.Context,
 		identity *dto.Identity,
 		groupID common.ID,
 		req *dto.GroupAddStudentsReq,
+	) error
+	DeleteByID(context.Context, *dto.Identity, common.ID) error
+	DeleteStudentByID(
+		ctx context.Context,
+		identity *dto.Identity,
+		groupID common.ID,
+		studentID common.ID,
 	) error
 }
 

@@ -132,7 +132,7 @@ func LogResponse(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		log := logger.FromCtx(r.Context())
-		loggerWithResponse(log, rw.statusCode, rw.size).
+		loggerWithResponse(log, rw.statusCode, rw.size, rw.body.String()).
 			Info("Response sent")
 	})
 }
@@ -166,7 +166,7 @@ func loggerWithRequest(log logger.Logger, r *http.Request) logger.Logger {
 	return log.With(reqID, field)
 }
 
-func loggerWithResponse(log logger.Logger, status int, size int) logger.Logger {
+func loggerWithResponse(log logger.Logger, status int, size int, body string) logger.Logger {
 	fields := logger.TraceField{
 		Key: "Response",
 		Value: map[string]any{
@@ -174,6 +174,9 @@ func loggerWithResponse(log logger.Logger, status int, size int) logger.Logger {
 			"Size":   size,
 		},
 	}
+	logger.OnDebug(func() {
+		fields.Value.(map[string]any)["body"] = body
+	})
 	return log.With(fields)
 }
 

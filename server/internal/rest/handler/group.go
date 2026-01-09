@@ -68,6 +68,53 @@ func (h *Group) PostStudents(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Group) DeleteStudentByID(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	groupID, err := h.getParamGroupID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+	studentID, err := h.getParamUserID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+
+	err = h.usecase.DeleteStudentByID(r.Context(), identity, groupID, studentID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Group) DeleteByID(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	groupID, err := h.getParamGroupID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+
+	err = h.usecase.DeleteByID(r.Context(), identity, groupID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Group) Get(w http.ResponseWriter, r *http.Request) {
 	data, err := h.usecase.Get(r.Context())
 	if err != nil {
@@ -75,11 +122,36 @@ func (h *Group) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := make([]*dto.GroupResp, len(data))
+	resp := make([]*dto.GroupShortResp, len(data))
 	for i, d := range data {
-		resp[i] = dto.NewGroupResp(d)
+		resp[i] = dto.NewGroupShortResp(d)
 	}
 
+	if err := transport.EncodeJSON(w, &resp); err != nil {
+		h.sendEncodeError(w)
+		return
+	}
+}
+
+func (h *Group) GetByID(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	groupID, err := h.getParamGroupID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+
+	data, err := h.usecase.GetByID(r.Context(), identity, groupID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	resp := dto.NewGroupFullResp(data)
 	if err := transport.EncodeJSON(w, &resp); err != nil {
 		h.sendEncodeError(w)
 		return

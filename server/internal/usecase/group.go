@@ -84,3 +84,57 @@ func (g *GroupReal) AddStudents(
 	}
 	return nil
 }
+
+func (g *GroupReal) GetByID(ctx context.Context, identity *dto.Identity, groupID common.ID) (*domain.Group, error) {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.NewTracedField("groupID", groupID),
+	)
+	log.Debug("Called a getByID group usecase")
+
+	group, err := g.repo.Group().GetByID(logger.WithLoggerCtx(ctx, log), groupID)
+	if err != nil {
+		log.Warn(err.Error())
+		return nil, err
+	}
+	return group, nil
+}
+
+func (g *GroupReal) DeleteByID(ctx context.Context, identity *dto.Identity, groupID common.ID) error {
+	log := logger.FromCtx(ctx).With(
+		logger.NewTracedField("groupID", groupID),
+	)
+	log.Warn("Called a deleteByID group usecase")
+
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
+		return ErrAccess
+	}
+
+	err := g.repo.Group().DeleteByID(ctx, groupID)
+	if err != nil {
+		log.Warn(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (g *GroupReal) DeleteStudentByID(ctx context.Context, identity *dto.Identity, groupID, studentID common.ID) error {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.NewTracedField("studentID", studentID),
+	)
+	log.Debug("Called a deleteStudentByID group usecase")
+
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
+		return ErrAccess
+	}
+
+	err := g.repo.Group().RemoveStudent(ctx, groupID, studentID)
+	if err != nil {
+		log.Warn(err.Error())
+		return err
+	}
+
+	return nil
+}

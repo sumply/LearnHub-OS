@@ -19,12 +19,15 @@ type ProgressShortResp struct {
 	Quiz          *QuizShortResp        `json:"quiz"`
 	User          *UserShortResp        `json:"user"`
 	Status        domain.ProgressStatus `json:"status"`
-	Score         uint8                 `json:"score"`
+	Score         int                   `json:"score"`
 	CompletedDate *time.Time            `json:"completed_date,omitempty"`
 	StartDate     *time.Time            `json:"start_date,omitempty"`
 }
 
 func NewProgressShortResp(d *domain.QuizProgress) *ProgressShortResp {
+	if d == nil {
+		return nil
+	}
 	return &ProgressShortResp{
 		ID:            d.ID,
 		Quiz:          NewQuizShortResp(d.Quiz),

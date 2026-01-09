@@ -11,6 +11,9 @@ type SubjectResp struct {
 }
 
 func NewSubjectResp(d *domain.Subject) *SubjectResp {
+	if d == nil {
+		return nil
+	}
 	return &SubjectResp{
 		ID:   d.ID,
 		Name: string(d.Name),

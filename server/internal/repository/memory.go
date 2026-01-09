@@ -345,13 +345,26 @@ func (m *UserMemory) GetAll(ctx context.Context) ([]*domain.User, error) {
 	}
 
 	users := make([]*domain.User, len(m.storage.user))
-	for i, user := range m.storage.user {
-		u := *user
+	i := 0
+	for _, user := range m.storage.user {
+		u := user.Copy()
 		u.Credential = nil
-		users[i] = &u
+		users[i] = u
+		i++
 	}
 
 	return users, nil
+}
+
+func (m *UserMemory) DeleteByID(ctx context.Context, userID common.ID) error {
+	log := logger.FromCtx(ctx).With(
+		logger.NewTracedField("userID", userID),
+	)
+	log.Debug("Called a deleteByID user repository")
+
+	delete(m.storage.user, userID)
+
+	return nil
 }
 
 type GroupMemory struct {
@@ -452,13 +465,22 @@ func (m *GroupMemory) AddStudent(ctx context.Context, groupID common.ID, userIDs
 	}
 
 	group.Students = newStudents
+
+	for _, quiz := range m.storage.quiz {
+		for _, group := range quiz.Groups {
+			if group.ID == groupID {
+				m.storage.saveProgress(quiz)
+			}
+		}
+	}
+
 	return nil
 }
 
-func (m *GroupMemory) RemoveStudent(ctx context.Context, groupID common.ID, userIDs []common.ID) error {
+func (m *GroupMemory) RemoveStudent(ctx context.Context, groupID common.ID, studentID common.ID) error {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(groupID),
-		logger.TraceFieldFromAny(userIDs),
+		logger.TraceFieldFromAny(studentID),
 	)
 	log.Debug("Called a removeStudent repository method")
 
@@ -467,26 +489,70 @@ func (m *GroupMemory) RemoveStudent(ctx context.Context, groupID common.ID, user
 		return fmt.Errorf("%w: group_id=%d", ErrNotFound, groupID)
 	}
 
-	setUserIDs := make(map[common.ID]bool)
-	for _, user := range group.Students {
-		setUserIDs[user.ID] = true
-	}
-
-	for _, id := range userIDs {
-		if _, ok := setUserIDs[id]; !ok {
-			return fmt.Errorf("%w: user_id=%d", ErrNotFound, id)
+	for i := range group.Students {
+		if group.Students[i].ID == studentID {
+			group.Students = slices.Delete(group.Students, i, i+1)
+			break
 		}
-		delete(setUserIDs, id)
 	}
 
-	newStudents := make([]*domain.User, len(setUserIDs))
-	i := 0
-	for id := range setUserIDs {
-		newStudents[i] = m.storage.user[id]
-	}
-
-	group.Students = newStudents
 	return nil
+}
+
+func (m *GroupMemory) GetByID(ctx context.Context, groupID common.ID) (*domain.Group, error) {
+	log := logger.FromCtx(ctx).With(
+		logger.NewTracedField("groupID", groupID),
+	)
+	log.Debug("Called a getByID group repository")
+
+	group, ok := m.storage.group[groupID]
+	if !ok {
+		return nil, fmt.Errorf("%w: group_id=%d", ErrNotFound, groupID)
+	}
+	return group, nil
+}
+
+func (m *GroupMemory) DeleteByID(ctx context.Context, groupID common.ID) error {
+	log := logger.FromCtx(ctx).With(
+		logger.NewTracedField("groupID", groupID),
+	)
+	log.Debug("Called a DeleteByID group repository")
+
+	group, ok := m.storage.group[groupID]
+	if !ok {
+		return nil
+	}
+
+	if len(group.Students) != 0 {
+		return fmt.Errorf("%w: group has students", ErrDependence)
+	}
+
+	delete(m.storage.group, groupID)
+
+	return nil
+}
+
+func (m *GroupMemory) GetByStudentID(ctx context.Context, studentID common.ID) (*domain.Group, error) {
+	log := logger.FromCtx(ctx).With(
+		logger.NewTracedField("studentID", studentID),
+	)
+	log.Debug("Called a getByStudent group memory")
+
+	var found *domain.Group
+	for _, group := range m.storage.group {
+		ok := slices.ContainsFunc(group.Students, func(u *domain.User) bool {
+			if u.ID == studentID {
+				return true
+			}
+			return false
+		})
+		if ok {
+			found = group
+			break
+		}
+	}
+
+	return found, nil
 }
 
 type SubjectMemory struct {
@@ -558,9 +624,9 @@ func (m *QuizMemory) Save(ctx context.Context, quiz *domain.Quiz) error {
 		return err
 	}
 
-	m.saveQuiz(quiz)
+	m.saveQuiz(new)
 
-	if err := m.saveProgress(quiz); err != nil {
+	if err := m.storage.saveProgress(new); err != nil {
 		return err
 	}
 
@@ -614,36 +680,47 @@ func (m *QuizMemory) saveQuiz(quiz *domain.Quiz) {
 	m.storage.quiz[quiz.ID] = quiz
 }
 
-func (m *QuizMemory) saveProgress(quiz *domain.Quiz) error {
+func (s *Storage) saveProgress(quiz *domain.Quiz) error {
 	for _, group := range quiz.Groups {
 		for _, student := range group.Students {
-			progress := domain.NewQuizProgress(student.ID, quiz)
-			progress.ID = m.storage.nextID()
+			if !s.progressIsExists(student.ID, quiz.ID) {
+				progress := domain.NewQuizProgress(student.ID, quiz)
+				progress.ID = s.nextID()
 
-			m.saveAnswers(progress.Answers)
+				s.saveAnswers(progress.Answers)
 
-			if err := m.joinProgressDependency(progress); err != nil {
-				return err
+				if err := s.joinProgressDependency(progress); err != nil {
+					return err
+				}
+				s.progress[progress.ID] = progress
 			}
-			m.storage.progress[progress.ID] = progress
 		}
 	}
 	return nil
 }
 
-func (m *QuizMemory) saveAnswers(answers []*domain.Answer) {
+func (s *Storage) progressIsExists(studentID, quizID common.ID) bool {
+	for _, saved := range s.progress {
+		if saved.Quiz.ID == quizID && saved.User.ID == studentID {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Storage) saveAnswers(answers []*domain.Answer) {
 	for _, answer := range answers {
-		answer.ID = m.storage.nextID()
-		m.storage.answer[answer.ID] = answer
+		answer.ID = s.nextID()
+		s.answer[answer.ID] = answer
 	}
 }
 
-func (m *QuizMemory) joinProgressDependency(progress *domain.QuizProgress) error {
-	user, ok := m.storage.user[progress.User.ID]
+func (s *Storage) joinProgressDependency(progress *domain.QuizProgress) error {
+	user, ok := s.user[progress.User.ID]
 	if !ok {
 		return fmt.Errorf("%w: user_id=%d", ErrDependence, progress.User.ID)
 	}
-	quiz, ok := m.storage.quiz[progress.Quiz.ID]
+	quiz, ok := s.quiz[progress.Quiz.ID]
 	if !ok {
 		return fmt.Errorf("%w: quiz_id=%d", ErrDependence, progress.Quiz.ID)
 	}
