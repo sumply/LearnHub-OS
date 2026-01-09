@@ -12,6 +12,9 @@ type GroupShortResp struct {
 }
 
 func NewGroupShortResp(d *domain.Group) *GroupShortResp {
+	if d == nil {
+		return nil
+	}
 	return &GroupShortResp{
 		ID:      d.ID,
 		Name:    string(d.Name),
@@ -44,6 +47,9 @@ type GroupFullResp struct {
 }
 
 func NewGroupFullResp(d *domain.Group) *GroupFullResp {
+	if d == nil {
+		return nil
+	}
 	return &GroupFullResp{
 		ID:       d.ID,
 		Name:     string(d.Name),

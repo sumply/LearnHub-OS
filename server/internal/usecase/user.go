@@ -148,7 +148,7 @@ func (u *UserReal) GetMe(ctx context.Context, identity *dto.Identity) (*domain.U
 	return user, nil
 }
 
-func (u *UserReal) GetByID(ctx context.Context, identity *dto.Identity, id common.ID) (*domain.User, error) {
+func (u *UserReal) GetByID(ctx context.Context, identity *dto.Identity, id common.ID) (*dto.UserFullResp, error) {
 	log := logger.FromCtx(ctx).With(
 		logger.TraceFieldFromAny(identity),
 		logger.TraceFieldFromAny(id),
@@ -161,5 +161,33 @@ func (u *UserReal) GetByID(ctx context.Context, identity *dto.Identity, id commo
 		return nil, u.mapStorageError(err)
 	}
 
-	return user, nil
+	if user.Role == domain.UserStudent {
+		group, err := u.repo.Group().GetByStudentID(ctx, user.ID)
+		if err != nil {
+			log.Warn(err.Error())
+			return nil, err
+		}
+		return dto.NewUserFullResp(user, group), nil
+	}
+
+	return dto.NewUserFullResp(user, nil), nil
+}
+
+func (u *UserReal) Delete(ctx context.Context, identity *dto.Identity, userID common.ID) error {
+	log := logger.FromCtx(ctx).With(
+		logger.TraceFieldFromAny(identity),
+		logger.NewTracedField("userID", userID),
+	)
+	log.Debug("Called a delete user usecase")
+
+	if !identity.Role.IsHigherOrEqual(domain.UserAdmin) {
+		return ErrAccess
+	}
+
+	err := u.repo.User().DeleteByID(ctx, userID)
+	if err != nil {
+		log.Warn(err.Error())
+		return err
+	}
+	return nil
 }

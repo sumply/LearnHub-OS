@@ -25,6 +25,9 @@ type ProgressShortResp struct {
 }
 
 func NewProgressShortResp(d *domain.QuizProgress) *ProgressShortResp {
+	if d == nil {
+		return nil
+	}
 	return &ProgressShortResp{
 		ID:            d.ID,
 		Quiz:          NewQuizShortResp(d.Quiz),

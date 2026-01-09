@@ -1,9 +1,20 @@
-version: "3"
+version: "3.9"
 
 services:
-  server:
-    build: server/
+  app:
+    build:
+      dockerfile: server/Dockerfile
+    container_name: go-app
     ports:
-      - "3000:3000"
-    env_file:
-      - server/configs/server.env
+      - "8000:8000"
+    environment:
+      JWT_SECRET_KEY: "secret"
+      JWT_ACCESS_DURATION: "60"
+      JWT_REFRESH_DURATION: "3600"
+      JWT_ISSUER: "learnHUB-OS"
+      SMTP_FROM: "<email>"
+      SMTP_PASSWORD: "<pwd>"
+      SMTP_HOST: "smtp.mail.ru"
+      SMTP_PORT: "587"
+      LOG_LEVEL: "DEBUG"
+    restart: unless-stopped

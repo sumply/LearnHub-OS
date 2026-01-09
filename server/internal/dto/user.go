@@ -12,13 +12,18 @@ type Identity struct {
 }
 
 type UserShortResp struct {
-	ID        common.ID `json:"id"`
-	ShortName string    `json:"short_name"`
+	ID        common.ID       `json:"id"`
+	ShortName string          `json:"short_name"`
+	Role      domain.UserRole `json:"role"`
 }
 
 func NewUserShortResp(d *domain.User) *UserShortResp {
+	if d == nil {
+		return nil
+	}
 	resp := &UserShortResp{
-		ID: d.ID,
+		ID:   d.ID,
+		Role: d.Role,
 	}
 	resp.ShortName = resp.formatShortName(
 		string(d.FirstName),
@@ -48,18 +53,22 @@ func (u *UserShortResp) formatShortName(f string, l string, m string) string {
 }
 
 type UserFullResp struct {
-	ID         common.ID `json:"id"`
-	FirstName  string    `json:"first_name"`
-	LastName   string    `json:"last_name"`
-	MiddleName string    `json:"middle_name"`
+	ID         common.ID       `json:"id"`
+	FirstName  string          `json:"first_name"`
+	LastName   string          `json:"last_name"`
+	MiddleName string          `json:"middle_name"`
+	Group      *GroupShortResp `json:"group"`
+	Role       domain.UserRole `json:"role"`
 }
 
-func NewUserFullResp(d *domain.User) UserFullResp {
-	return UserFullResp{
+func NewUserFullResp(d *domain.User, group *domain.Group) *UserFullResp {
+	return &UserFullResp{
 		ID:         d.ID,
 		FirstName:  string(d.FirstName),
 		LastName:   string(d.LastName),
 		MiddleName: string(d.MiddleName),
+		Role:       d.Role,
+		Group:      NewGroupShortResp(group),
 	}
 }
 

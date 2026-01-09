@@ -69,11 +69,50 @@ func (h *Group) PostStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Group) DeleteStudentByID(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	groupID, err := h.getParamGroupID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
+	studentID, err := h.getParamUserID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
 
+	err = h.usecase.DeleteStudentByID(r.Context(), identity, groupID, studentID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Group) DeleteByID(w http.ResponseWriter, r *http.Request) {
+	identity, ok := transport.NewIdentityFromCtx(r.Context())
+	if !ok {
+		transport.SendAuthDataError(w)
+		return
+	}
+	groupID, err := h.getParamGroupID(r)
+	if err != nil {
+		h.sendParamError(w, err.Error())
+		return
+	}
 
+	err = h.usecase.DeleteByID(r.Context(), identity, groupID)
+	if err != nil {
+		h.sendUsecaseError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Group) Get(w http.ResponseWriter, r *http.Request) {
