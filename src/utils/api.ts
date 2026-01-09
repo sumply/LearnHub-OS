@@ -170,19 +170,33 @@ export const login = async (credentials: LoginRequest): Promise<ApiResponse> => 
       // Пробуем декодировать
       let payload;
       try {
-        payload = JSON.parse(atob(token));
+        // JWT токен состоит из трех частей, разделенных точками: header.payload.signature
+        // Нас интересует payload (вторая часть)
+        const parts = token.split('.');
+        if (parts.length >= 2) {
+          // Декодируем payload
+          payload = JSON.parse(atob(parts[1]));
+        } else {
+          // Если формат не JWT, пробуем декодировать весь токен
+          payload = JSON.parse(atob(token));
+        }
       } catch {
         // Если не получилось, возможно токен уже в другом формате
         // Пробуем получить роль из информации о пользователе
-        payload = { role: 1 }; // По умолчанию student
+        payload = { role: 0 }; // По умолчанию student
       }
       
       const apiRole = payload.role;
-      // Маппинг ролей: 1=student, 2=teacher, 3=admin, 4=root
-      if (apiRole === 1) role = 'student';
-      else if (apiRole === 2) role = 'teacher';
-      else if (apiRole === 3) role = 'admin';
-      else if (apiRole === 4) role = 'admin'; // root маппится в admin
+      // Маппинг ролей: 0=student, 1=teacher, 2=admin, 3=root (суперпользователь)
+      if (apiRole === 0) role = 'student';
+      else if (apiRole === 1) role = 'teacher';
+      else if (apiRole === 2) role = 'admin';
+      else if (apiRole === 3) role = 'admin'; // root (суперпользователь) маппится в admin
+      
+      // Отладочная информация
+      if (import.meta.env.DEV) {
+        console.log('[Login] Роль из токена:', { apiRole, role, payload });
+      }
     } catch (err) {
       console.warn('Не удалось распарсить роль из токена:', err);
       // Если не удалось распарсить, используем значение по умолчанию

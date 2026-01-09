@@ -7,9 +7,6 @@ import Header from '../components/Header';
 import AddMaterialForm from '../components/AddMaterialForm';
 
 const Library: Component = () => {
-  // Для отладки
-  // eslint-disable-next-line no-console
-  console.log('Library component mounted');
 
   const [allMaterials, setAllMaterials] = createSignal<Material[]>([]);
   const [error, setError] = createSignal<string | null>(null);
@@ -74,8 +71,6 @@ const Library: Component = () => {
         ...m,
         uploadDate: typeof m.uploadDate === 'string' ? new Date(m.uploadDate) : m.uploadDate
       }));
-      // eslint-disable-next-line no-console
-      console.log('Loaded materials:', fixedMaterials);
       setAllMaterials(fixedMaterials);
     } catch (e: any) {
       setError(e.message || 'Ошибка загрузки материалов');
@@ -143,8 +138,6 @@ const Library: Component = () => {
     }
   };
 
-  // eslint-disable-next-line no-console
-  console.log('render: error =', error());
 
   if (error()) {
     return <div style={{'text-align': 'center', 'margin-top': '2rem', color: '#e76f51'}}>{error()}</div>;
@@ -187,17 +180,19 @@ const Library: Component = () => {
 
         {/* Фильтры */}
         <div style={{
-          'background': '#f8f9fa',
+          'background': 'var(--bg-secondary)',
           'padding': '1.5rem',
           'border-radius': '12px',
           'margin-bottom': '2rem',
-          'box-shadow': '0 2px 8px rgba(0,0,0,0.04)'
+          'box-shadow': '0 2px 8px rgba(0,0,0,0.04)',
+          color: 'var(--text-primary)'
         }}>
           <h3 style={{
             'font-family': 'TT Hoves Pro Trial, sans-serif',
             'margin-top': '0',
             'margin-bottom': '1rem',
-            'font-size': '1.1rem'
+            'font-size': '1.1rem',
+            color: 'var(--text-primary)'
           }}>Фильтры</h3>
           
           <div style={{
@@ -334,7 +329,7 @@ const Library: Component = () => {
           <div style={{
             'display': 'grid',
             'grid-template-columns': 'repeat(auto-fill, minmax(350px, 1fr))',
-            'gap': '1.5rem'
+            'gap': '3rem'
           }}>
             <For each={filteredMaterials()}>
               {material => (

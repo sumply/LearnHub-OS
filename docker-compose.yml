@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    container_name: learnhub-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    restart: unless-stopped
+    networks:
+      - learnhub-network
+
+networks:
+  learnhub-network:
+    driver: bridge

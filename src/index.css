@@ -1224,3 +1224,87 @@ input:focus, textarea:focus, select:focus {
 [data-theme="dark"] .main-shell .feature-card div {
   color: #fff !important;
 }
+
+/* Исправление белых блоков в темной теме */
+[data-theme="dark"] table {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] table thead th {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] table tbody tr {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] table tbody tr:nth-child(even) {
+  background: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] table td,
+[data-theme="dark"] table th {
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .modal,
+[data-theme="dark"] [class*="modal"] {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Исправление белых блоков в карточках и списках */
+[data-theme="dark"] li[style*="background: #f8f9fa"],
+[data-theme="dark"] li[style*="background: '#f8f9fa'"],
+[data-theme="dark"] div[style*="background: #f8f9fa"],
+[data-theme="dark"] div[style*="background: '#f8f9fa'"],
+[data-theme="dark"] div[style*="background: #f9fafb"],
+[data-theme="dark"] div[style*="background: '#f9fafb'"],
+[data-theme="dark"] div[style*="background: white"],
+[data-theme="dark"] div[style*="background: 'white'"],
+[data-theme="dark"] div[style*="background: #fff"],
+[data-theme="dark"] div[style*="background: '#fff'"],
+[data-theme="dark"] div[style*="background: #ffffff"],
+[data-theme="dark"] div[style*="background: '#ffffff'"] {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] tr[style*="background: #f9fafb"],
+[data-theme="dark"] tr[style*="background: '#f9fafb'"],
+[data-theme="dark"] tr[style*="background: #f8f9fa"],
+[data-theme="dark"] tr[style*="background: '#f8f9fa'"] {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] label[style*="background: #fff"],
+[data-theme="dark"] label[style*="background: '#fff'"],
+[data-theme="dark"] label[style*="background: white"],
+[data-theme="dark"] label[style*="background: 'white'"] {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] label[style*="background: #e3eafc"] {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}

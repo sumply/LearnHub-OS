@@ -53,13 +53,36 @@ export async function getCurrentUser(): Promise<User | null> {
     const userInfo = await apiClient.getCurrentUser();
     const storedUser = getStoredUser();
     
+    // Пытаемся получить роль из токена
+    let role: 'student' | 'parent' | 'teacher' | 'admin' = storedUser?.role || 'student';
+    try {
+      const token = apiClient.getAuthToken();
+      if (token) {
+        // JWT токен состоит из трех частей, разделенных точками: header.payload.signature
+        const parts = token.split('.');
+        if (parts.length >= 2) {
+          // Декодируем payload
+          const payload = JSON.parse(atob(parts[1]));
+          const apiRole = payload.role;
+          // Маппинг ролей: 0=student, 1=teacher, 2=admin, 3=root (суперпользователь)
+          if (apiRole === 0) role = 'student';
+          else if (apiRole === 1) role = 'teacher';
+          else if (apiRole === 2) role = 'admin';
+          else if (apiRole === 3) role = 'admin'; // root (суперпользователь) маппится в admin
+        }
+      }
+    } catch (err) {
+      // Если не удалось распарсить, используем сохраненную роль
+      console.warn('Не удалось распарсить роль из токена при загрузке пользователя:', err);
+    }
+    
     // Обновляем информацию о пользователе
     const user: User = {
       id: userInfo.id.toString(),
       email: storedUser?.email || '',
       name: userInfo.first_name,
       surname: userInfo.last_name,
-      role: storedUser?.role || 'student', // Роль берем из токена или хранилища
+      role, // Используем роль из токена
     };
     
     setCurrentUser(user);
@@ -67,6 +90,75 @@ export async function getCurrentUser(): Promise<User | null> {
   } catch (error) {
     console.error('Ошибка загрузки текущего пользователя:', error);
     return getStoredUser();
+  }
+}
+
+// Получить всех пользователей с полной информацией и ролью
+// Поскольку API не возвращает роль напрямую, мы получаем полную информацию
+// и используем специальный подход для определения роли
+export interface UserWithRole extends apiClient.UserFull {
+  role: apiClient.UserRole;
+}
+
+let usersWithRoleCache: UserWithRole[] | null = null;
+let usersWithRoleCacheTimestamp: number = 0;
+
+export async function getAllUsersWithRoles(): Promise<UserWithRole[]> {
+  const now = Date.now();
+  if (usersWithRoleCache && (now - usersWithRoleCacheTimestamp) < CACHE_TTL) {
+    return usersWithRoleCache;
+  }
+
+  try {
+    if (!apiClient.isAuthenticated()) {
+      console.warn('Пользователь не авторизован. Пользователи не загружены.');
+      return [];
+    }
+    
+    // Получаем список всех пользователей
+    const usersShort = await apiClient.getUsers();
+    
+    // Для каждого пользователя получаем полную информацию (включая роль из API)
+    const usersWithRoles: (UserWithRole | null)[] = await Promise.all(
+      usersShort.map(async (userShort) => {
+        try {
+          const userFull = await apiClient.getUserById(userShort.id);
+          
+          // Роль теперь приходит из API в userFull.role
+          // Проверяем, что роль есть в ответе
+          if (userFull.role === undefined || userFull.role === null) {
+            console.warn(`Пользователь ${userFull.id} не имеет роли в ответе API`);
+            // Используем роль по умолчанию только если её нет в ответе
+            return {
+              ...userFull,
+              role: apiClient.UserRole.STUDENT,
+            };
+          }
+          
+          if (import.meta.env.DEV) {
+            console.log(`[getAllUsersWithRoles] Пользователь ${userFull.id} (${userFull.last_name} ${userFull.first_name}): роль из API = ${userFull.role}`);
+          }
+          
+          return {
+            ...userFull,
+            role: userFull.role, // Роль уже есть в ответе API
+          };
+        } catch (error) {
+          console.error(`Ошибка загрузки пользователя ${userShort.id}:`, error);
+          return null;
+        }
+      })
+    );
+    
+    // Фильтруем null значения
+    const validUsers = usersWithRoles.filter((u): u is UserWithRole => u !== null);
+    
+    usersWithRoleCache = validUsers;
+    usersWithRoleCacheTimestamp = now;
+    return validUsers;
+  } catch (error) {
+    console.error('Ошибка загрузки пользователей с ролями:', error);
+    return usersWithRoleCache || [];
   }
 }
 
@@ -98,6 +190,7 @@ export async function isEmailTaken(email: string): Promise<boolean> {
 // Очистить кэш
 export function clearUsersCache(): void {
   usersCache = null;
+  usersWithRoleCache = null;
   cacheTimestamp = 0;
+  usersWithRoleCacheTimestamp = 0;
 }
-

@@ -89,6 +89,16 @@ export async function addStudentsToGroup(groupId: number, studentIds: number[]):
   }
 }
 
+// Получить студентов группы
+export async function getGroupStudents(groupId: number): Promise<apiClient.UserShort[]> {
+  try {
+    return await apiClient.getGroupStudents(groupId);
+  } catch (error) {
+    console.error('Ошибка загрузки студентов группы:', error);
+    return [];
+  }
+}
+
 // Очистить кэш
 export function clearCache(): void {
   subjectsCache = null;

@@ -13,6 +13,10 @@ RUN npm ci
 # Копируем исходный код
 COPY . .
 
+# Принимаем build args для переменных окружения
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 # Собираем приложение
 RUN npm run build
 

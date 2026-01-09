@@ -1,14 +1,14 @@
 // API клиент для работы с бэкендом
 // Базовый URL API
 // В режиме разработки используем прокси Vite для обхода CORS
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:3000');
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://188.225.24.208:8000');
 
 // Типы согласно документации API
 export enum UserRole {
-  STUDENT = 1,
-  TEACHER = 2,
-  ADMIN = 3,
-  ROOT = 4,
+  STUDENT = 0,
+  TEACHER = 1,
+  ADMIN = 2,
+  ROOT = 3,
 }
 
 export enum ProgressStatus {
@@ -46,6 +46,7 @@ export interface UserFull {
   first_name: string;
   last_name: string;
   middle_name?: string;
+  role: UserRole;
 }
 
 export interface UserCreateRequest {
@@ -102,9 +103,51 @@ export interface QuizShortResponse {
   id: number;
   title: string;
   summary: string;
-  owner: UserShort;
-  subject: SubjectResponse;
-  group?: GroupResponse[];
+  total_score: number;
+  owner: {
+    id: number;
+    short_name: string;
+    role: UserRole;
+  };
+  subject: {
+    id: number;
+    name: string;
+  };
+  group: Array<{
+    id: number;
+    name: string;
+    curator: {
+      id: number;
+      short_name: string;
+      role: UserRole;
+    };
+  }>;
+}
+
+export interface QuizFullResponse {
+  id: number;
+  title: string;
+  summary: string;
+  total_score: number;
+  owner: {
+    id: number;
+    short_name: string;
+    role: UserRole;
+  };
+  subject: {
+    id: number;
+    name: string;
+  };
+  group: Array<{
+    id: number;
+    name: string;
+    curator: {
+      id: number;
+      short_name: string;
+      role: UserRole;
+    };
+  }>;
+  questions: QuizQuestion[];
 }
 
 export interface QuizProgressResponse {
@@ -222,7 +265,7 @@ async function apiRequest<T>(
   } catch (error) {
     // Обработка сетевых ошибок (CORS, таймаут, и т.д.)
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('Не удалось подключиться к серверу. Проверьте, что бэкенд запущен на http://localhost:3000');
+      throw new Error('Не удалось подключиться к серверу. Проверьте, что бэкенд доступен на http://188.225.24.208:8000');
     }
     throw error;
   }
@@ -285,16 +328,21 @@ export const addStudentsToGroup = async (
   });
 };
 
+// Получить студентов группы
+export const getGroupStudents = async (groupId: number): Promise<UserShort[]> => {
+  return await apiRequest<UserShort[]>(`/groups/${groupId}/students`);
+};
+
 // Предметы
 export const createSubject = async (subjectData: SubjectCreateRequest): Promise<void> => {
-  await apiRequest<void>('/subject', {
+  await apiRequest<void>('/subjects', {
     method: 'POST',
     body: JSON.stringify(subjectData),
   });
 };
 
 export const getSubjects = async (): Promise<SubjectResponse[]> => {
-  return await apiRequest<SubjectResponse[]>('/subject');
+  return await apiRequest<SubjectResponse[]>('/subjects');
 };
 
 // Квизы
@@ -307,6 +355,10 @@ export const createQuiz = async (quizData: QuizCreateRequest): Promise<void> => 
 
 export const getQuizzes = async (): Promise<QuizShortResponse[]> => {
   return await apiRequest<QuizShortResponse[]>('/quizzes');
+};
+
+export const getQuizById = async (quizId: number): Promise<QuizFullResponse> => {
+  return await apiRequest<QuizFullResponse>(`/quizzes/${quizId}`);
 };
 
 export const deleteQuiz = async (quizId: number): Promise<void> => {
