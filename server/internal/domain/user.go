@@ -13,7 +13,7 @@ import (
 type CredentialID common.ID
 
 type Credential struct {
-	ID        CredentialID
+	ID        common.ID
 	Login     Login
 	PwdHashed PwdHash
 	Email     Email
