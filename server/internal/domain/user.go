@@ -10,11 +10,39 @@ import (
 	"unicode"
 )
 
+type CredentialID common.ID
+
 type Credential struct {
-	ID        common.ID
+	ID        CredentialID
 	Login     Login
 	PwdHashed PwdHash
 	Email     Email
+}
+
+type Profile struct {
+	Credential CredentialID
+	FirstName  UserName
+	LastName   UserName
+	MiddleName UserName
+	Role       UserRole
+	CreatedAt  time.Time
+}
+
+type TeacherID common.ID
+
+type Teacher struct {
+	Profile
+	ID      TeacherID
+	Subject []SubjectID
+	Groups  []GroupID
+}
+
+type StudentID common.ID
+
+type Student struct {
+	Profile
+	ID    StudentID
+	Group GroupID
 }
 
 func NewCredential(login, password, email string) (*Credential, error) {

@@ -4,6 +4,8 @@ import "server/internal/common"
 
 type GroupName string
 
+type GroupID common.ID
+
 func NewGroupName(s string) (GroupName, error) {
 	return GroupName(s), nil
 }

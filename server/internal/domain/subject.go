@@ -8,6 +8,8 @@ import (
 
 type SubjectName string
 
+type SubjectID common.ID
+
 func NewSubjectName(s string) (SubjectName, error) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" {
