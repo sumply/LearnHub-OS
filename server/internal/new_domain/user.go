@@ -9,6 +9,10 @@ import (
 	"unicode"
 )
 
+type User interface {
+	Profile() *Profile
+}
+
 type Credential struct {
 	ID      UserID
 	Login   Login
@@ -25,17 +29,43 @@ type Profile struct {
 	CreatedAt  time.Time
 }
 
+type CoreUser struct {
+	ID      UserID
+	profile *Profile
+}
+
+func (u *CoreUser) Profile() *Profile {
+	if u.profile == nil {
+		return &Profile{}
+	}
+	return u.profile
+}
+
 type Teacher struct {
 	ID       TeacherID
-	Profile  *Profile
+	profile  *Profile
 	Subjects []SubjectID
 	Groups   []GroupID
 }
 
+func (t *Teacher) Profile() *Profile {
+	if t.profile == nil {
+		return &Profile{}
+	}
+	return t.profile
+}
+
 type Student struct {
 	ID      StudentID
-	Profile *Profile
+	profile *Profile
 	Group   GroupID
+}
+
+func (s *Student) Profile() *Profile {
+	if s.profile == nil {
+		return &Profile{}
+	}
+	return s.profile
 }
 
 func NewCredential(email string, maker CredentialMaker) (*Credential, Password, error) {
