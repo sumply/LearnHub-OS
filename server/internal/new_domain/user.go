@@ -9,7 +9,7 @@ import (
 	"unicode"
 )
 
-type User interface {
+type Profiler interface {
 	Profile() *Profile
 }
 
@@ -29,12 +29,12 @@ type Profile struct {
 	CreatedAt  time.Time
 }
 
-type CoreUser struct {
+type User struct {
 	ID      UserID
 	profile *Profile
 }
 
-func (u *CoreUser) Profile() *Profile {
+func (u *User) Profile() *Profile {
 	if u.profile == nil {
 		return &Profile{}
 	}
