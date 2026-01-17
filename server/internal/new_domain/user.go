@@ -10,6 +10,7 @@ import (
 )
 
 type Profiler interface {
+	ID() UserID
 	Profile() *Profile
 }
 
@@ -31,7 +32,7 @@ type Profile struct {
 }
 
 type User struct {
-	ID      UserID
+	id      UserID
 	profile *Profile
 }
 
@@ -42,12 +43,12 @@ func (u *User) Profile() *Profile {
 	return u.profile
 }
 
-func (u *User) SetProfile(p *Profile) {
-	u.profile = p
+func (u *User) ID() UserID {
+	return u.id
 }
 
 type Teacher struct {
-	ID       TeacherID
+	id       TeacherID
 	profile  *Profile
 	Subjects []SubjectID
 	Groups   []GroupID
@@ -60,12 +61,12 @@ func (t *Teacher) Profile() *Profile {
 	return t.profile
 }
 
-func (t *Teacher) SetProfile(p *Profile) {
-	t.profile = p
+func (t *Teacher) ID() UserID {
+	return UserID(t.id)
 }
 
 type Student struct {
-	ID      StudentID
+	id      StudentID
 	profile *Profile
 	Group   GroupID
 }
@@ -77,10 +78,11 @@ func (s *Student) Profile() *Profile {
 	return s.profile
 }
 
-func (s *Student) SetProfile(p *Profile) {
-	s.profile = p
+func (s *Student) ID() UserID {
+	return UserID(s.id)
 }
 
+// NewCredential create new user's credential data
 func NewCredential(email string, maker CredentialMaker) (*Credential, Password, error) {
 	login := maker.GenerateLogin()
 	pwd := maker.GeneratePassword()
@@ -96,25 +98,26 @@ func NewCredential(email string, maker CredentialMaker) (*Credential, Password, 
 	}, pwd, nil
 }
 
-func newProfile(firstName, lastName, middleName string, role UserRole, access UserAccess, credential UserID) (*Profile, error) {
+// NewProfile create a profile data about user.
+func NewProfile(firstName, lastName, middleName string, role UserRole, access UserAccess, credential UserID) (*Profile, error) {
 	if !role.IsValid() {
 		return nil, fmt.Errorf("role is invalid")
 	}
 	if !access.IsValid() {
 		return nil, fmt.Errorf("access is invalid")
 	}
-	_firstName, err := newUserName(first_name, firstName)
+	_firstName, err := newUserName(firstNamePiece, firstName)
 	if err != nil {
 		return nil, err
 	}
-	_lastName, err := newUserName(last_name, lastName)
+	_lastName, err := newUserName(lastNamePiece, lastName)
 	if err != nil {
 		return nil, err
 	}
 	var _middleName UserName
 	if middleName != "" {
 		var err error
-		_middleName, err = newUserName(middle_name, middleName)
+		_middleName, err = newUserName(middleNamePiece, middleName)
 		if err != nil {
 			return nil, err
 		}
@@ -130,39 +133,36 @@ func newProfile(firstName, lastName, middleName string, role UserRole, access Us
 	}, nil
 }
 
-func NewUser(firstName, lastName, middleName string, role UserRole, access UserAccess, credential UserID) (*User, error) {
-	profile, err := newProfile(firstName, lastName, middleName, role, access, credential)
-	if err != nil {
-		return nil, err
-	}
-	return &User{
+// NewUser create new user. A profile pointer is mutable.
+func NewUser(id UserID, profile *Profile) *User {
+	user := User{
+		id:      id,
 		profile: profile,
-	}, nil
+	}
+	return &user
 }
 
-func NewTeacher(firstName, lastName, middleName string, credential UserID, access UserAccess, subjects []SubjectID, groups []GroupID) (*Teacher, error) {
-	profile, err := newProfile(firstName, lastName, middleName, RoleTeacher, access, credential)
-	if err != nil {
-		return nil, err
-	}
-	return &Teacher{
-		ID:       TeacherID(credential),
+// NewTeacher create new teacher. A profile pointer is mutable.
+func NewTeacher(id UserID, profile *Profile, subjects []SubjectID, groups []GroupID) *Teacher {
+	profile.Role = RoleTeacher
+	teacher := Teacher{
+		id:       TeacherID(id),
 		profile:  profile,
 		Subjects: subjects,
 		Groups:   groups,
-	}, nil
+	}
+	return &teacher
 }
 
-func NewStudent(firstName, lastName, middleName string, credential UserID, access UserAccess, group GroupID) (*Student, error) {
-	profile, err := newProfile(firstName, lastName, middleName, RoleTeacher, access, credential)
-	if err != nil {
-		return nil, err
-	}
-	return &Student{
-		ID:      StudentID(credential),
+// NewStudent create new student. A profile pointer is mutable.
+func NewStudent(id UserID, profile *Profile, group GroupID) *Student {
+	profile.Role = RoleStudent
+	student := Student{
+		id:      StudentID(id),
 		profile: profile,
 		Group:   group,
-	}, nil
+	}
+	return &student
 }
 
 type CredentialMaker interface {
@@ -216,9 +216,9 @@ func newUserName(piece userNamePiece, name string) (UserName, error) {
 type userNamePiece string
 
 const (
-	first_name  userNamePiece = "first name"
-	last_name   userNamePiece = "last name"
-	middle_name userNamePiece = "middle name"
+	firstNamePiece  userNamePiece = "first name"
+	lastNamePiece   userNamePiece = "last name"
+	middleNamePiece userNamePiece = "middle name"
 )
 
 var emailRegex = regexp.MustCompile(`^\S+@\S+\.\S+$`)

@@ -16,62 +16,34 @@ func (u *User) Save(context.Context, domain.Profiler) (domain.UserID, error) {
 }
 
 func (u *User) Get(context.Context, *repository.UserFilter) ([]domain.Profiler, error) {
-	admin := domain.User{
-		ID: 0,
-	}
-	admin.SetProfile(&domain.Profile{
-		FirstName:  "User",
-		LastName:   "User",
-		MiddleName: "User",
+	admin := domain.NewUser(1, &domain.Profile{
+		FirstName:  "Admin",
+		LastName:   "Admin",
+		MiddleName: "Admin",
 		Role:       domain.RoleNone,
-		Credential: 0,
 		Access:     domain.AccessAdmin,
 		CreatedAt:  time.Now().UTC(),
 	})
-	user := domain.User{
-		ID: 1,
-	}
-	user.SetProfile(&domain.Profile{
-		FirstName:  "User",
-		LastName:   "User",
-		MiddleName: "User",
-		Role:       domain.RoleNone,
-		Credential: 1,
-		Access:     domain.AccessUser,
-		CreatedAt:  time.Now().UTC(),
-	})
-	teacher := domain.Teacher{
-		ID:       2,
-		Subjects: []domain.SubjectID{1},
-		Groups:   []domain.GroupID{1},
-	}
-	teacher.SetProfile(&domain.Profile{
+	teacher := domain.NewTeacher(2, &domain.Profile{
 		FirstName:  "Teacher",
 		LastName:   "Teacher",
 		MiddleName: "Teacher",
 		Role:       domain.RoleTeacher,
 		Access:     domain.AccessUser,
-		Credential: 2,
 		CreatedAt:  time.Now().UTC(),
-	})
-	student := domain.Student{
-		ID:    3,
-		Group: 1,
-	}
-	student.SetProfile(&domain.Profile{
+	}, []domain.SubjectID{1}, []domain.GroupID{1})
+	student := domain.NewStudent(3, &domain.Profile{
 		FirstName:  "Student",
 		LastName:   "Student",
 		MiddleName: "Student",
 		Role:       domain.RoleStudent,
 		Access:     domain.AccessUser,
-		Credential: 2,
 		CreatedAt:  time.Now().UTC(),
-	})
+	}, 1)
 	return []domain.Profiler{
-		&admin,
-		&user,
-		&teacher,
-		&student,
+		admin,
+		teacher,
+		student,
 	}, nil
 }
 
