@@ -11,7 +11,13 @@ type (
 	User struct{}
 )
 
-func (u *User) Save(context.Context, domain.UserData) (domain.UserID, error) {
+func (u *User) Save(context.Context, *domain.User) (domain.UserID, error) {
+	return 1, nil
+}
+func (u *User) SaveStudent(context.Context, *domain.Student) (domain.StudentID, error) {
+	return 1, nil
+}
+func (u *User) SaveTeacher(context.Context, *domain.Teacher) (domain.TeacherID, error) {
 	return 1, nil
 }
 

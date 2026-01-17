@@ -7,7 +7,9 @@ import (
 
 type (
 	User interface {
-		Save(context.Context, domain.UserData) (domain.UserID, error)
+		Save(context.Context, *domain.User) (domain.UserID, error)
+		SaveStudent(context.Context, *domain.Student) (domain.StudentID, error)
+		SaveTeacher(context.Context, *domain.Teacher) (domain.TeacherID, error)
 		Get(context.Context, *UserFilter) ([]domain.UserData, error)
 		Update(context.Context, domain.UserData) error
 		Delete(context.Context, domain.UserID) error
