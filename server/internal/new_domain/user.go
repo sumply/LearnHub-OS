@@ -26,7 +26,7 @@ type Profile struct {
 	LastName   UserName
 	MiddleName UserName
 	Role       UserRole
-	Credential UserID
+	Credential *Credential
 	Access     UserAccess
 	CreatedAt  time.Time
 }
@@ -99,7 +99,7 @@ func NewCredential(email string, maker CredentialMaker) (*Credential, Password, 
 }
 
 // NewProfile create a profile data about user.
-func NewProfile(firstName, lastName, middleName string, role UserRole, access UserAccess, credential UserID) (*Profile, error) {
+func NewProfile(firstName, lastName, middleName string, role UserRole, access UserAccess, credential *Credential) (*Profile, error) {
 	if !role.IsValid() {
 		return nil, fmt.Errorf("role is invalid")
 	}
