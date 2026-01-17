@@ -18,4 +18,12 @@ type (
 	UserFilter struct {
 		Limit int
 	}
+
+	Repository interface {
+		User() User
+	}
+
+	UnitOfWork interface {
+		Handle(func(Repository) error) error
+	}
 )
