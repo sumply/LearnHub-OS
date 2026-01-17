@@ -165,41 +165,41 @@ func TestNewUserFormatting2(t *testing.T) {
 // TEST PROFILE
 
 func TestNewProfileInvalidFirstName(t *testing.T) {
-	_, err := NewProfile("", "valid", "valid", RoleMissing, 0)
+	_, err := newProfile("", "valid", "valid", RoleNone, AccessUser, 0)
 	if err == nil {
 		t.Errorf("profile created with invalid first name")
 	}
 }
 func TestNewProfileInvalidLastName(t *testing.T) {
-	_, err := NewProfile("valid", "", "valid", RoleMissing, 0)
+	_, err := newProfile("valid", "", "valid", RoleNone, AccessUser, 0)
 	if err == nil {
 		t.Errorf("profile created with invalid last name")
 	}
 }
 
 func TestNewProfileEmptyMiddleName(t *testing.T) {
-	_, err := NewProfile("valid", "valid", "", RoleMissing, 0)
+	_, err := newProfile("valid", "valid", "", RoleNone, AccessUser, 0)
 	if err != nil {
 		t.Errorf("profile can not be created with empty middle name")
 	}
 }
 
 func TestNewProfileInvalidRole(t *testing.T) {
-	_, err := NewProfile("valid", "valid", "", 123, 0)
+	_, err := newProfile("valid", "valid", "", 123, AccessUser, 0)
 	if err == nil {
 		t.Errorf("profile created with invalid role")
 	}
 }
 
 func TestNewProfileValid(t *testing.T) {
-	_, err := NewProfile("valid", "valid", "valid", RoleMissing, 0)
+	_, err := newProfile("valid", "valid", "valid", RoleNone, AccessUser, 0)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestNewProfileFields1(t *testing.T) {
-	newProfileWithTestFields(t, "Ivan", "Lomonosov", "Georgievich", RoleMissing)
+	newProfileWithTestFields(t, "Ivan", "Lomonosov", "Georgievich", RoleNone)
 }
 
 func TestNewProfileFields2(t *testing.T) {
@@ -215,7 +215,7 @@ func TestNewProfileFields4(t *testing.T) {
 }
 
 func newProfileWithTestFields(t *testing.T, firstName, lastName, middleName string, role UserRole) {
-	profile, err := NewProfile(firstName, lastName, middleName, role, 0)
+	profile, err := newProfile(firstName, lastName, middleName, role, AccessUser, 0)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

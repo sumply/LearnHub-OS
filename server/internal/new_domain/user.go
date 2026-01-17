@@ -21,11 +21,12 @@ type Credential struct {
 }
 
 type Profile struct {
-	Credential UserID
 	FirstName  UserName
 	LastName   UserName
 	MiddleName UserName
 	Role       UserRole
+	Credential UserID
+	Access     UserAccess
 	CreatedAt  time.Time
 }
 
@@ -39,6 +40,10 @@ func (u *User) Profile() *Profile {
 		return &Profile{}
 	}
 	return u.profile
+}
+
+func (u *User) SetProfile(p *Profile) {
+	u.profile = p
 }
 
 type Teacher struct {
@@ -55,6 +60,10 @@ func (t *Teacher) Profile() *Profile {
 	return t.profile
 }
 
+func (t *Teacher) SetProfile(p *Profile) {
+	t.profile = p
+}
+
 type Student struct {
 	ID      StudentID
 	profile *Profile
@@ -66,6 +75,10 @@ func (s *Student) Profile() *Profile {
 		return &Profile{}
 	}
 	return s.profile
+}
+
+func (s *Student) SetProfile(p *Profile) {
+	s.profile = p
 }
 
 func NewCredential(email string, maker CredentialMaker) (*Credential, Password, error) {
@@ -83,9 +96,12 @@ func NewCredential(email string, maker CredentialMaker) (*Credential, Password, 
 	}, pwd, nil
 }
 
-func NewProfile(firstName, lastName, middleName string, role UserRole, credential UserID) (*Profile, error) {
+func newProfile(firstName, lastName, middleName string, role UserRole, access UserAccess, credential UserID) (*Profile, error) {
 	if !role.IsValid() {
 		return nil, fmt.Errorf("role is invalid")
+	}
+	if !access.IsValid() {
+		return nil, fmt.Errorf("access is invalid")
 	}
 	_firstName, err := newUserName(first_name, firstName)
 	if err != nil {
@@ -109,23 +125,44 @@ func NewProfile(firstName, lastName, middleName string, role UserRole, credentia
 		MiddleName: _middleName,
 		Role:       role,
 		Credential: credential,
+		Access:     access,
 		CreatedAt:  time.Now().UTC(),
 	}, nil
 }
 
-func NewTeacher(user UserID, subjects []SubjectID, groups []GroupID) *Teacher {
-	return &Teacher{
-		ID:       TeacherID(user),
-		Subjects: subjects,
-		Groups:   groups,
+func NewUser(firstName, lastName, middleName string, role UserRole, access UserAccess, credential UserID) (*User, error) {
+	profile, err := newProfile(firstName, lastName, middleName, role, access, credential)
+	if err != nil {
+		return nil, err
 	}
+	return &User{
+		profile: profile,
+	}, nil
 }
 
-func NewStudent(user UserID, group GroupID) *Student {
-	return &Student{
-		ID:    StudentID(user),
-		Group: group,
+func NewTeacher(firstName, lastName, middleName string, credential UserID, access UserAccess, subjects []SubjectID, groups []GroupID) (*Teacher, error) {
+	profile, err := newProfile(firstName, lastName, middleName, RoleTeacher, access, credential)
+	if err != nil {
+		return nil, err
 	}
+	return &Teacher{
+		ID:       TeacherID(credential),
+		profile:  profile,
+		Subjects: subjects,
+		Groups:   groups,
+	}, nil
+}
+
+func NewStudent(firstName, lastName, middleName string, credential UserID, access UserAccess, group GroupID) (*Student, error) {
+	profile, err := newProfile(firstName, lastName, middleName, RoleTeacher, access, credential)
+	if err != nil {
+		return nil, err
+	}
+	return &Student{
+		ID:      StudentID(credential),
+		profile: profile,
+		Group:   group,
+	}, nil
 }
 
 type CredentialMaker interface {
@@ -154,7 +191,7 @@ type Email string
 
 type UserName string
 
-func newUserName(piece UserNamePiece, name string) (UserName, error) {
+func newUserName(piece userNamePiece, name string) (UserName, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return "", fmt.Errorf("%s is empty", piece)
@@ -176,12 +213,12 @@ func newUserName(piece UserNamePiece, name string) (UserName, error) {
 	return UserName(runes), nil
 }
 
-type UserNamePiece string
+type userNamePiece string
 
 const (
-	first_name  UserNamePiece = "first name"
-	last_name   UserNamePiece = "last name"
-	middle_name UserNamePiece = "middle name"
+	first_name  userNamePiece = "first name"
+	last_name   userNamePiece = "last name"
+	middle_name userNamePiece = "middle name"
 )
 
 var emailRegex = regexp.MustCompile(`^\S+@\S+\.\S+$`)
@@ -199,7 +236,7 @@ func NewEmail(email string) (Email, error) {
 type UserRole common.Enum
 
 const (
-	RoleMissing UserRole = iota
+	RoleNone UserRole = iota
 	RoleTeacher
 	RoleStudent
 )
@@ -207,9 +244,27 @@ const (
 func (r UserRole) IsValid() bool {
 	switch r {
 	case
-		RoleMissing,
+		RoleNone,
 		RoleStudent,
 		RoleTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
+type UserAccess common.Enum
+
+const (
+	AccessUser UserAccess = iota
+	AccessAdmin
+)
+
+func (a UserAccess) IsValid() bool {
+	switch a {
+	case
+		AccessUser,
+		AccessAdmin:
 		return true
 	default:
 		return false
