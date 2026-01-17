@@ -9,7 +9,7 @@ import (
 	"unicode"
 )
 
-type Profiler interface {
+type UserData interface {
 	ID() UserID
 	Profile() *Profile
 }

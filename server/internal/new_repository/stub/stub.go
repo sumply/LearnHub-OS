@@ -11,11 +11,11 @@ type (
 	User struct{}
 )
 
-func (u *User) Save(context.Context, domain.Profiler) (domain.UserID, error) {
+func (u *User) Save(context.Context, domain.UserData) (domain.UserID, error) {
 	return 1, nil
 }
 
-func (u *User) Get(context.Context, *repository.UserFilter) ([]domain.Profiler, error) {
+func (u *User) Get(context.Context, *repository.UserFilter) ([]domain.UserData, error) {
 	admin := domain.NewUser(1, &domain.Profile{
 		FirstName:  "Admin",
 		LastName:   "Admin",
@@ -40,14 +40,14 @@ func (u *User) Get(context.Context, *repository.UserFilter) ([]domain.Profiler, 
 		Access:     domain.AccessUser,
 		CreatedAt:  time.Now().UTC(),
 	}, 1)
-	return []domain.Profiler{
+	return []domain.UserData{
 		admin,
 		teacher,
 		student,
 	}, nil
 }
 
-func (u *User) Update(context.Context, domain.Profiler) error {
+func (u *User) Update(context.Context, domain.UserData) error {
 	return nil
 }
 

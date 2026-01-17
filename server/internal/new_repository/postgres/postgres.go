@@ -11,6 +11,6 @@ type (
 )
 
 func (u *User) Save(context.Context, *domain.User) (domain.UserID, error)
-func (u *User) Get(context.Context, *repository.UserFilter) ([]domain.Profiler, error)
-func (u *User) Update(context.Context, domain.Profiler) error
+func (u *User) Get(context.Context, *repository.UserFilter) ([]domain.UserData, error)
+func (u *User) Update(context.Context, domain.UserData) error
 func (u *User) Delete(context.Context, domain.UserID) error

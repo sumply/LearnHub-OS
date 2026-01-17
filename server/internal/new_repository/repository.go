@@ -7,9 +7,9 @@ import (
 
 type (
 	User interface {
-		Save(context.Context, domain.Profiler) (domain.UserID, error)
-		Get(context.Context, *UserFilter) ([]domain.Profiler, error)
-		Update(context.Context, domain.Profiler) error
+		Save(context.Context, domain.UserData) (domain.UserID, error)
+		Get(context.Context, *UserFilter) ([]domain.UserData, error)
+		Update(context.Context, domain.UserData) error
 		Delete(context.Context, domain.UserID) error
 	}
 
