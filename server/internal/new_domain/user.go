@@ -135,6 +135,9 @@ func NewProfile(firstName, lastName, middleName string, role UserRole, access Us
 
 // NewUser create new user. A profile pointer is mutable.
 func NewUser(id UserID, profile *Profile) *User {
+	if profile == nil {
+		profile = new(Profile)
+	}
 	user := User{
 		id:      id,
 		profile: profile,
@@ -144,6 +147,9 @@ func NewUser(id UserID, profile *Profile) *User {
 
 // NewTeacher create new teacher. A profile pointer is mutable.
 func NewTeacher(id UserID, profile *Profile, subjects []SubjectID, groups []GroupID) *Teacher {
+	if profile == nil {
+		profile = new(Profile)
+	}
 	profile.Role = RoleTeacher
 	teacher := Teacher{
 		id:       TeacherID(id),
@@ -156,6 +162,9 @@ func NewTeacher(id UserID, profile *Profile, subjects []SubjectID, groups []Grou
 
 // NewStudent create new student. A profile pointer is mutable.
 func NewStudent(id UserID, profile *Profile, group GroupID) *Student {
+	if profile == nil {
+		profile = new(Profile)
+	}
 	profile.Role = RoleStudent
 	student := Student{
 		id:      StudentID(id),

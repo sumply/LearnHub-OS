@@ -184,10 +184,24 @@ func TestNewProfileEmptyMiddleName(t *testing.T) {
 	}
 }
 
+func TestNewProfileInvalidMiddleName(t *testing.T) {
+	_, err := NewProfile("valid", "valid", "fdasj12", RoleNone, AccessUser, 0)
+	if err == nil {
+		t.Errorf("profile has been created with invalid middle name")
+	}
+}
+
 func TestNewProfileInvalidRole(t *testing.T) {
 	_, err := NewProfile("valid", "valid", "", 123, AccessUser, 0)
 	if err == nil {
 		t.Errorf("profile created with invalid role")
+	}
+}
+
+func TestNewProfileInvalidAccess(t *testing.T) {
+	_, err := NewProfile("valid", "valid", "", RoleNone, 123, 0)
+	if err == nil {
+		t.Errorf("profile created with invalid access")
 	}
 }
 
@@ -243,4 +257,100 @@ func newUserTestFormatting(t *testing.T, original, wanted string) {
 	}
 }
 
-// TEST P
+// TEST User
+
+func TestNewUser(t *testing.T) {
+	p := new(Profile)
+	user := NewUser(1, p)
+	if user.id != 1 {
+		t.Errorf("user has been created invalid id; expected: %d; got: %d", 1, user.id)
+	}
+	if user.profile == nil {
+		t.Error("user has been created without profile")
+	}
+}
+
+func TestNewUserWithoutProfile(t *testing.T) {
+	user := NewUser(1, nil)
+	if user.id != 1 {
+		t.Errorf("user has been created invalid id; expected: %d; got: %d", 1, user.id)
+	}
+	if user.profile == nil {
+		t.Error("user has been created without profile")
+	}
+}
+
+// TEST Teacher
+
+func TestNewTeacher(t *testing.T) {
+	p := new(Profile)
+	teacher := NewTeacher(1, p, []SubjectID{1}, []GroupID{1})
+	if teacher.id != 1 {
+		t.Errorf("teacher has been created invalid id; expected: %d; got: %d", 1, teacher.id)
+	}
+	if teacher.profile == nil {
+		t.Error("teacher has been created without profile")
+	}
+	if teacher.profile.Role != RoleTeacher {
+		t.Errorf("invalid role; expected: %d; got: %d", RoleTeacher, teacher.profile.Role)
+	}
+	if len(teacher.Groups) == 0 {
+		t.Errorf("groups is invalid; expected: %v; got: %v", []GroupID{1}, teacher.Groups)
+	}
+	if len(teacher.Subjects) == 0 {
+		t.Errorf("subjects is invalid; expected: %v; got: %v", []SubjectID{1}, teacher.Subjects)
+	}
+}
+
+func TestNewTeacherWithoutProfile(t *testing.T) {
+	teacher := NewTeacher(1, nil, []SubjectID{1}, []GroupID{1})
+	if teacher.id != 1 {
+		t.Errorf("teacher has been created invalid id; expected: %d; got: %d", 1, teacher.id)
+	}
+	if teacher.profile == nil {
+		t.Error("teacher has been created without profile")
+	}
+	if teacher.profile.Role != RoleTeacher {
+		t.Errorf("invalid role; expected: %d; got: %d", RoleTeacher, teacher.profile.Role)
+	}
+	if len(teacher.Groups) == 0 {
+		t.Errorf("groups is invalid; expected: %v; got: %v", []GroupID{1}, teacher.Groups)
+	}
+	if len(teacher.Subjects) == 0 {
+		t.Errorf("subjects is invalid; expected: %v; got: %v", []SubjectID{1}, teacher.Subjects)
+	}
+}
+
+// TEST Student
+func TestNewstudent(t *testing.T) {
+	p := new(Profile)
+	student := NewStudent(1, p, 1)
+	if student.id != 1 {
+		t.Errorf("teacher has been created invalid id; expected: %d; got: %d", 1, student.id)
+	}
+	if student.profile == nil {
+		t.Error("teacher has been created without profile")
+	}
+	if student.profile.Role != RoleStudent {
+		t.Errorf("invalid role; expected: %d; got: %d", RoleStudent, student.profile.Role)
+	}
+	if student.Group != 1 {
+		t.Errorf("groups is invalid; expected: %v; got: %v", 1, student.Group)
+	}
+}
+
+func TestNewstudentWithoutProfile(t *testing.T) {
+	student := NewStudent(1, nil, 1)
+	if student.id != 1 {
+		t.Errorf("teacher has been created invalid id; expected: %d; got: %d", 1, student.id)
+	}
+	if student.profile == nil {
+		t.Error("teacher has been created without profile")
+	}
+	if student.profile.Role != RoleStudent {
+		t.Errorf("invalid role; expected: %d; got: %d", RoleStudent, student.profile.Role)
+	}
+	if student.Group != 1 {
+		t.Errorf("groups is invalid; expected: %v; got: %v", 1, student.Group)
+	}
+}
