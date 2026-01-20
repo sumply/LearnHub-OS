@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"server/internal/adapter/postgres"
 	"server/internal/controller/http/group"
+	"server/internal/controller/http/subject"
 	"server/internal/controller/http/user"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,7 @@ func Router() http.Handler {
 
 	user.Route(r, p)
 	group.Route(r, p)
+	subject.Route(r, p)
 
 	return r
 }
