@@ -11,7 +11,8 @@ import (
 )
 
 func Route(r chi.Router, p *postgres.Postgres) {
-	createUC := create_user.New(p)
+	t := p.Transaction()
+	createUC := create_user.New(p, &t)
 	getUC := get_user.New(p)
 	deleteUC := delete_user.New(p)
 	updateUC := update_user.New(p)

@@ -22,7 +22,9 @@ func (p *Postgres) UpdateProfile(ctx context.Context, id uuid.UUID, firstName, l
 		LastName:  lastName,
 	}
 
-	_, err := p.conn.NamedExecContext(ctx, query, arg)
+	ext := p.selectExecuter(ctx)
+
+	_, err := ext.NamedExecContext(ctx, query, arg)
 	if err != nil {
 		return err
 	}
@@ -44,7 +46,9 @@ func (p *Postgres) UpdateGroup(ctx context.Context, id uuid.UUID, name string) e
 		Name: name,
 	}
 
-	_, err := p.conn.NamedExecContext(ctx, query, arg)
+	ext := p.selectExecuter(ctx)
+
+	_, err := ext.NamedExecContext(ctx, query, arg)
 	if err != nil {
 		return err
 	}
@@ -66,7 +70,9 @@ func (p *Postgres) UpdateSubject(ctx context.Context, id uuid.UUID, name string)
 		Name: name,
 	}
 
-	_, err := p.conn.NamedExecContext(ctx, query, arg)
+	ext := p.selectExecuter(ctx)
+
+	_, err := ext.NamedExecContext(ctx, query, arg)
 	if err != nil {
 		return err
 	}

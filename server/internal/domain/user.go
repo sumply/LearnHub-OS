@@ -57,6 +57,7 @@ type Student struct {
 }
 
 type Teacher struct {
-	User   uuid.UUID  `db:"user_id"`
-	Groups uuid.UUIDs `db:"group_ids"`
+	User     uuid.UUID  `db:"user_id"`
+	Subjects uuid.UUIDs `db:"subject_ids"`
+	Groups   uuid.UUIDs `db:"group_ids"`
 }

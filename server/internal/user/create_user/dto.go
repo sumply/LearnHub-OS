@@ -7,6 +7,10 @@ type Input struct {
 	LastName  string `json:"last_name"`
 	Email     string `json:"email"`
 	Role      string `json:"role"`
+
+	GroupID    *uuid.UUID `json:"group_id,omitempty"`
+	GroupIDs   uuid.UUIDs `json:"group_ids,omitempty"`
+	SubjectIDs uuid.UUIDs `json:"subject_ids,omitempty"`
 }
 
 type Output struct {

@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -32,4 +34,23 @@ func New(opt Options) (*Postgres, error) {
 	return &Postgres{
 		conn: conn,
 	}, nil
+}
+
+func (p *Postgres) Transaction() Transaction {
+	return Transaction{
+		conn: p.conn,
+	}
+}
+
+func (p *Postgres) selectExecuter(ctx context.Context) executer {
+	tx, ok := txFromContext(ctx)
+	if !ok {
+		return p.conn
+	}
+	return tx
+}
+
+type executer interface {
+	sqlx.ExtContext
+	NamedExecContext(context.Context, string, any) (sql.Result, error)
 }

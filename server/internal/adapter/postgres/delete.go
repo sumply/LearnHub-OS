@@ -12,7 +12,9 @@ func (p *Postgres) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	WHERE id=$1
 	`
 
-	_, err := p.conn.ExecContext(ctx, query, id)
+	ext := p.selectExecuter(ctx)
+
+	_, err := ext.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -26,7 +28,9 @@ func (p *Postgres) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 	WHERE id = $1
 	`
 
-	_, err := p.conn.ExecContext(ctx, query, id)
+	ext := p.selectExecuter(ctx)
+
+	_, err := ext.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -40,7 +44,9 @@ func (p *Postgres) DeleteSubject(ctx context.Context, id uuid.UUID) error {
 	WHERE id = $1
 	`
 
-	_, err := p.conn.ExecContext(ctx, query, id)
+	ext := p.selectExecuter(ctx)
+
+	_, err := ext.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}

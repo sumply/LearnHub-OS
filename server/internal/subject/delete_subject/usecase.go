@@ -21,5 +21,5 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) DeleteSubject(ctx context.Context, id uuid.UUID) error {
-	return u.DeleteSubject(ctx, id)
+	return u.postgres.DeleteSubject(ctx, id)
 }
