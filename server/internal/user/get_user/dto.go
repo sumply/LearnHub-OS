@@ -11,6 +11,7 @@ type OutputUser struct {
 	Role      string     `json:"role"`
 	Groups    uuid.UUIDs `json:"groups,omitempty"`
 	Group     *uuid.UUID `json:"group,omitempty"`
+	Subjects  uuid.UUIDs `json:"subjects,omitempty"`
 }
 
 type Output struct {

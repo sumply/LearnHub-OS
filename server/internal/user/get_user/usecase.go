@@ -3,14 +3,10 @@ package get_user
 import (
 	"context"
 	"server/internal/domain"
-
-	"github.com/google/uuid"
 )
 
 type Postgres interface {
-	Users(context.Context) ([]domain.User, error)
-	StudentMap(context.Context) (map[uuid.UUID]domain.Student, error)
-	TeacherMap(context.Context) (map[uuid.UUID]domain.Teacher, error)
+	DetailedUsers(context.Context) ([]domain.DetailedUser, error)
 }
 
 type UseCase struct {
@@ -24,17 +20,7 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) GetUser(ctx context.Context) (Output, error) {
-	users, err := u.postgres.Users(ctx)
-	if err != nil {
-		return Output{}, err
-	}
-
-	teachers, err := u.postgres.TeacherMap(ctx)
-	if err != nil {
-		return Output{}, err
-	}
-
-	students, err := u.postgres.StudentMap(ctx)
+	users, err := u.postgres.DetailedUsers(ctx)
 	if err != nil {
 		return Output{}, err
 	}
@@ -43,18 +29,31 @@ func (u *UseCase) GetUser(ctx context.Context) (Output, error) {
 		Users: make([]OutputUser, len(users)),
 	}
 	for i := range users {
-		output.Users[i] = OutputUser{
-			ID:        users[i].ID,
-			FirstName: users[i].FirstName,
-			LastName:  users[i].LastName,
-			Role:      users[i].Role.String(),
-		}
-		switch users[i].Role {
-		case domain.RoleStudent:
-			group := students[users[i].ID].Group
-			output.Users[i].Group = &group
-		case domain.RoleTeacher:
-			output.Users[i].Groups = teachers[users[i].ID].Groups
+		switch u := users[i].(type) {
+		case *domain.User:
+			output.Users[i] = OutputUser{
+				ID:        u.ID,
+				FirstName: u.FirstName,
+				LastName:  u.LastName,
+				Role:      u.Role.String(),
+			}
+		case *domain.Student:
+			output.Users[i] = OutputUser{
+				ID:        u.ID,
+				FirstName: u.FirstName,
+				LastName:  u.LastName,
+				Role:      u.Role.String(),
+				Group:     &u.Group,
+			}
+		case *domain.Teacher:
+			output.Users[i] = OutputUser{
+				ID:        u.ID,
+				FirstName: u.FirstName,
+				LastName:  u.LastName,
+				Role:      u.Role.String(),
+				Groups:    u.Groups,
+				Subjects:  u.Subjects,
+			}
 		}
 	}
 

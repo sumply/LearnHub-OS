@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+type DetailedUser any
+
 type User struct {
 	ID        uuid.UUID `db:"id"`
 	FirstName string    `db:"first_name"`
@@ -20,9 +22,9 @@ type User struct {
 type UserRole int
 
 const (
-	RoleStudent UserRole = iota
+	RoleAdmin UserRole = iota
+	RoleStudent
 	RoleTeacher
-	RoleAdmin
 )
 
 func NewUserRole(role string) (UserRole, error) {
@@ -52,12 +54,12 @@ func (role UserRole) String() string {
 }
 
 type Student struct {
-	User  uuid.UUID `db:"user_id"`
+	User
 	Group uuid.UUID `db:"group_id"`
 }
 
 type Teacher struct {
-	User     uuid.UUID  `db:"user_id"`
+	User
 	Subjects uuid.UUIDs `db:"subject_ids"`
 	Groups   uuid.UUIDs `db:"group_ids"`
 }

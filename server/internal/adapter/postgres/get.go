@@ -8,15 +8,29 @@ import (
 	"github.com/lib/pq"
 )
 
-func (p *Postgres) Users(ctx context.Context) ([]domain.User, error) {
+func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.DetailedUser, error) {
 	const query = `
-	SELECT 
-		id, 
-		first_name, 
-		last_name, 
-		role, 
-		created_at
-	FROM users
+SELECT 
+		p.id, 
+		p.first_name, 
+		p.last_name, 
+		p.role, 
+		p.created_at,
+		s.group_id AS s_group_id,
+		array_remove(array_agg(t.group_id), NULL) AS t_group_ids,
+		array_remove(array_agg(t.subject_id), NULL) AS t_subject_ids
+FROM account.profiles AS p
+LEFT JOIN account.students AS s
+	ON s.profile_id = p.id
+LEFT JOIN account.teachers AS t
+	ON t.profile_id = p.id
+GROUP BY 
+	p.id, 
+	p.first_name,
+	p.last_name,
+	p.role,
+	p.created_at,
+	s.group_id
 	`
 
 	rows, err := p.conn.QueryxContext(ctx, query)
@@ -25,69 +39,45 @@ func (p *Postgres) Users(ctx context.Context) ([]domain.User, error) {
 	}
 	defer rows.Close()
 
-	var resp []domain.User
+	var resp []domain.DetailedUser
 	for rows.Next() {
 		var user domain.User
-		if err := rows.StructScan(&user); err != nil {
+		var sGroupID uuid.UUID
+		var tGroupIDs uuid.UUIDs
+		var tSubjectIDs uuid.UUIDs
+		err = rows.Scan(
+			&user.ID,
+			&user.FirstName,
+			&user.LastName,
+			&user.Role,
+			&user.CreatedAt,
+			&sGroupID,
+			pq.Array(&tGroupIDs),
+			pq.Array(&tSubjectIDs),
+		)
+		if err != nil {
 			return nil, err
 		}
-		resp = append(resp, user)
+		switch user.Role {
+		case domain.RoleStudent:
+			student := domain.Student{
+				User:  user,
+				Group: sGroupID,
+			}
+			resp = append(resp, &student)
+		case domain.RoleTeacher:
+			teacher := domain.Teacher{
+				User:     user,
+				Subjects: tSubjectIDs,
+				Groups:   tGroupIDs,
+			}
+			resp = append(resp, &teacher)
+		default:
+			resp = append(resp, &user)
+		}
 	}
 
 	return resp, nil
-}
-
-func (p *Postgres) StudentMap(ctx context.Context) (map[uuid.UUID]domain.Student, error) {
-	const query = `
-	SELECT user_id, group_id
-	FROM user_groups
-	`
-	var result []struct {
-		UserID  uuid.UUID `db:"user_id"`
-		GroupID uuid.UUID `db:"group_id"`
-	}
-
-	err := p.conn.SelectContext(ctx, &result, query)
-	if err != nil {
-		return nil, err
-	}
-
-	students := make(map[uuid.UUID]domain.Student)
-	for i := range result {
-		students[result[i].UserID] = domain.Student{
-			User:  result[i].UserID,
-			Group: result[i].GroupID,
-		}
-	}
-
-	return students, nil
-}
-
-func (p *Postgres) TeacherMap(ctx context.Context) (map[uuid.UUID]domain.Teacher, error) {
-	const query = `
-	SELECT 
-		user_id,
-		array_agg(group_id) AS group_ids
-	FROM user_groups
-	GROUP BY user_id
-	`
-
-	rows, err := p.conn.QueryxContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	teachers := make(map[uuid.UUID]domain.Teacher)
-	for rows.Next() {
-		var teacher domain.Teacher
-		if err := rows.Scan(&teacher.User, pq.Array(&teacher.Groups)); err != nil {
-			return nil, err
-		}
-		teachers[teacher.User] = teacher
-	}
-
-	return teachers, nil
 }
 
 func (p *Postgres) Groups(ctx context.Context) ([]domain.Group, error) {
