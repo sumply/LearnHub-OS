@@ -11,18 +11,18 @@ import (
 func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.DetailedUser, error) {
 	const query = `
 SELECT 
-		p.id, 
-		p.first_name, 
-		p.last_name, 
-		p.role, 
-		p.created_at,
-		s.group_id AS s_group_id,
-		array_remove(array_agg(t.group_id), NULL) AS t_group_ids,
-		array_remove(array_agg(t.subject_id), NULL) AS t_subject_ids
-FROM account.profiles AS p
-LEFT JOIN account.students AS s
+	p.id, 
+	p.first_name, 
+	p.last_name, 
+	p.role, 
+	p.created_at,
+	s.group_id AS s_group_id,
+	array_remove(array_agg(t.group_id), NULL) AS t_group_ids,
+	array_remove(array_agg(t.subject_id), NULL) AS t_subject_ids
+FROM account.profile AS p
+LEFT JOIN account.student AS s
 	ON s.profile_id = p.id
-LEFT JOIN account.teachers AS t
+LEFT JOIN account.teacher AS t
 	ON t.profile_id = p.id
 GROUP BY 
 	p.id, 
@@ -58,6 +58,7 @@ GROUP BY
 		if err != nil {
 			return nil, err
 		}
+
 		switch user.Role {
 		case domain.RoleStudent:
 			student := domain.Student{
@@ -85,7 +86,7 @@ func (p *Postgres) Groups(ctx context.Context) ([]domain.Group, error) {
 	SELECT 
 		id,
 		name
-	FROM groups
+	FROM school.group
 	`
 
 	var groups []domain.Group
@@ -100,7 +101,7 @@ func (p *Postgres) Groups(ctx context.Context) ([]domain.Group, error) {
 func (p *Postgres) Subjects(ctx context.Context) ([]domain.Subject, error) {
 	const query = `
 	SELECT id, name
-	FROM subjects
+	FROM school.subject
 	`
 
 	var subjects []domain.Subject

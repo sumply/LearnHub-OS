@@ -8,7 +8,7 @@ import (
 
 func (p *Postgres) UpdateProfile(ctx context.Context, id uuid.UUID, firstName, lastName string) error {
 	const query = `
-	UPDATE users
+	UPDATE account.profile
 	SET first_name = :first_name, last_name = :last_name
 	WHERE id = :id
 	`
@@ -34,7 +34,7 @@ func (p *Postgres) UpdateProfile(ctx context.Context, id uuid.UUID, firstName, l
 
 func (p *Postgres) UpdateGroup(ctx context.Context, id uuid.UUID, name string) error {
 	const query = `
-	UPDATE groups
+	UPDATE school.group
 	SET name = :name
 	WHERE id = :id
 	`
@@ -58,7 +58,7 @@ func (p *Postgres) UpdateGroup(ctx context.Context, id uuid.UUID, name string) e
 
 func (p *Postgres) UpdateSubject(ctx context.Context, id uuid.UUID, name string) error {
 	const query = `
-	UPDATE subjects
+	UPDATE school.subject
 	SET name = :name
 	WHERE id = :id
 	`

@@ -35,7 +35,7 @@ func (p *Postgres) CreateUser(ctx context.Context, user *domain.User) error {
 
 func (p *Postgres) CreateGroup(ctx context.Context, group *domain.Group) error {
 	const query = `
-	INSERT INTO groups
+	INSERT INTO school.group(id, name)
 	VALUES(:id, :name)
 	`
 
@@ -51,7 +51,7 @@ func (p *Postgres) CreateGroup(ctx context.Context, group *domain.Group) error {
 
 func (p *Postgres) CreateSubject(ctx context.Context, subject *domain.Subject) error {
 	const query = `
-	INSERT INTO subjects(id, name)
+	INSERT INTO school.subject(id, name)
 	VALUES(:id, :name)
 	`
 
@@ -125,7 +125,7 @@ func (p *Postgres) CreateTeacher(ctx context.Context, teacher *domain.Teacher) e
 
 func (p *Postgres) insertCredentialTx(ctx context.Context, tx *sqlx.Tx, user *domain.User) error {
 	const query = `
-	INSERT INTO account.credentials(
+	INSERT INTO account.credential(
 		id,
 		email,
 		pwd_hash
@@ -146,7 +146,7 @@ func (p *Postgres) insertCredentialTx(ctx context.Context, tx *sqlx.Tx, user *do
 
 func (p *Postgres) insertProfileTx(ctx context.Context, tx *sqlx.Tx, user *domain.User) error {
 	const query = `
-	INSERT INTO account.credentials(
+	INSERT INTO account.credential(
 		id,
 		email,
 		pwd_hash
@@ -167,7 +167,7 @@ func (p *Postgres) insertProfileTx(ctx context.Context, tx *sqlx.Tx, user *domai
 
 func (p *Postgres) insertStudentTx(ctx context.Context, tx *sqlx.Tx, student *domain.Student) error {
 	const query = `
-	INSERT INTO account.students(
+	INSERT INTO account.student(
 		profile_id,
 		group_id
 	)
@@ -187,7 +187,7 @@ func (p *Postgres) insertStudentTx(ctx context.Context, tx *sqlx.Tx, student *do
 
 func (p *Postgres) insertTeacherTx(ctx context.Context, tx *sqlx.Tx, teacher *domain.Teacher) error {
 	const queryTeachers = `
-	INSERT INTO account.teachers(
+	INSERT INTO account.teacher(
 		profile_id,
 		group_id,
 		subject_id

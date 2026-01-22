@@ -8,13 +8,11 @@ import (
 
 func (p *Postgres) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	const query = `
-	DELETE FROM users
-	WHERE id=$1
+DELETE FROM account.credential
+WHERE id = $1
 	`
 
-	ext := p.selectExecuter(ctx)
-
-	_, err := ext.ExecContext(ctx, query, id)
+	_, err := p.conn.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -24,7 +22,7 @@ func (p *Postgres) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 func (p *Postgres) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 	const query = `
-	DELETE FROM groups
+	DELETE FROM school.group
 	WHERE id = $1
 	`
 
@@ -40,7 +38,7 @@ func (p *Postgres) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 
 func (p *Postgres) DeleteSubject(ctx context.Context, id uuid.UUID) error {
 	const query = `
-	DELETE FROM subjects
+	DELETE FROM school.subject
 	WHERE id = $1
 	`
 
