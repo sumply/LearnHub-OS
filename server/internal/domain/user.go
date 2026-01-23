@@ -22,7 +22,8 @@ type User struct {
 type UserRole int
 
 const (
-	RoleAdmin UserRole = iota
+	RoleInvalid UserRole = iota
+	RoleAdmin
 	RoleStudent
 	RoleTeacher
 )
@@ -36,7 +37,7 @@ func NewUserRole(role string) (UserRole, error) {
 	case "teacher":
 		return RoleTeacher, nil
 	default:
-		return -1, fmt.Errorf("role: %w", ErrInvalid)
+		return RoleInvalid, fmt.Errorf("role: %w", ErrInvalid)
 	}
 }
 
