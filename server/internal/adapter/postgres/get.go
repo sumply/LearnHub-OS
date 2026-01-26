@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"server/internal/domain"
 
 	"github.com/google/uuid"
@@ -111,4 +112,55 @@ func (p *Postgres) Subjects(ctx context.Context) ([]domain.Subject, error) {
 	}
 
 	return subjects, nil
+}
+
+func (p *Postgres) Quizzes(ctx context.Context) ([]domain.Quiz, error) {
+	const query = `
+	SELECT 
+		quiz.info.id, 
+		title,
+		summary,
+		owner_id,
+		subject_id,
+		quiz.content.content,
+		total_score,
+		created_at
+	FROM quiz.info
+	JOIN quiz.content ON quiz.content.quiz_id = quiz.info.id 
+	`
+
+	rows, err := p.conn.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	var quizzes []domain.Quiz
+	for rows.Next() {
+		var quiz domain.Quiz
+		var content []byte
+		err := rows.Scan(
+			&quiz.ID,
+			&quiz.Title,
+			&quiz.Summary,
+			&quiz.OwnerID,
+			&quiz.SubjectID,
+			&content,
+			&quiz.TotalScore,
+			&quiz.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		var questions []domain.QuestionAggregate
+		err = json.Unmarshal(content, &questions)
+		if err != nil {
+			return nil, err
+		}
+		quiz.Content = questions
+
+		quizzes = append(quizzes, quiz)
+	}
+
+	return quizzes, nil
 }

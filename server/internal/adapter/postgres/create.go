@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"server/internal/domain"
 
 	"github.com/jmoiron/sqlx"
@@ -123,6 +125,32 @@ func (p *Postgres) CreateTeacher(ctx context.Context, teacher *domain.Teacher) e
 	return nil
 }
 
+func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
+	tx, err := p.conn.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = p.insertQuizTx(ctx, tx, quiz)
+	if err != nil {
+		return err
+	}
+
+	err = p.insertQuizContentTx(ctx, tx, quiz)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Postgres) insertCredentialTx(ctx context.Context, tx *sqlx.Tx, user *domain.User) error {
 	const query = `
 	INSERT INTO account.credential(
@@ -138,7 +166,7 @@ func (p *Postgres) insertCredentialTx(ctx context.Context, tx *sqlx.Tx, user *do
 
 	_, err := tx.NamedExecContext(ctx, query, user)
 	if err != nil {
-		return err
+		return fmt.Errorf("insert credential: %w", err)
 	}
 
 	return nil
@@ -146,20 +174,24 @@ func (p *Postgres) insertCredentialTx(ctx context.Context, tx *sqlx.Tx, user *do
 
 func (p *Postgres) insertProfileTx(ctx context.Context, tx *sqlx.Tx, user *domain.User) error {
 	const query = `
-	INSERT INTO account.credential(
+	INSERT INTO account.profile(
 		id,
-		email,
-		pwd_hash
+		first_name,
+		last_name,
+		role,
+		created_at
 	) 
 	VALUES(
 		:id,
-		:email,
-		:pwd_hash
+		:first_name,
+		:last_name,
+		:role,
+		:created_at
 	)`
 
 	_, err := tx.NamedExecContext(ctx, query, user)
 	if err != nil {
-		return err
+		return fmt.Errorf("insert profile: %w", err)
 	}
 
 	return nil
@@ -202,6 +234,61 @@ func (p *Postgres) insertTeacherTx(ctx context.Context, tx *sqlx.Tx, teacher *do
 	_, err := tx.ExecContext(ctx, queryTeachers, teacher.ID, pq.Array(teacher.Groups), pq.Array(teacher.Subjects))
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (p *Postgres) insertQuizTx(ctx context.Context, tx *sqlx.Tx, quiz *domain.Quiz) error {
+	const query = `
+	INSERT INTO quiz.info(
+		id,
+		title,
+		summary,
+		subject_id,
+		owner_id,
+		total_score,
+		created_at
+	)
+	VALUES (
+		:id,
+		:title,
+		:summary,
+		:subject_id,
+		:owner_id,
+		:total_score,
+		:created_at
+	)
+	`
+
+	_, err := tx.NamedExecContext(ctx, query, quiz)
+	if err != nil {
+		return fmt.Errorf("insert quiz: %w", err)
+	}
+
+	return nil
+}
+
+func (p *Postgres) insertQuizContentTx(ctx context.Context, tx *sqlx.Tx, quiz *domain.Quiz) error {
+	const query = `
+	INSERT INTO quiz.content(
+		quiz_id,
+		content
+	)
+	VALUES(
+		$1,
+		$2
+	)
+	`
+
+	content, err := json.Marshal(quiz.Content)
+	if err != nil {
+		return fmt.Errorf("insert quiz content: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, query, quiz.ID, content)
+	if err != nil {
+		return fmt.Errorf("insert quiz content: %w", err)
 	}
 
 	return nil

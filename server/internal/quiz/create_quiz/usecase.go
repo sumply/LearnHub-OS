@@ -32,7 +32,7 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 		ID:        uuid.New(),
 		Title:     input.Title,
 		Summary:   input.Summary,
-		OwnerID:   uuid.New(),
+		OwnerID:   input.OwnerID,
 		SubjectID: input.SubjectID,
 		Content:   content,
 		CreatedAt: time.Now().UTC(),
@@ -53,13 +53,35 @@ func (u *UseCase) createDomainContent(input []InputContent) ([]domain.QuestionAg
 			ID:      uuid.New(),
 			Type:    domain.QuestionType(input[i].Type),
 			Text:    input[i].Text,
-			Payload: input[i].Payload,
+			Payload: u.createQuestionPayload(&input[i].Payload),
 			Score:   1,
 		}
 		if err := question.Validate(); err != nil {
 			return nil, err
 		}
+		content[i] = question
 	}
 
 	return content, nil
+}
+
+func (u *UseCase) createQuestionPayload(input *InputPayload) any {
+	if input.Single != nil {
+		return &domain.SingleChoiceQuestion{
+			Options: input.Single.Options,
+			Correct: input.Single.Correct,
+		}
+	}
+	if input.Multiple != nil {
+		return &domain.MultipleChoiceQuestion{
+			Options: input.Multiple.Options,
+			Correct: input.Multiple.Correct,
+		}
+	}
+	if input.Numeric != nil {
+		return &domain.NumericQuestion{
+			Correct: input.Numeric.Correct,
+		}
+	}
+	return nil
 }

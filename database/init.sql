@@ -59,13 +59,9 @@ CREATE TABLE quiz.progress(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	quiz_id UUID REFERENCES quiz.info(id) ON DELETE CASCADE NOT NULL,
 	user_id UUID REFERENCES account.profile(id) ON DELETE CASCADE NOT NULL,
+	content JSONB NOT NULL,
 	score SMALLINT NOT NULL DEFAULT 0,
 	started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	ended_at TIMESTAMPTZ,
 	UNIQUE(quiz_id, user_id)
-);
-
-CREATE TABLE quiz.progress_content(
-	progress_id UUID REFERENCES quiz.progress(id) ON DELETE CASCADE NOT NULL UNIQUE,
-	content JSONB NOT NULL
 );

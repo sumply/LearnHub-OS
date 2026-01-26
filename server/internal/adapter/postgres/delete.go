@@ -51,3 +51,17 @@ func (p *Postgres) DeleteSubject(ctx context.Context, id uuid.UUID) error {
 
 	return nil
 }
+
+func (p *Postgres) DeleteQuiz(ctx context.Context, id uuid.UUID) error {
+	const query = `
+	DELETE FROM quiz.info
+	WHERE id = $1
+	`
+
+	_, err := p.conn.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

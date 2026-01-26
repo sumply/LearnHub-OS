@@ -147,21 +147,21 @@ func TestNumericQuestion(t *testing.T) {
 		{
 			name: "Less 0",
 			question: NumericQuestion{
-				Tolerance: -34,
+				Correct: -34,
 			},
 			expectError: true,
 		},
 		{
 			name: "Correct in border",
 			question: NumericQuestion{
-				Tolerance: 0,
+				Correct: 0,
 			},
 			expectError: false,
 		},
 		{
 			name: "Correct",
 			question: NumericQuestion{
-				Tolerance: 123,
+				Correct: 123,
 			},
 			expectError: false,
 		},
@@ -239,7 +239,7 @@ func TestQuestionAggregate(t *testing.T) {
 			aggregate: QuestionAggregate{
 				Type: TypeNumeric,
 				Payload: &NumericQuestion{
-					Tolerance: 1,
+					Correct: 1,
 				},
 			},
 			expectError: false,
@@ -271,7 +271,7 @@ func TestQuestionAggregate(t *testing.T) {
 			aggregate: QuestionAggregate{
 				Type: TypeNumeric,
 				Payload: &NumericQuestion{
-					Tolerance: -1,
+					Correct: -1,
 				},
 			},
 			expectError: true,

@@ -4,16 +4,37 @@ import "github.com/google/uuid"
 
 type Input struct {
 	Title     string         `json:"title"`
+	OwnerID   uuid.UUID      `json:"owner_id"`
 	Summary   string         `json:"summary"`
 	SubjectID uuid.UUID      `json:"subject_id"`
 	Content   []InputContent `json:"content"`
 }
 
 type InputContent struct {
-	Type    string `json:"type"`
-	Text    string `json:"text"`
-	Payload any    `json:"payload"`
-	Score   int    `json:"score"`
+	Type    string       `json:"type"`
+	Text    string       `json:"text"`
+	Payload InputPayload `json:"payload"`
+	Score   int          `json:"score"`
+}
+
+type InputPayload struct {
+	Single   *InputSingle   `json:"single,omitempty"`
+	Multiple *InputMultiple `json:"multiple,omitempty"`
+	Numeric  *InputNumeric  `json:"numeric,omitempty"`
+}
+
+type InputSingle struct {
+	Options []string `json:"options"`
+	Correct int      `json:"correct"`
+}
+
+type InputMultiple struct {
+	Options []string `json:"options"`
+	Correct []int    `json:"correct"`
+}
+
+type InputNumeric struct {
+	Correct float64 `json:"correct"`
 }
 
 type Output struct {

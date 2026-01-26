@@ -35,14 +35,14 @@ func (q *QuestionAggregate) Validate() error {
 	case TypeNumeric:
 		return q.validateNumericType()
 	default:
-		return fmt.Errorf("question has an incorrect type: %w", ErrInvalid)
+		return fmt.Errorf("question has an incorrect type (%v): %w", q.Type, ErrInvalid)
 	}
 }
 
 func (q *QuestionAggregate) validateSingleChoiceType() error {
 	question, ok := q.Payload.(*SingleChoiceQuestion)
 	if !ok {
-		return fmt.Errorf("question has an incorrect structure: %w", ErrInvalid)
+		return fmt.Errorf("question has an incorrect structure (%T): %w", q.Payload, ErrInvalid)
 	}
 	err := question.Validate()
 	if err != nil {
@@ -140,12 +140,12 @@ func (m *MultipleChoiceQuestion) validateCorrect() error {
 }
 
 type NumericQuestion struct {
-	Tolerance float64
+	Correct float64
 }
 
 func (n *NumericQuestion) Validate() error {
-	if n.Tolerance < 0 {
-		return fmt.Errorf("tolerance less 0: %w", ErrInvalid)
+	if n.Correct < 0 {
+		return fmt.Errorf("corect less 0: %w", ErrInvalid)
 	}
 
 	return nil
