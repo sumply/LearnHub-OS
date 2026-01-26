@@ -37,6 +37,7 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 		Content:   content,
 		CreatedAt: time.Now().UTC(),
 	}
+	quiz.Prepare()
 
 	err = u.postgres.CreateQuiz(ctx, &quiz)
 	if err != nil {

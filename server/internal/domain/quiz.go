@@ -18,6 +18,14 @@ type Quiz struct {
 	CreatedAt  time.Time           `db:"created_at"`
 }
 
+func (q *Quiz) Prepare() {
+	score := 0
+	for i := range q.Content {
+		score += q.Content[i].Score
+	}
+	q.TotalScore = score
+}
+
 type QuestionAggregate struct {
 	ID      uuid.UUID    `json:"id"`
 	Type    QuestionType `json:"type"`
