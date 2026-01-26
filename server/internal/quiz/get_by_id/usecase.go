@@ -1,12 +1,14 @@
-package get_quiz
+package get_by_id
 
 import (
 	"context"
 	"server/internal/query"
+
+	"github.com/google/uuid"
 )
 
 type Postgres interface {
-	QuizItems(context.Context) ([]query.QuizItem, error)
+	Quiz(context.Context, uuid.UUID) (query.Quiz, error)
 }
 
 type UseCase struct {
@@ -19,15 +21,14 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) GetQuiz(ctx context.Context) (Output, error) {
-	quizzes, err := u.postgres.QuizItems(ctx)
+func (u *UseCase) GetByID(ctx context.Context, id uuid.UUID) (Output, error) {
+	quiz, err := u.postgres.Quiz(ctx, id)
 	if err != nil {
 		return Output{}, err
 	}
 
 	output := Output{
-		Quizzes: quizzes,
+		Quiz: quiz,
 	}
-
 	return output, nil
 }

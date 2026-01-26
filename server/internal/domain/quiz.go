@@ -19,11 +19,11 @@ type Quiz struct {
 }
 
 type QuestionAggregate struct {
-	ID      uuid.UUID
-	Type    QuestionType
-	Text    string
-	Payload any
-	Score   int
+	ID      uuid.UUID    `json:"id"`
+	Type    QuestionType `json:"type"`
+	Text    string       `json:"text"`
+	Payload any          `json:"payload"`
+	Score   int          `json:"score"`
 }
 
 func (q *QuestionAggregate) Validate() error {
@@ -77,8 +77,8 @@ func (q *QuestionAggregate) validateMultipleType() error {
 }
 
 type SingleChoiceQuestion struct {
-	Options []string
-	Correct int
+	Options []string `json:"options"`
+	Correct int      `json:"correct"`
 }
 
 func (s *SingleChoiceQuestion) Validate() error {
@@ -94,8 +94,8 @@ func (s *SingleChoiceQuestion) Validate() error {
 }
 
 type MultipleChoiceQuestion struct {
-	Options []string
-	Correct []int
+	Options []string `json:"options"`
+	Correct []int    `json:"correct"`
 }
 
 func (m *MultipleChoiceQuestion) Validate() error {
@@ -140,14 +140,10 @@ func (m *MultipleChoiceQuestion) validateCorrect() error {
 }
 
 type NumericQuestion struct {
-	Correct float64
+	Correct float64 `json:"correct"`
 }
 
 func (n *NumericQuestion) Validate() error {
-	if n.Correct < 0 {
-		return fmt.Errorf("corect less 0: %w", ErrInvalid)
-	}
-
 	return nil
 }
 

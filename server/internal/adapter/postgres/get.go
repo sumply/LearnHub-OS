@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"server/internal/domain"
+	"server/internal/query"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -114,53 +116,133 @@ func (p *Postgres) Subjects(ctx context.Context) ([]domain.Subject, error) {
 	return subjects, nil
 }
 
-func (p *Postgres) Quizzes(ctx context.Context) ([]domain.Quiz, error) {
-	const query = `
-	SELECT 
-		quiz.info.id, 
-		title,
-		summary,
-		owner_id,
-		subject_id,
-		quiz.content.content,
-		total_score,
-		created_at
-	FROM quiz.info
-	JOIN quiz.content ON quiz.content.quiz_id = quiz.info.id 
+func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (query.Quiz, error) {
+	const sqlQuery = `
+SELECT 
+	q.id AS quiz_id, 
+	q.title AS quiz_title,
+	q.summary AS quiz_summary,
+	q.total_score AS quiz_total_score,
+	q.created_at AS quiz_created_at,
+	c.content AS quiz_content,
+	u.id AS owner_id,
+	u.first_name AS owner_first_name,
+	u.last_name AS owner_last_name,
+	u.role AS owner_role,
+	u.created_at AS owner_created_at,
+	s.id AS subject_id,
+	s.name AS subject_name
+FROM quiz.info AS q
+JOIN quiz.content AS c
+	ON c.quiz_id = q.id
+JOIN account.profile AS u 
+	ON u.id = q.owner_id
+JOIN school.subject AS s
+	ON s.id = q.subject_id
+WHERE q.id = $1
 	`
 
-	rows, err := p.conn.QueryxContext(ctx, query)
+	result := p.conn.QueryRowxContext(ctx, sqlQuery, id)
+
+	var row QuizRow
+	err := result.StructScan(&row)
+	if err != nil {
+		return query.Quiz{}, err
+	}
+
+	return row.ToQuery(), nil
+}
+
+func (p *Postgres) QuizItems(ctx context.Context) ([]query.QuizItem, error) {
+	const sqlQuery = `
+SELECT 
+	q.id AS quiz_id, 
+	q.title AS quiz_title,
+	q.summary AS quiz_summary,
+	q.total_score AS quiz_total_score,
+	q.created_at AS quiz_created_at,
+	u.id AS owner_id,
+	u.first_name AS owner_first_name,
+	u.last_name AS owner_last_name,
+	u.role AS owner_role,
+	u.created_at AS owner_created_at,
+	s.id AS subject_id,
+	s.name AS subject_name
+FROM quiz.info AS q
+JOIN account.profile AS u 
+	ON u.id = q.owner_id
+JOIN school.subject AS s
+	ON s.id = q.subject_id
+	`
+
+	rows, err := p.conn.QueryxContext(ctx, sqlQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	var quizzes []domain.Quiz
+	var items []query.QuizItem
+
 	for rows.Next() {
-		var quiz domain.Quiz
-		var content []byte
-		err := rows.Scan(
-			&quiz.ID,
-			&quiz.Title,
-			&quiz.Summary,
-			&quiz.OwnerID,
-			&quiz.SubjectID,
-			&content,
-			&quiz.TotalScore,
-			&quiz.CreatedAt,
-		)
+		var row QuizItemRow
+		err := rows.StructScan(&row)
 		if err != nil {
 			return nil, err
 		}
 
-		var questions []domain.QuestionAggregate
-		err = json.Unmarshal(content, &questions)
-		if err != nil {
-			return nil, err
-		}
-		quiz.Content = questions
+		item := row.ToQuery()
 
-		quizzes = append(quizzes, quiz)
+		items = append(items, item)
 	}
 
-	return quizzes, nil
+	return items, nil
+}
+
+type QuizRow struct {
+	QuizItemRow
+	Content []byte `db:"quiz_content"`
+}
+
+func (q *QuizRow) ToQuery() query.Quiz {
+	var content []query.QuizQuestion
+	json.Unmarshal(q.Content, &content)
+	query := query.Quiz{
+		QuizItem: q.QuizItemRow.ToQuery(),
+		Content:  content,
+	}
+	return query
+}
+
+type QuizItemRow struct {
+	QuizID         uuid.UUID `db:"quiz_id"`
+	QuizTitle      string    `db:"quiz_title"`
+	QuizSummary    string    `db:"quiz_summary"`
+	QuizTotalScore int       `db:"quiz_total_score"`
+	QuizCreatedAt  time.Time `db:"quiz_created_at"`
+	OwnerID        uuid.UUID `db:"owner_id"`
+	OwnerFirstName string    `db:"owner_first_name"`
+	OwnerLastName  string    `db:"owner_last_name"`
+	OwnerRole      string    `db:"owner_role"`
+	OwnerCreatedAt time.Time `db:"owner_created_at"`
+	SubjectID      uuid.UUID `db:"subject_id"`
+	SubjectName    string    `db:"subject_name"`
+}
+
+func (q *QuizItemRow) ToQuery() query.QuizItem {
+	return query.QuizItem{
+		ID:      q.QuizID,
+		Title:   q.QuizTitle,
+		Summary: q.QuizSummary,
+		Owner: query.User{
+			ID:        q.OwnerID,
+			FirstName: q.OwnerFirstName,
+			LastName:  q.OwnerLastName,
+			Role:      q.OwnerRole,
+		},
+		Subject: query.Subject{
+			ID:   q.SubjectID,
+			Name: q.SubjectName,
+		},
+		TotalScore: q.QuizTotalScore,
+		CreatedAt:  q.QuizCreatedAt,
+	}
 }
