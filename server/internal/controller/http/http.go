@@ -3,6 +3,8 @@ package http
 import (
 	"net/http"
 	"server/internal/adapter/postgres"
+	"server/internal/adapter/redis"
+	"server/internal/controller/http/attempt"
 	"server/internal/controller/http/group"
 	"server/internal/controller/http/quiz"
 	"server/internal/controller/http/subject"
@@ -23,11 +25,13 @@ func Router() http.Handler {
 	if err != nil {
 		panic(err)
 	}
+	redis := redis.Redis{}
 
 	user.Route(r, p)
 	group.Route(r, p)
 	subject.Route(r, p)
 	quiz.Route(r, p)
+	attempt.Route(r, p, &redis)
 
 	return r
 }

@@ -21,9 +21,19 @@ type Quiz struct {
 	Content []QuizQuestion `json:"content"`
 }
 
+func (q *Quiz) DeleteAnswers() {
+	for i := range q.Content {
+		q.Content[i].DeleteAnswer()
+	}
+}
+
 type QuizQuestion struct {
 	ID      uuid.UUID      `json:"id"`
 	Text    string         `json:"text"`
 	Type    string         `json:"type"`
 	Payload map[string]any `json:"payload"`
+}
+
+func (q *QuizQuestion) DeleteAnswer() {
+	delete(q.Payload, "correct")
 }

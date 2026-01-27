@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"server/internal/domain"
 	"server/internal/query"
 	"time"
@@ -153,6 +154,45 @@ WHERE q.id = $1
 	return row.ToQuery(), nil
 }
 
+func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (query.Quiz, error) {
+	const sqlQuery = `
+SELECT 
+	q.id AS quiz_id, 
+	q.title AS quiz_title,
+	q.summary AS quiz_summary,
+	q.total_score AS quiz_total_score,
+	q.created_at AS quiz_created_at,
+	c.content AS quiz_content,
+	u.id AS owner_id,
+	u.first_name AS owner_first_name,
+	u.last_name AS owner_last_name,
+	u.role AS owner_role,
+	u.created_at AS owner_created_at,
+	s.id AS subject_id,
+	s.name AS subject_name
+FROM quiz.info AS q
+JOIN quiz.content AS c
+	ON c.quiz_id = q.id
+JOIN account.profile AS u 
+	ON u.id = q.owner_id
+JOIN school.subject AS s
+	ON s.id = q.subject_id
+WHERE q.id = $1
+	`
+
+	row := p.conn.QueryRowxContext(ctx, sqlQuery, id)
+
+	var result QuizRow
+	err := row.StructScan(&result)
+	if err != nil {
+		return query.Quiz{}, fmt.Errorf("struct scan: %w", err)
+	}
+
+	quiz := result.ToQuery()
+	quiz.DeleteAnswers()
+	return quiz, nil
+}
+
 func (p *Postgres) QuizItems(ctx context.Context) ([]query.QuizItem, error) {
 	const sqlQuery = `
 SELECT 
@@ -197,6 +237,59 @@ JOIN school.subject AS s
 	return items, nil
 }
 
+func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, error) {
+	const sqlQuery = `
+SELECT 
+	i.id,
+	i.title,
+	i.summary,
+	i.owner_id,
+	i.subject_id,
+	i.total_score,
+	i.created_at,
+	c.content
+FROM quiz.info AS i
+JOIN quiz.content AS c
+	ON c.quiz_id = i.id
+WHERE i.id = $1
+	`
+
+	row := p.conn.QueryRowxContext(ctx, sqlQuery, id)
+	var result DomainQuizRow
+	err := row.StructScan(&result)
+	if err != nil {
+		return domain.Quiz{}, err
+	}
+
+	return result.ToDomain(), nil
+}
+
+type DomainQuizRow struct {
+	ID         uuid.UUID `db:"id"`
+	Title      string    `db:"title"`
+	Summary    string    `db:"summary"`
+	OwnerID    uuid.UUID `db:"owner_id"`
+	SubjectID  uuid.UUID `db:"subject_id"`
+	TotalScore int       `db:"total_score"`
+	CreatedAt  time.Time `db:"created_at"`
+	Content    []byte    `db:"content"`
+}
+
+func (d *DomainQuizRow) ToDomain() domain.Quiz {
+	var content []domain.QuestionAggregate
+	json.Unmarshal(d.Content, &content)
+	return domain.Quiz{
+		ID:         d.ID,
+		Title:      d.Title,
+		Summary:    d.Summary,
+		OwnerID:    d.OwnerID,
+		SubjectID:  d.SubjectID,
+		TotalScore: d.TotalScore,
+		Content:    content,
+		CreatedAt:  d.CreatedAt,
+	}
+}
+
 type QuizRow struct {
 	QuizItemRow
 	Content []byte `db:"quiz_content"`
@@ -205,6 +298,11 @@ type QuizRow struct {
 func (q *QuizRow) ToQuery() query.Quiz {
 	var content []query.QuizQuestion
 	json.Unmarshal(q.Content, &content)
+	/* <- Отличие только в этой строчке. У меня вопросы хранятся в jsonb
+	for i := range content {
+		delete(content[i].Payload, "correct")
+	}
+	*/
 	query := query.Quiz{
 		QuizItem: q.QuizItemRow.ToQuery(),
 		Content:  content,
