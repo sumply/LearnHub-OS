@@ -1,7 +1,7 @@
 package get_quiz
 
-import "server/internal/query"
+import "server/internal/dto"
 
 type Output struct {
-	Quizzes []query.QuizItem `json:"quizzes"`
+	Quizzes []dto.QuizItem `json:"quizzes"`
 }

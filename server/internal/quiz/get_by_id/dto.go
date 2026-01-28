@@ -1,7 +1,7 @@
 package get_by_id
 
-import "server/internal/query"
+import "server/internal/dto"
 
 type Output struct {
-	Quiz query.Quiz `json:"quiz"`
+	Quiz dto.Quiz `json:"quiz"`
 }

@@ -1,6 +1,11 @@
 package domain
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 func TestSingleChoiceQuestion(t *testing.T) {
 	tests := []struct {
@@ -149,7 +154,7 @@ func TestNumericQuestion(t *testing.T) {
 			question: NumericQuestion{
 				Correct: -34,
 			},
-			expectError: true,
+			expectError: false,
 		},
 		{
 			name: "Correct in border",
@@ -194,10 +199,10 @@ func TestQuestionAggregate(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "Invalid payload as numeric",
+			name: "Invalid Details as numeric",
 			aggregate: QuestionAggregate{
 				Type: TypeNumeric,
-				Payload: &SingleChoiceQuestion{
+				Details: &SingleChoiceQuestion{
 					Options: []string{"opt1"},
 					Correct: 0,
 				},
@@ -205,10 +210,10 @@ func TestQuestionAggregate(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "Invalid payload as single",
+			name: "Invalid Details as single",
 			aggregate: QuestionAggregate{
 				Type: TypeSingleChoice,
-				Payload: &MultipleChoiceQuestion{
+				Details: &MultipleChoiceQuestion{
 					Options: []string{"opt1"},
 					Correct: []int{0},
 				},
@@ -216,10 +221,10 @@ func TestQuestionAggregate(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "Invalid payload as multiple",
+			name: "Invalid Details as multiple",
 			aggregate: QuestionAggregate{
 				Type: TypeMultipleChoice,
-				Payload: &SingleChoiceQuestion{
+				Details: &SingleChoiceQuestion{
 					Options: []string{"opt1"},
 					Correct: 0,
 				},
@@ -227,28 +232,28 @@ func TestQuestionAggregate(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "Payload is nil",
+			name: "Details is nil",
 			aggregate: QuestionAggregate{
 				Type:    TypeNumeric,
-				Payload: nil,
+				Details: nil,
 			},
 			expectError: true,
 		},
 		{
-			name: "Payload is numeric",
+			name: "Details is numeric",
 			aggregate: QuestionAggregate{
 				Type: TypeNumeric,
-				Payload: &NumericQuestion{
+				Details: &NumericQuestion{
 					Correct: 1,
 				},
 			},
 			expectError: false,
 		},
 		{
-			name: "Payload is single",
+			name: "Details is single",
 			aggregate: QuestionAggregate{
 				Type: TypeSingleChoice,
-				Payload: &SingleChoiceQuestion{
+				Details: &SingleChoiceQuestion{
 					Options: []string{"opt1"},
 					Correct: 0,
 				},
@@ -256,10 +261,10 @@ func TestQuestionAggregate(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Payload is multiple",
+			name: "Details is multiple",
 			aggregate: QuestionAggregate{
 				Type: TypeMultipleChoice,
-				Payload: &MultipleChoiceQuestion{
+				Details: &MultipleChoiceQuestion{
 					Options: []string{"opt1"},
 					Correct: []int{0},
 				},
@@ -267,20 +272,10 @@ func TestQuestionAggregate(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Failed numeric validate",
-			aggregate: QuestionAggregate{
-				Type: TypeNumeric,
-				Payload: &NumericQuestion{
-					Correct: -1,
-				},
-			},
-			expectError: true,
-		},
-		{
 			name: "Failed single validate",
 			aggregate: QuestionAggregate{
 				Type: TypeSingleChoice,
-				Payload: &SingleChoiceQuestion{
+				Details: &SingleChoiceQuestion{
 					Options: []string{"opt1"},
 					Correct: 23,
 				},
@@ -291,7 +286,7 @@ func TestQuestionAggregate(t *testing.T) {
 			name: "Failed multiple validate",
 			aggregate: QuestionAggregate{
 				Type: TypeMultipleChoice,
-				Payload: &MultipleChoiceQuestion{
+				Details: &MultipleChoiceQuestion{
 					Options: nil,
 					Correct: nil,
 				},
@@ -311,4 +306,133 @@ func TestQuestionAggregate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewQuiz(t *testing.T) {
+	content := []QuestionAggregate{
+		{
+			Score: 1,
+		},
+		{
+			Score: 5,
+		},
+		{
+			Score: 2,
+		},
+	}
+	tests := []struct {
+		name        string
+		param       newQuizParam
+		expectError bool
+	}{
+		{
+			name: "Content length is empty",
+			param: newQuizParam{
+				firstName:   "valid",
+				lastName:    "valid",
+				ownerID:     uuid.New(),
+				subjectID:   uuid.New(),
+				maxAttempts: 10,
+				deadline:    nil,
+				content:     nil,
+			},
+			expectError: true,
+		},
+		{
+			name: "MaxAttempts is less 0",
+			param: newQuizParam{
+				firstName:   "valid",
+				lastName:    "valid",
+				ownerID:     uuid.New(),
+				subjectID:   uuid.New(),
+				maxAttempts: -1,
+				deadline:    nil,
+				content:     content,
+			},
+			expectError: true,
+		},
+		{
+			name: "MaxAttempts is 0",
+			param: newQuizParam{
+				firstName:   "valid",
+				lastName:    "valid",
+				ownerID:     uuid.New(),
+				subjectID:   uuid.New(),
+				maxAttempts: 0,
+				deadline:    nil,
+				content:     content,
+			},
+			expectError: true,
+		},
+		{
+			name: "Expired deadline",
+			param: newQuizParam{
+				firstName:   "valid",
+				lastName:    "valid",
+				ownerID:     uuid.New(),
+				subjectID:   uuid.New(),
+				maxAttempts: 1,
+				deadline:    newExpiredDeadline(),
+				content:     content,
+			},
+			expectError: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := NewQuiz(
+				test.param.firstName,
+				test.param.lastName,
+				test.param.ownerID,
+				test.param.subjectID,
+				test.param.content,
+				test.param.maxAttempts,
+				test.param.deadline,
+			)
+			if err != nil && !test.expectError {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if err == nil && test.expectError {
+				t.Error("expected error")
+			}
+		})
+	}
+}
+
+func TestNewQuizCountTotalScore(t *testing.T) {
+	content := []QuestionAggregate{
+		{
+			Score: 1,
+		},
+		{
+			Score: 5,
+		},
+		{
+			Score: 2,
+		},
+	}
+	t.Run("Count total score", func(t *testing.T) {
+		quiz, err := NewQuiz("title", "summary", uuid.New(), uuid.New(), content, 1, nil)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if quiz.TotalScore != 8 {
+			t.Errorf("total score is invalid; expected: %d; got: %d", 8, quiz.TotalScore)
+		}
+	})
+}
+
+func newExpiredDeadline() *time.Time {
+	t := time.Now().UTC().Add(-time.Hour)
+	return &t
+}
+
+type newQuizParam struct {
+	firstName   string
+	lastName    string
+	ownerID     uuid.UUID
+	subjectID   uuid.UUID
+	content     []QuestionAggregate
+	maxAttempts int
+	deadline    *time.Time
 }

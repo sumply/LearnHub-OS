@@ -2,13 +2,13 @@ package get_by_id
 
 import (
 	"context"
-	"server/internal/query"
+	"server/internal/dto"
 
 	"github.com/google/uuid"
 )
 
 type Postgres interface {
-	Quiz(context.Context, uuid.UUID) (query.Quiz, error)
+	Quiz(context.Context, uuid.UUID) (dto.Quiz, error)
 }
 
 type UseCase struct {

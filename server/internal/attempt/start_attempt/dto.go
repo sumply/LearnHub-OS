@@ -1,7 +1,7 @@
 package start_attempt
 
 import (
-	"server/internal/query"
+	"server/internal/dto"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,7 +14,7 @@ type Input struct {
 
 type Output struct {
 	Attempt OutputAttempt
-	Quiz    query.Quiz `json:"quiz"`
+	Quiz    dto.Quiz `json:"quiz"`
 }
 
 type OutputAttempt struct {

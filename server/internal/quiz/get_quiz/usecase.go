@@ -2,11 +2,11 @@ package get_quiz
 
 import (
 	"context"
-	"server/internal/query"
+	"server/internal/dto"
 )
 
 type Postgres interface {
-	QuizItems(context.Context) ([]query.QuizItem, error)
+	QuizItems(context.Context) ([]dto.QuizItem, error)
 }
 
 type UseCase struct {

@@ -6,7 +6,7 @@ import (
 )
 
 type Postgres interface {
-	DetailedUsers(context.Context) ([]domain.DetailedUser, error)
+	DetailedUsers(context.Context) ([]domain.UserAggregate, error)
 }
 
 type UseCase struct {
@@ -35,14 +35,14 @@ func (u *UseCase) GetUser(ctx context.Context) (Output, error) {
 				ID:        u.ID,
 				FirstName: u.FirstName,
 				LastName:  u.LastName,
-				Role:      u.Role.String(),
+				Role:      string(u.Role),
 			}
 		case *domain.Student:
 			output.Users[i] = OutputUser{
 				ID:        u.ID,
 				FirstName: u.FirstName,
 				LastName:  u.LastName,
-				Role:      u.Role.String(),
+				Role:      string(u.Role),
 				Group:     &u.Group,
 			}
 		case *domain.Teacher:
@@ -50,7 +50,7 @@ func (u *UseCase) GetUser(ctx context.Context) (Output, error) {
 				ID:        u.ID,
 				FirstName: u.FirstName,
 				LastName:  u.LastName,
-				Role:      u.Role.String(),
+				Role:      string(u.Role),
 				Groups:    u.Groups,
 				Subjects:  u.Subjects,
 			}

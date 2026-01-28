@@ -26,25 +26,20 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) {
-	role, err := domain.NewUserRole(input.Role)
-	if err != nil {
-		return Output{}, err
-	}
-
 	user := domain.User{
 		ID:        uuid.New(),
 		FirstName: input.FirstName,
 		LastName:  input.LastName,
-		Role:      role,
+		Role:      domain.UserRole(input.Role),
 		Email:     input.Email,
 		PwdHash:   "hash",
 		CreatedAt: time.Now().UTC(),
 	}
 
-	switch role {
+	switch domain.UserRole(input.Role) {
 
 	case domain.RoleAdmin:
-		err = u.postgres.CreateUser(ctx, &user)
+		err := u.postgres.CreateUser(ctx, &user)
 		if err != nil {
 			return Output{}, err
 		}
@@ -57,7 +52,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 			User:  user,
 			Group: *input.GroupID,
 		}
-		err = u.postgres.CreateStudent(ctx, &student)
+		err := u.postgres.CreateStudent(ctx, &student)
 		if err != nil {
 			return Output{}, err
 		}
@@ -68,7 +63,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 			Subjects: input.SubjectIDs,
 			Groups:   input.GroupIDs,
 		}
-		err = u.postgres.CreateTeacher(ctx, &teacher)
+		err := u.postgres.CreateTeacher(ctx, &teacher)
 		if err != nil {
 			return Output{}, err
 		}

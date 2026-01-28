@@ -30,7 +30,7 @@ CREATE TABLE account.profile(
 
 CREATE TABLE account.student(
 	account_id UUID REFERENCES account.profile(account_id) ON DELETE CASCADE NOT NULL UNIQUE,
-	group_id UUID REFERENCES school.group(id)
+	group_id UUID REFERENCES school.group(id) NOT NULL
 );
 
 CREATE TABLE account.teacher(

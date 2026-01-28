@@ -8,30 +8,61 @@ import (
 )
 
 type Quiz struct {
-	ID         uuid.UUID           `db:"id"`
-	Title      string              `db:"title"`
-	Summary    string              `db:"summary"`
-	OwnerID    uuid.UUID           `db:"owner_id"`
-	SubjectID  uuid.UUID           `db:"subject_id"`
-	Content    []QuestionAggregate `db:"content"`
-	TotalScore int                 `db:"total_score"`
-	CreatedAt  time.Time           `db:"created_at"`
+	ID          uuid.UUID
+	Title       string
+	Summary     string
+	OwnerID     uuid.UUID
+	SubjectID   uuid.UUID
+	Content     []QuestionAggregate
+	Deadline    *time.Time
+	MaxAttempts int
+	TotalScore  int
+	CreatedAt   time.Time
 }
 
-func (q *Quiz) Prepare() {
-	score := 0
-	for i := range q.Content {
-		score += q.Content[i].Score
+func NewQuiz(title, summary string, ownerID, subjectID uuid.UUID, content []QuestionAggregate, maxAttempts int, deadline *time.Time) (Quiz, error) {
+	if len(content) == 0 {
+		return Quiz{}, fmt.Errorf("content is empty: %w", ErrInvalid)
 	}
-	q.TotalScore = score
+
+	totalCount := 0
+	for i := range content {
+		totalCount += content[i].Score
+	}
+
+	if deadline != nil && deadline.Before(time.Now().UTC()) {
+		return Quiz{}, fmt.Errorf("deadline is before now: %w", ErrInvalid)
+	}
+
+	if maxAttempts <= 0 {
+		return Quiz{}, fmt.Errorf("max_attempts less 0: %w", ErrInvalid)
+	}
+
+	return Quiz{
+		ID:          uuid.New(),
+		Title:       title,
+		Summary:     summary,
+		OwnerID:     ownerID,
+		SubjectID:   subjectID,
+		Content:     content,
+		Deadline:    deadline,
+		MaxAttempts: maxAttempts,
+		TotalScore:  totalCount,
+		CreatedAt:   time.Now().UTC(),
+	}, nil
 }
 
 type QuestionAggregate struct {
-	ID      uuid.UUID    `json:"id"`
-	Type    QuestionType `json:"type"`
-	Text    string       `json:"text"`
-	Payload any          `json:"payload"`
-	Score   int          `json:"score"`
+	ID      uuid.UUID
+	QuizID  uuid.UUID
+	Type    QuestionType
+	Text    string
+	Details QuestionDetails
+	Score   int
+}
+
+type QuestionDetails interface {
+	CheckAnswer(any) (bool, error)
 }
 
 func (q *QuestionAggregate) Validate() error {
@@ -48,9 +79,9 @@ func (q *QuestionAggregate) Validate() error {
 }
 
 func (q *QuestionAggregate) validateSingleChoiceType() error {
-	question, ok := q.Payload.(*SingleChoiceQuestion)
+	question, ok := q.Details.(*SingleChoiceQuestion)
 	if !ok {
-		return fmt.Errorf("question has an incorrect structure (%T): %w", q.Payload, ErrInvalid)
+		return fmt.Errorf("question has an incorrect structure (%T): %w", q.Details, ErrInvalid)
 	}
 	err := question.Validate()
 	if err != nil {
@@ -61,7 +92,7 @@ func (q *QuestionAggregate) validateSingleChoiceType() error {
 }
 
 func (q *QuestionAggregate) validateNumericType() error {
-	question, ok := q.Payload.(*NumericQuestion)
+	question, ok := q.Details.(*NumericQuestion)
 	if !ok {
 		return fmt.Errorf("question has an incorrect structure: %w", ErrInvalid)
 	}
@@ -73,7 +104,7 @@ func (q *QuestionAggregate) validateNumericType() error {
 }
 
 func (q *QuestionAggregate) validateMultipleType() error {
-	question, ok := q.Payload.(*MultipleChoiceQuestion)
+	question, ok := q.Details.(*MultipleChoiceQuestion)
 	if !ok {
 		return fmt.Errorf("question has an incorrect structure: %w", ErrInvalid)
 	}
@@ -87,6 +118,17 @@ func (q *QuestionAggregate) validateMultipleType() error {
 type SingleChoiceQuestion struct {
 	Options []string `json:"options"`
 	Correct int      `json:"correct"`
+}
+
+func (s *SingleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
+	_answer, ok := answer.(int)
+	if !ok {
+		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
+	}
+	if s.Correct != _answer {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (s *SingleChoiceQuestion) Validate() error {
@@ -104,6 +146,19 @@ func (s *SingleChoiceQuestion) Validate() error {
 type MultipleChoiceQuestion struct {
 	Options []string `json:"options"`
 	Correct []int    `json:"correct"`
+}
+
+func (m *MultipleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
+	_answer, ok := answer.([]int)
+	if !ok {
+		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
+	}
+	for i := range m.Correct {
+		if m.Correct[i] != _answer[i] {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (m *MultipleChoiceQuestion) Validate() error {
@@ -149,6 +204,17 @@ func (m *MultipleChoiceQuestion) validateCorrect() error {
 
 type NumericQuestion struct {
 	Correct float64 `json:"correct"`
+}
+
+func (n *NumericQuestion) CheckAnswer(answer any) (bool, error) {
+	_answer, ok := answer.(float64)
+	if !ok {
+		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
+	}
+	if n.Correct != _answer {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (n *NumericQuestion) Validate() error {

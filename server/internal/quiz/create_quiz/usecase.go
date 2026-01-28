@@ -3,7 +3,6 @@ package create_quiz
 import (
 	"context"
 	"server/internal/domain"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -23,21 +22,25 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) {
-	content, err := u.createDomainContent(input.Content)
+	quizID := uuid.New()
+	content, err := u.createDomainContent(quizID, input.Content)
 	if err != nil {
 		return Output{}, err
 	}
 
-	quiz := domain.Quiz{
-		ID:        uuid.New(),
-		Title:     input.Title,
-		Summary:   input.Summary,
-		OwnerID:   input.OwnerID,
-		SubjectID: input.SubjectID,
-		Content:   content,
-		CreatedAt: time.Now().UTC(),
+	quiz, err := domain.NewQuiz(
+		input.Title,
+		input.Summary,
+		input.OwnerID,
+		input.SubjectID,
+		content,
+		input.MaxAttempts,
+		input.Deadline,
+	)
+	if err != nil {
+		return Output{}, err
 	}
-	quiz.Prepare()
+	quiz.ID = quizID
 
 	err = u.postgres.CreateQuiz(ctx, &quiz)
 	if err != nil {
@@ -47,14 +50,15 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 	return Output{ID: quiz.ID}, nil
 }
 
-func (u *UseCase) createDomainContent(input []InputContent) ([]domain.QuestionAggregate, error) {
+func (u *UseCase) createDomainContent(quizID uuid.UUID, input []InputContent) ([]domain.QuestionAggregate, error) {
 	content := make([]domain.QuestionAggregate, len(input))
 	for i := range content {
 		question := domain.QuestionAggregate{
 			ID:      uuid.New(),
+			QuizID:  quizID,
 			Type:    domain.QuestionType(input[i].Type),
 			Text:    input[i].Text,
-			Payload: u.createQuestionPayload(&input[i].Payload),
+			Details: u.createQuestionPayload(&input[i].Payload),
 			Score:   1,
 		}
 		if err := question.Validate(); err != nil {
@@ -66,7 +70,7 @@ func (u *UseCase) createDomainContent(input []InputContent) ([]domain.QuestionAg
 	return content, nil
 }
 
-func (u *UseCase) createQuestionPayload(input *InputPayload) any {
+func (u *UseCase) createQuestionPayload(input *InputPayload) domain.QuestionDetails {
 	if input.Single != nil {
 		return &domain.SingleChoiceQuestion{
 			Options: input.Single.Options,

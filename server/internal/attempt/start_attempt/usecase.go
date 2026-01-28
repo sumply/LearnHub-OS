@@ -3,29 +3,24 @@ package start_attempt
 import (
 	"context"
 	"server/internal/domain"
-	"server/internal/query"
+	"server/internal/dto"
 
 	"github.com/google/uuid"
 )
 
 type Postgres interface {
+	CreateAttempt(context.Context, *domain.Attempt) error
 	DomainQuiz(context.Context, uuid.UUID) (domain.Quiz, error)
-	QuizWithoutAnswers(context.Context, uuid.UUID) (query.Quiz, error)
-}
-
-type Redis interface {
-	SaveAttempt(context.Context, *domain.Attempt) error
+	QuizWithoutAnswers(context.Context, uuid.UUID) (dto.Quiz, error)
 }
 
 type UseCase struct {
 	postgres Postgres
-	redis    Redis
 }
 
-func New(postgres Postgres, redis Redis) *UseCase {
+func New(postgres Postgres) *UseCase {
 	return &UseCase{
 		postgres: postgres,
-		redis:    redis,
 	}
 }
 
@@ -36,11 +31,6 @@ func (u *UseCase) StartAttempt(ctx context.Context, input *Input) (Output, error
 	}
 
 	attempt, err := domain.NewAttempt(&quiz, input.UserID)
-	if err != nil {
-		return Output{}, err
-	}
-
-	err = u.redis.SaveAttempt(ctx, &attempt)
 	if err != nil {
 		return Output{}, err
 	}

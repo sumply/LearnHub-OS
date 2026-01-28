@@ -2,13 +2,16 @@ package redis
 
 import (
 	"context"
-	"fmt"
 	"server/internal/domain"
+
+	"github.com/google/uuid"
 )
 
-type Redis struct{}
+type Redis struct {
+	attempts map[uuid.UUID]*domain.Attempt
+}
 
 func (r *Redis) SaveAttempt(ctx context.Context, attempt *domain.Attempt) error {
-	fmt.Println(attempt)
+	r.attempts[attempt.ID] = attempt
 	return nil
 }

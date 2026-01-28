@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"server/internal/adapter/postgres/sqlc"
 
 	"github.com/jmoiron/sqlx"
 )
 
 type Postgres struct {
 	conn *sqlx.DB
+	sqlc *sqlc.Queries
 }
 
 type Options struct {
@@ -33,6 +35,7 @@ func New(opt Options) (*Postgres, error) {
 	}
 	return &Postgres{
 		conn: conn,
+		sqlc: sqlc.New(conn),
 	}, nil
 }
 

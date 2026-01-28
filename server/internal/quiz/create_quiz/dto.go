@@ -1,13 +1,19 @@
 package create_quiz
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Input struct {
-	Title     string         `json:"title"`
-	OwnerID   uuid.UUID      `json:"owner_id"`
-	Summary   string         `json:"summary"`
-	SubjectID uuid.UUID      `json:"subject_id"`
-	Content   []InputContent `json:"content"`
+	Title       string         `json:"title"`
+	OwnerID     uuid.UUID      `json:"owner_id"`
+	Summary     string         `json:"summary"`
+	SubjectID   uuid.UUID      `json:"subject_id"`
+	Deadline    *time.Time     `json:"deadline,omitempty"`
+	MaxAttempts int            `json:"max_attempts"`
+	Content     []InputContent `json:"content"`
 }
 
 type InputContent struct {

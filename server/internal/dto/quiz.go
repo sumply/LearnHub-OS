@@ -1,4 +1,4 @@
-package query
+package dto
 
 import (
 	"time"
@@ -7,13 +7,15 @@ import (
 )
 
 type QuizItem struct {
-	ID         uuid.UUID `json:"id"`
-	Title      string    `json:"title"`
-	Summary    string    `json:"summary"`
-	Owner      User      `json:"owner"`
-	Subject    Subject   `json:"subject"`
-	TotalScore int       `json:"total_score"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          uuid.UUID  `json:"id"`
+	Title       string     `json:"title"`
+	Summary     string     `json:"summary"`
+	Owner       User       `json:"owner"`
+	Subject     Subject    `json:"subject"`
+	TotalScore  int        `json:"total_score"`
+	Deadline    *time.Time `json:"deadline,omitempty"`
+	MaxAttempts int        `json:"max_attempts"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type Quiz struct {
