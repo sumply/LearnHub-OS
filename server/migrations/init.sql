@@ -81,6 +81,7 @@ CREATE TABLE quiz.answer(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	attempt_id UUID REFERENCES quiz.attempt(id) ON DELETE CASCADE NOT NULL,
 	question_id UUID REFERENCES quiz.question(id) ON DELETE CASCADE NOT NULL UNIQUE,
+	answer TEXT NOT NULL,
 	score quiz.score NOT NULL,
 	is_correct BOOLEAN NOT NULL
 );

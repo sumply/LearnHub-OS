@@ -8,34 +8,28 @@ import (
 )
 
 type Postgres interface {
+	DomainQuestion(context.Context, uuid.UUID) (domain.QuestionAggregate, error)
+	DomainAttempt(context.Context, uuid.UUID) (domain.Attempt, error)
 	UpdateAttempt(context.Context, *domain.Attempt) error
 }
-
-type Redis interface {
-	Attempt(context.Context, uuid.UUID) (*domain.Attempt, error)
-	Question(context.Context, uuid.UUID) (*domain.QuestionAggregate, error)
-}
-
 type UseCase struct {
-	redis    Redis
 	postgres Postgres
 }
 
-func New(postgres Postgres, redis Redis) *UseCase {
+func New(postgres Postgres) *UseCase {
 	return &UseCase{
 		postgres: postgres,
-		redis:    redis,
 	}
 }
 
 func (u *UseCase) FinishAttempt(ctx context.Context, attemptID uuid.UUID, input *Input) (Output, error) {
-	attempt, err := u.redis.Attempt(ctx, attemptID)
+	attempt, err := u.postgres.DomainAttempt(ctx, attemptID)
 	if err != nil {
 		return Output{}, err
 	}
 
 	for i, answer := range attempt.Answers {
-		question, err := u.redis.Question(ctx, answer.QuestionID)
+		question, err := u.postgres.DomainQuestion(ctx, answer.QuestionID)
 		if err != nil {
 			return Output{}, err
 		}
@@ -50,7 +44,7 @@ func (u *UseCase) FinishAttempt(ctx context.Context, attemptID uuid.UUID, input 
 		attempt.Answers[i] = answer
 	}
 
-	err = u.postgres.UpdateAttempt(ctx, attempt)
+	err = u.postgres.UpdateAttempt(ctx, &attempt)
 	if err != nil {
 		return Output{}, err
 	}
