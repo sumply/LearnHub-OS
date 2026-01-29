@@ -44,7 +44,7 @@ CREATE SCHEMA quiz;
 
 CREATE TYPE quiz.question_type AS enum('single', 'multiple', 'numeric');
 
-CREATE DOMAIN quiz.score AS INT DEFAULT 1 CHECK( VALUE > 0 );
+CREATE DOMAIN quiz.score AS INT DEFAULT 1 CHECK( VALUE >= 0 );
 
 CREATE TABLE quiz.info(
 	quiz_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,6 +61,7 @@ CREATE TABLE quiz.info(
 CREATE TABLE quiz.question(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	quiz_id UUID REFERENCES quiz.info(quiz_id) ON DELETE CASCADE NOT NULL,
+	title TEXT NOT NULL,
 	variant quiz.question_type NOT NULL,
 	score quiz.score NOT NULL,
 	details JSONB NOT NULL
@@ -70,7 +71,6 @@ CREATE TABLE quiz.attempt(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	quiz_id UUID REFERENCES quiz.info(quiz_id) ON DELETE CASCADE NOT NULL,
 	user_id UUID REFERENCES account.profile(account_id) ON DELETE CASCADE NOT NULL,
-	content JSONB NOT NULL,
 	score quiz.score NOT NULL,
 	started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	ended_at TIMESTAMPTZ,
@@ -81,7 +81,7 @@ CREATE TABLE quiz.answer(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	attempt_id UUID REFERENCES quiz.attempt(id) ON DELETE CASCADE NOT NULL,
 	question_id UUID REFERENCES quiz.question(id) ON DELETE CASCADE NOT NULL UNIQUE,
-	answer TEXT NOT NULL,
+	details JSONB NOT NULL,
 	score quiz.score NOT NULL,
 	is_correct BOOLEAN NOT NULL
 );

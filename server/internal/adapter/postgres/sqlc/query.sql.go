@@ -82,6 +82,52 @@ func (q *Queries) GetDetailedUsers(ctx context.Context) ([]GetDetailedUsersRow, 
 	return items, nil
 }
 
+const getDomainAttempt = `-- name: GetDomainAttempt :one
+SELECT 
+    attempt.id AS attempt_id,
+    attempt.quiz_id AS attempt_quiz_id,
+    attempt.user_id AS attempt_user_id,
+    attempt.score::INT AS attempt_score_id,
+    attempt.started_at AS attempt_started_at,
+    attempt.ended_at AS attempt_endend_at,
+    json_agg(answer.*) AS attempt_answers
+FROM quiz.attempt AS attempt
+JOIN quiz.answer AS answer
+    ON answer.attempt_id = attempt.id
+GROUP BY 
+	attempt.id,
+	attempt.quiz_id,
+    attempt.user_id,
+    attempt.score,
+    attempt.started_at,
+    attempt.ended_at
+`
+
+type GetDomainAttemptRow struct {
+	AttemptID        uuid.UUID
+	AttemptQuizID    uuid.UUID
+	AttemptUserID    uuid.UUID
+	AttemptScoreID   int32
+	AttemptStartedAt time.Time
+	AttemptEndendAt  sql.NullTime
+	AttemptAnswers   json.RawMessage
+}
+
+func (q *Queries) GetDomainAttempt(ctx context.Context) (GetDomainAttemptRow, error) {
+	row := q.db.QueryRowContext(ctx, getDomainAttempt)
+	var i GetDomainAttemptRow
+	err := row.Scan(
+		&i.AttemptID,
+		&i.AttemptQuizID,
+		&i.AttemptUserID,
+		&i.AttemptScoreID,
+		&i.AttemptStartedAt,
+		&i.AttemptEndendAt,
+		&i.AttemptAnswers,
+	)
+	return i, err
+}
+
 const getDomainQuiz = `-- name: GetDomainQuiz :one
 SELECT 
 	i.quiz_id AS quiz_id,
@@ -98,6 +144,16 @@ FROM quiz.info AS i
 JOIN quiz.question AS q
 	ON q.quiz_id = i.quiz_id
 WHERE i.quiz_id = $1
+GROUP BY 
+    i.quiz_id,
+    i.title,
+    i.summary,
+    i.owner_id,
+    i.subject_id,
+    i.total_score,
+    i.deadline,
+    i.max_attempts,
+    i.created_at
 `
 
 type GetDomainQuizRow struct {
@@ -361,6 +417,7 @@ INSERT INTO quiz.answer (
     id,
     attempt_id,
     question_id,
+    details,
     score,
     is_correct
 )
@@ -369,7 +426,8 @@ VALUES (
     $2,
     $3,
     $4,
-    $5
+    $5,
+    $6
 )
 `
 
@@ -377,6 +435,7 @@ type InsertQuizAnswerParams struct {
 	ID         uuid.UUID
 	AttemptID  uuid.UUID
 	QuestionID uuid.UUID
+	Details    json.RawMessage
 	Score      interface{}
 	IsCorrect  bool
 }
@@ -386,6 +445,7 @@ func (q *Queries) InsertQuizAnswer(ctx context.Context, arg InsertQuizAnswerPara
 		arg.ID,
 		arg.AttemptID,
 		arg.QuestionID,
+		arg.Details,
 		arg.Score,
 		arg.IsCorrect,
 	)
@@ -397,7 +457,6 @@ INSERT INTO quiz.attempt (
     id,
     quiz_id,
     user_id,
-    content,
     score,
     started_at,
     ended_at
@@ -408,8 +467,7 @@ VALUES (
     $3,
     $4,
     $5,
-    $6,
-    $7
+    $6
 )
 `
 
@@ -417,7 +475,6 @@ type InsertQuizAttemptParams struct {
 	ID        uuid.UUID
 	QuizID    uuid.UUID
 	UserID    uuid.UUID
-	Content   json.RawMessage
 	Score     interface{}
 	StartedAt time.Time
 	EndedAt   sql.NullTime
@@ -428,7 +485,6 @@ func (q *Queries) InsertQuizAttempt(ctx context.Context, arg InsertQuizAttemptPa
 		arg.ID,
 		arg.QuizID,
 		arg.UserID,
-		arg.Content,
 		arg.Score,
 		arg.StartedAt,
 		arg.EndedAt,
@@ -496,6 +552,7 @@ const insertQuizQuestion = `-- name: InsertQuizQuestion :exec
 INSERT INTO quiz.question (
     id,
     quiz_id,
+    title,
     variant,
     score,
     details
@@ -505,13 +562,15 @@ VALUES (
     $2,
     $3,
     $4,
-    $5
+    $5,
+    $6
 )
 `
 
 type InsertQuizQuestionParams struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
+	Title   string
 	Variant QuizQuestionType
 	Score   interface{}
 	Details json.RawMessage
@@ -521,6 +580,7 @@ func (q *Queries) InsertQuizQuestion(ctx context.Context, arg InsertQuizQuestion
 	_, err := q.db.ExecContext(ctx, insertQuizQuestion,
 		arg.ID,
 		arg.QuizID,
+		arg.Title,
 		arg.Variant,
 		arg.Score,
 		arg.Details,

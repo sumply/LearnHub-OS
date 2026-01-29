@@ -129,6 +129,7 @@ type QuizAnswer struct {
 	ID         uuid.UUID
 	AttemptID  uuid.UUID
 	QuestionID uuid.UUID
+	Details    json.RawMessage
 	Score      interface{}
 	IsCorrect  bool
 }
@@ -137,7 +138,6 @@ type QuizAttempt struct {
 	ID        uuid.UUID
 	QuizID    uuid.UUID
 	UserID    uuid.UUID
-	Content   json.RawMessage
 	Score     interface{}
 	StartedAt time.Time
 	EndedAt   sql.NullTime
@@ -158,6 +158,7 @@ type QuizInfo struct {
 type QuizQuestion struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
+	Title   string
 	Variant QuizQuestionType
 	Score   interface{}
 	Details json.RawMessage

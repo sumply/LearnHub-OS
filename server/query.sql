@@ -108,6 +108,7 @@ VALUES (
 INSERT INTO quiz.question (
     id,
     quiz_id,
+    title,
     variant,
     score,
     details
@@ -117,7 +118,8 @@ VALUES (
     $2,
     $3,
     $4,
-    $5
+    $5,
+    $6
 );
 
 -- name: InsertQuizAttempt :exec
@@ -125,7 +127,6 @@ INSERT INTO quiz.attempt (
     id,
     quiz_id,
     user_id,
-    content,
     score,
     started_at,
     ended_at
@@ -136,8 +137,7 @@ VALUES (
     $3,
     $4,
     $5,
-    $6,
-    $7
+    $6
 );
 
 -- name: InsertQuizAnswer :exec
@@ -145,6 +145,7 @@ INSERT INTO quiz.answer (
     id,
     attempt_id,
     question_id,
+    details,
     score,
     is_correct
 )
@@ -153,7 +154,8 @@ VALUES (
     $2,
     $3,
     $4,
-    $5
+    $5,
+    $6
 );
 
 
@@ -258,4 +260,34 @@ SELECT
 FROM quiz.info AS i
 JOIN quiz.question AS q
 	ON q.quiz_id = i.quiz_id
-WHERE i.quiz_id = $1;
+WHERE i.quiz_id = $1
+GROUP BY 
+    i.quiz_id,
+    i.title,
+    i.summary,
+    i.owner_id,
+    i.subject_id,
+    i.total_score,
+    i.deadline,
+    i.max_attempts,
+    i.created_at;
+
+-- name: GetDomainAttempt :one
+SELECT 
+    attempt.id AS attempt_id,
+    attempt.quiz_id AS attempt_quiz_id,
+    attempt.user_id AS attempt_user_id,
+    attempt.score::INT AS attempt_score_id,
+    attempt.started_at AS attempt_started_at,
+    attempt.ended_at AS attempt_endend_at,
+    json_agg(answer.*) AS attempt_answers
+FROM quiz.attempt AS attempt
+JOIN quiz.answer AS answer
+    ON answer.attempt_id = attempt.id
+GROUP BY 
+	attempt.id,
+	attempt.quiz_id,
+    attempt.user_id,
+    attempt.score,
+    attempt.started_at,
+    attempt.ended_at;

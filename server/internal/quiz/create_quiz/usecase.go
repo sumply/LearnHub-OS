@@ -2,7 +2,9 @@ package create_quiz
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"server/internal/domain"
 
 	"github.com/google/uuid"
@@ -23,27 +25,14 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) {
-	quizID := uuid.New()
-
-	content, err := u.createQuizContent(quizID, input)
+	quiz, err := u.createQuiz(input)
 	if err != nil {
 		return Output{}, err
 	}
 
-	quiz, err := domain.NewQuiz(
-		quizID,
-		input.Title,
-		input.Summary,
-		input.OwnerID,
-		input.SubjectID,
-		content,
-		input.MaxAttempts,
-		input.Deadline,
-	)
-	if err != nil {
-		return Output{}, err
-	}
-	quiz.ID = quizID
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "\t")
+	encoder.Encode(&quiz)
 
 	err = u.postgres.CreateQuiz(ctx, &quiz)
 	if err != nil {
@@ -51,6 +40,31 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 	}
 
 	return Output{ID: quiz.ID}, nil
+}
+
+func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
+	quizID := uuid.New()
+
+	content, err := u.createQuizContent(quizID, input)
+	if err != nil {
+		return domain.Quiz{}, err
+	}
+
+	quiz, err := domain.NewQuiz(
+		quizID,
+		input.OwnerID,
+		input.SubjectID,
+		input.Title,
+		input.Summary,
+		content,
+		input.MaxAttempts,
+		input.Deadline,
+	)
+	if err != nil {
+		return domain.Quiz{}, err
+	}
+
+	return quiz, nil
 }
 
 func (u *UseCase) createQuestionDetails(content *InputContent) (domain.QuestionDetails, error) {

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 	"server/internal/dto"
@@ -91,6 +92,8 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 		deadline = &row.QuizDeadline.Time
 	}
 
+	fmt.Println(string(row.QuizQuestions))
+
 	var content []dto.QuizQuestion
 	json.Unmarshal(row.QuizQuestions, &content)
 
@@ -130,6 +133,8 @@ func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (dto.Qu
 	if row.QuizDeadline.Valid {
 		deadline = &row.QuizDeadline.Time
 	}
+
+	fmt.Println(string(row.QuizQuestions))
 
 	var content []dto.QuizQuestion
 	json.Unmarshal(row.QuizQuestions, &content)
@@ -197,32 +202,6 @@ func (p *Postgres) QuizItems(ctx context.Context) ([]dto.QuizItem, error) {
 	return items, nil
 }
 
-func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, error) {
-	row, err := p.sqlc.GetDomainQuiz(ctx, id)
-	if err != nil {
-		return domain.Quiz{}, err
-	}
-
-	var deadline *time.Time
-	if row.QuizDeadline.Valid {
-		deadline = &row.QuizDeadline.Time
-	}
-
-	var content []domain.QuestionAggregate
-	json.Unmarshal(row.QuizQuestions, &content)
-
-	quiz := domain.Quiz{
-		ID:          row.QuizID,
-		Title:       row.QuizTitle,
-		Summary:     row.QuizSummary,
-		OwnerID:     row.QuizOwnerID,
-		SubjectID:   row.QuizSubjectID,
-		Deadline:    deadline,
-		Content:     content,
-		MaxAttempts: int(row.QuizMaxAttempts),
-		TotalScore:  int(row.QuizTotalScore),
-		CreatedAt:   row.QuizCreatedAt,
-	}
-
-	return quiz, nil
+func (p *Postgres) UpdateAttempt(ctx context.Context, attempt *domain.Attempt) error {
+	return nil
 }

@@ -31,11 +31,12 @@ func (q *Quiz) DeleteAnswers() {
 
 type QuizQuestion struct {
 	ID      uuid.UUID      `json:"id"`
-	Text    string         `json:"text"`
-	Type    string         `json:"type"`
-	Payload map[string]any `json:"payload"`
+	Text    string         `json:"title"`
+	Variant string         `json:"variant"`
+	Details map[string]any `json:"details"`
+	Score   int            `json:"score"`
 }
 
 func (q *QuizQuestion) DeleteAnswer() {
-	delete(q.Payload, "correct")
+	delete(q.Details, "correct")
 }

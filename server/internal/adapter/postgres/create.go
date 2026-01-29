@@ -121,6 +121,7 @@ func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
 		err = p.sqlc.InsertQuizQuestion(ctx, sqlc.InsertQuizQuestionParams{
 			ID:      question.ID,
 			QuizID:  question.QuizID,
+			Title:   question.Text,
 			Variant: sqlc.QuizQuestionType(question.Type),
 			Score:   question.Score,
 			Details: details,
@@ -132,6 +133,38 @@ func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
 	return nil
 }
 
-func (p *Postgres) CreateAttempt(context.Context, *domain.Attempt) error {
+func (p *Postgres) CreateAttempt(ctx context.Context, attempt *domain.Attempt) error {
+	err := p.sqlc.InsertQuizAttempt(ctx, sqlc.InsertQuizAttemptParams{
+		ID:        attempt.ID,
+		QuizID:    attempt.QuizID,
+		UserID:    attempt.UserID,
+		Score:     attempt.Score,
+		StartedAt: attempt.StartedAt,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, answer := range attempt.Answers {
+		details, err := json.Marshal(map[string]any{
+			"answer": answer.Answer,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = p.sqlc.InsertQuizAnswer(ctx, sqlc.InsertQuizAnswerParams{
+			ID:         answer.ID,
+			AttemptID:  attempt.ID,
+			QuestionID: answer.QuestionID,
+			Details:    details,
+			Score:      answer.Score,
+			IsCorrect:  answer.IsCorrect,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
