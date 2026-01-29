@@ -21,9 +21,29 @@ type Quiz struct {
 	CreatedAt   time.Time
 }
 
-func NewQuiz(id uuid.UUID, title, summary string, ownerID, subjectID uuid.UUID, content []QuestionAggregate, maxAttempts int, deadline *time.Time) (Quiz, error) {
+func NewQuiz(id uuid.UUID, ownerID, subjectID uuid.UUID, title, summary string, content []QuestionAggregate, maxAttempts int, deadline *time.Time) (Quiz, error) {
+	if id == uuid.Nil {
+		return Quiz{}, fmt.Errorf("id is empty: %w", ErrValidate)
+	}
+
+	if ownerID == uuid.Nil {
+		return Quiz{}, fmt.Errorf("ownerID is empty: %w", ErrValidate)
+	}
+
+	if subjectID == uuid.Nil {
+		return Quiz{}, fmt.Errorf("ownerID is empty: %w", ErrValidate)
+	}
+
+	if title == "" {
+		return Quiz{}, fmt.Errorf("title is empty: %w", ErrValidate)
+	}
+
+	if summary == "" {
+		return Quiz{}, fmt.Errorf("summary is empty: %w", ErrValidate)
+	}
+
 	if len(content) == 0 {
-		return Quiz{}, fmt.Errorf("content is empty: %w", ErrInvalid)
+		return Quiz{}, fmt.Errorf("content is empty: %w", ErrValidate)
 	}
 
 	totalCount := 0
@@ -31,12 +51,12 @@ func NewQuiz(id uuid.UUID, title, summary string, ownerID, subjectID uuid.UUID, 
 		totalCount += content[i].Score
 	}
 
-	if deadline != nil && deadline.Before(time.Now().UTC()) {
-		return Quiz{}, fmt.Errorf("deadline is before now: %w", ErrInvalid)
+	if maxAttempts <= 0 {
+		return Quiz{}, fmt.Errorf("max_attempts less 0: %w", ErrValidate)
 	}
 
-	if maxAttempts <= 0 {
-		return Quiz{}, fmt.Errorf("max_attempts less 0: %w", ErrInvalid)
+	if deadline != nil && deadline.Before(time.Now().UTC()) {
+		return Quiz{}, fmt.Errorf("deadline is before now: %w", ErrValidate)
 	}
 
 	return Quiz{
