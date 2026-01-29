@@ -31,12 +31,12 @@ type InputPayload struct {
 
 type InputSingle struct {
 	Options []string `json:"options"`
-	Correct int      `json:"correct"`
+	Correct string   `json:"correct"`
 }
 
 type InputMultiple struct {
 	Options []string `json:"options"`
-	Correct []int    `json:"correct"`
+	Correct []string `json:"correct"`
 }
 
 type InputNumeric struct {

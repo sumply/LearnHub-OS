@@ -42,7 +42,7 @@ func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.UserAggregate, e
 			}
 			users[i] = &teacher
 		default:
-			users[i] = &user
+			users[i] = user
 		}
 	}
 	return users, nil
