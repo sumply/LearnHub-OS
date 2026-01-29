@@ -21,8 +21,22 @@ func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, e
 		deadline = &row.QuizDeadline.Time
 	}
 
-	var content []domain.Question
-	json.Unmarshal(row.QuizQuestions, &content)
+	var content []QuizQuestionJSONAGG
+	if err := json.Unmarshal(row.QuizQuestions, &content); err != nil {
+		return domain.Quiz{}, err
+	}
+
+	questions := make([]domain.Question, len(content))
+	for i := range content {
+		question := domain.Question{
+			ID:      content[i].ID,
+			QuizID:  content[i].QuizID,
+			Text:    content[i].Title,
+			Details: content[i].Details.Domain,
+			Score:   content[i].Score,
+		}
+		questions[i] = question
+	}
 
 	quiz := domain.Quiz{
 		ID:          row.QuizID,
@@ -31,7 +45,7 @@ func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, e
 		OwnerID:     row.QuizOwnerID,
 		SubjectID:   row.QuizSubjectID,
 		Deadline:    deadline,
-		Questions:   content,
+		Questions:   questions,
 		MaxAttempts: int(row.QuizMaxAttempts),
 		TotalScore:  int(row.QuizTotalScore),
 		CreatedAt:   row.QuizCreatedAt,

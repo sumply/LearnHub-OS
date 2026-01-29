@@ -62,7 +62,6 @@ CREATE TABLE quiz.question(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	quiz_id UUID REFERENCES quiz.info(quiz_id) ON DELETE CASCADE NOT NULL,
 	title TEXT NOT NULL,
-	variant quiz.question_type NOT NULL,
 	score quiz.score NOT NULL,
 	details JSONB NOT NULL
 );

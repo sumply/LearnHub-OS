@@ -159,7 +159,6 @@ type QuizQuestion struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
 	Title   string
-	Variant QuizQuestionType
 	Score   interface{}
 	Details json.RawMessage
 }

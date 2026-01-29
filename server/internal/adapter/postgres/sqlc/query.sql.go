@@ -553,7 +553,6 @@ INSERT INTO quiz.question (
     id,
     quiz_id,
     title,
-    variant,
     score,
     details
 )
@@ -562,8 +561,7 @@ VALUES (
     $2,
     $3,
     $4,
-    $5,
-    $6
+    $5
 )
 `
 
@@ -571,7 +569,6 @@ type InsertQuizQuestionParams struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
 	Title   string
-	Variant QuizQuestionType
 	Score   interface{}
 	Details json.RawMessage
 }
@@ -581,7 +578,6 @@ func (q *Queries) InsertQuizQuestion(ctx context.Context, arg InsertQuizQuestion
 		arg.ID,
 		arg.QuizID,
 		arg.Title,
-		arg.Variant,
 		arg.Score,
 		arg.Details,
 	)

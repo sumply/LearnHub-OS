@@ -109,7 +109,6 @@ INSERT INTO quiz.question (
     id,
     quiz_id,
     title,
-    variant,
     score,
     details
 )
@@ -118,8 +117,7 @@ VALUES (
     $2,
     $3,
     $4,
-    $5,
-    $6
+    $5
 );
 
 -- name: InsertQuizAttempt :exec

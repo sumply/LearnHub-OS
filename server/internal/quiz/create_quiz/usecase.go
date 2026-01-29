@@ -31,13 +31,10 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 	encoder.SetIndent("", "\t")
 	encoder.Encode(&quiz)
 
-	// FIXME
-	/*
-		err = u.postgres.CreateQuiz(ctx, &quiz)
-		if err != nil {
-			return Output{}, err
-		}
-	*/
+	err = u.postgres.CreateQuiz(ctx, &quiz)
+	if err != nil {
+		return Output{}, err
+	}
 
 	return Output{ID: quiz.ID}, nil
 }

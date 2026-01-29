@@ -113,7 +113,9 @@ func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
 	}
 
 	for _, question := range quiz.Questions {
-		details, err := json.Marshal(question.Details)
+		details, err := json.Marshal(QuestionJSONHelper{
+			Domain: question.Details,
+		})
 		if err != nil {
 			return err
 		}
@@ -122,7 +124,6 @@ func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
 			ID:      question.ID,
 			QuizID:  question.QuizID,
 			Title:   question.Text,
-			Variant: sqlc.QuizQuestionType(question.Details.Variant()),
 			Score:   question.Score,
 			Details: details,
 		})
