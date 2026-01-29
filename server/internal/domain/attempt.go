@@ -26,16 +26,10 @@ func NewAttempt(quiz *Quiz, userID uuid.UUID) (Attempt, error) {
 		return Attempt{}, fmt.Errorf("user id is empty: %w", ErrValidate)
 	}
 
-	answers := make([]Answer, len(quiz.Content))
-	for i, question := range quiz.Content {
-		answers[i] = NewAnswer(question.ID)
-	}
-
 	return Attempt{
 		ID:        uuid.New(),
 		UserID:    userID,
 		QuizID:    quiz.ID,
-		Answers:   answers,
 		StartedAt: time.Now().UTC(),
 	}, nil
 }

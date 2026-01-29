@@ -51,7 +51,6 @@ func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
 	}
 
 	quiz, err := domain.NewQuiz(
-		quizID,
 		input.OwnerID,
 		input.SubjectID,
 		input.Title,
@@ -88,24 +87,27 @@ func (u *UseCase) createQuestionDetails(content *InputContent) (domain.QuestionD
 		}
 		return &multiple, nil
 	case domain.TypeNumeric:
-		numeric := domain.NewNumericQuestion(
+		numeric, err := domain.NewNumericQuestion(
 			content.Payload.Numeric.Correct,
 		)
+		if err != nil {
+			return nil, err
+		}
 		return &numeric, nil
 	default:
 		return nil, fmt.Errorf("invalid type")
 	}
 }
 
-func (u *UseCase) createQuizContent(quizID uuid.UUID, input *Input) ([]domain.QuestionAggregate, error) {
-	content := make([]domain.QuestionAggregate, len(input.Content))
+func (u *UseCase) createQuizContent(quizID uuid.UUID, input *Input) ([]domain.Question, error) {
+	content := make([]domain.Question, len(input.Content))
 	for i := range content {
 		details, err := u.createQuestionDetails(&input.Content[i])
 		if err != nil {
 			return nil, err
 		}
 
-		question, err := domain.NewQuestionAggregate(quizID, input.Content[i].Text, details, input.Content[i].Score)
+		question, err := domain.NewQuestion(input.Content[i].Text, details, input.Content[i].Score)
 		if err != nil {
 			return nil, err
 		}

@@ -21,7 +21,7 @@ func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, e
 		deadline = &row.QuizDeadline.Time
 	}
 
-	var content []domain.QuestionAggregate
+	var content []domain.Question
 	json.Unmarshal(row.QuizQuestions, &content)
 
 	quiz := domain.Quiz{
@@ -31,7 +31,7 @@ func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, e
 		OwnerID:     row.QuizOwnerID,
 		SubjectID:   row.QuizSubjectID,
 		Deadline:    deadline,
-		Content:     content,
+		Questions:   content,
 		MaxAttempts: int(row.QuizMaxAttempts),
 		TotalScore:  int(row.QuizTotalScore),
 		CreatedAt:   row.QuizCreatedAt,
@@ -49,6 +49,6 @@ func (p *Postgres) DomainAttempt(ctx context.Context, id uuid.UUID) (domain.Atte
 	return domain.Attempt{}, nil
 }
 
-func (p *Postgres) DomainQuestion(ctx context.Context, id uuid.UUID) (domain.QuestionAggregate, error) {
-	return domain.QuestionAggregate{}, nil
+func (p *Postgres) DomainQuestion(ctx context.Context, id uuid.UUID) (domain.Question, error) {
+	return domain.Question{}, nil
 }

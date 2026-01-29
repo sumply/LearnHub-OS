@@ -14,17 +14,21 @@ type Quiz struct {
 	Summary     string
 	OwnerID     uuid.UUID
 	SubjectID   uuid.UUID
-	Content     []QuestionAggregate
+	Questions   []Question
 	Deadline    *time.Time
 	MaxAttempts int
 	TotalScore  int
 	CreatedAt   time.Time
 }
 
-func NewQuiz(id uuid.UUID, ownerID, subjectID uuid.UUID, title, summary string, content []QuestionAggregate, maxAttempts int, deadline *time.Time) (Quiz, error) {
-	if id == uuid.Nil {
-		return Quiz{}, fmt.Errorf("id is empty: %w", ErrValidate)
-	}
+func NewQuiz(
+	ownerID, subjectID uuid.UUID,
+	title, summary string,
+	questions []Question,
+	maxAttempts int,
+	deadline *time.Time,
+) (Quiz, error) {
+	quizID := uuid.New()
 
 	if ownerID == uuid.Nil {
 		return Quiz{}, fmt.Errorf("ownerID is empty: %w", ErrValidate)
@@ -42,13 +46,14 @@ func NewQuiz(id uuid.UUID, ownerID, subjectID uuid.UUID, title, summary string, 
 		return Quiz{}, fmt.Errorf("summary is empty: %w", ErrValidate)
 	}
 
-	if len(content) == 0 {
+	if len(questions) == 0 {
 		return Quiz{}, fmt.Errorf("content is empty: %w", ErrValidate)
 	}
 
 	totalCount := 0
-	for i := range content {
-		totalCount += content[i].Score
+	for i := range questions {
+		totalCount += questions[i].Score
+		questions[i].QuizID = quizID
 	}
 
 	if maxAttempts <= 0 {
@@ -60,12 +65,12 @@ func NewQuiz(id uuid.UUID, ownerID, subjectID uuid.UUID, title, summary string, 
 	}
 
 	return Quiz{
-		ID:          id,
+		ID:          quizID,
 		Title:       title,
 		Summary:     summary,
 		OwnerID:     ownerID,
 		SubjectID:   subjectID,
-		Content:     content,
+		Questions:   questions,
 		Deadline:    deadline,
 		MaxAttempts: maxAttempts,
 		TotalScore:  totalCount,
@@ -73,125 +78,69 @@ func NewQuiz(id uuid.UUID, ownerID, subjectID uuid.UUID, title, summary string, 
 	}, nil
 }
 
-func RestoreQuiz(
-	id uuid.UUID,
-	title, summary string,
-	ownerID, subjectID uuid.UUID,
-	content []QuestionAggregate,
-	deadline *time.Time,
-	maxAttempts, totalScore int,
-	createdAt time.Time,
-) (Quiz, error) {
-	if id == uuid.Nil {
-		return Quiz{}, fmt.Errorf("id is empty: %w", ErrInvalid)
-	}
-	if len(content) == 0 {
-		return Quiz{}, fmt.Errorf("content is empty: %w", ErrInvalid)
-	}
-	if maxAttempts <= 0 {
-		return Quiz{}, fmt.Errorf("max attempts less 0: %w", ErrInvalid)
-	}
-	if totalScore <= 0 {
-		return Quiz{}, fmt.Errorf("total score less 0: %w", ErrInvalid)
-	}
-	return Quiz{
-		ID:          id,
-		Title:       title,
-		Summary:     summary,
-		OwnerID:     ownerID,
-		SubjectID:   subjectID,
-		Content:     content,
-		Deadline:    deadline,
-		MaxAttempts: maxAttempts,
-		TotalScore:  totalScore,
-		CreatedAt:   createdAt,
-	}, nil
-}
-
-type QuestionAggregate struct {
+type Question struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
-	Type    QuestionType
 	Text    string
 	Details QuestionDetails
 	Score   int
 }
 
-func newQuestionAggregate(id, quizID uuid.UUID, text string, details QuestionDetails, score int, errorType error) (QuestionAggregate, error) {
-	if quizID == uuid.Nil {
-		return QuestionAggregate{}, fmt.Errorf("quiz id is empty: %w", errorType)
-	}
-
+func NewQuestion(text string, details QuestionDetails, score int) (Question, error) {
 	if text == "" {
-		return QuestionAggregate{}, fmt.Errorf("text is empty: %w", errorType)
+		return Question{}, fmt.Errorf("text is empty: %w", ErrInvalid)
 	}
 
 	if score <= 0 {
-		return QuestionAggregate{}, fmt.Errorf("score less 0: %w", errorType)
+		return Question{}, fmt.Errorf("score less 0: %w", ErrInvalid)
 	}
 
 	if details == nil {
-		return QuestionAggregate{}, fmt.Errorf("details is nil: %w", errorType)
+		return Question{}, fmt.Errorf("details is nil: %w", ErrInvalid)
 	}
 
-	var typ QuestionType
-	switch details.(type) {
-	case *SingleChoiceQuestion:
-		typ = TypeSingleChoice
-	case *MultipleChoiceQuestion:
-		typ = TypeMultipleChoice
-	case *NumericQuestion:
-		typ = TypeNumeric
-	default:
-		return QuestionAggregate{}, fmt.Errorf("unknown question type: %w", errorType)
+	if err := details.Validate(); err != nil {
+		return Question{}, err
 	}
 
-	return QuestionAggregate{
-		ID:      id,
-		QuizID:  quizID,
-		Type:    typ,
+	return Question{
+		ID:      uuid.New(),
 		Text:    text,
 		Details: details,
 		Score:   score,
 	}, nil
 }
 
-func NewQuestionAggregate(quizID uuid.UUID, text string, details QuestionDetails, score int) (QuestionAggregate, error) {
-	return newQuestionAggregate(uuid.New(), quizID, text, details, score, ErrValidate)
-}
-
-func RestoreQuestionAggregate(id, quizID uuid.UUID, text string, details QuestionDetails, score int, errorType error) (QuestionAggregate, error) {
-	return newQuestionAggregate(id, quizID, text, details, score, ErrInvalid)
-}
-
 type QuestionDetails interface {
+	Validate() error
+	Variant() QuestionType
 	CheckAnswer(answer any) (bool, error)
 }
 
 type SingleChoiceQuestion struct {
-	Options []string `json:"options"`
-	Correct string   `json:"correct"`
-}
-
-func newSingleChoiceQuestion(options []string, correct string, errorType error) (SingleChoiceQuestion, error) {
-	if len(options) == 0 {
-		return SingleChoiceQuestion{}, fmt.Errorf("options is nil: %w", errorType)
-	}
-	if !slices.Contains(options, correct) {
-		return SingleChoiceQuestion{}, fmt.Errorf("options do not contain the correct: %w", errorType)
-	}
-	return SingleChoiceQuestion{
-		Options: slices.Clone(options),
-		Correct: correct,
-	}, nil
+	Options []string
+	Correct string
 }
 
 func NewSingleChoiceQuestion(options []string, correct string) (SingleChoiceQuestion, error) {
-	return newSingleChoiceQuestion(options, correct, ErrValidate)
+	single := SingleChoiceQuestion{
+		Options: slices.Clone(options),
+		Correct: correct,
+	}
+	if err := single.Validate(); err != nil {
+		return SingleChoiceQuestion{}, err
+	}
+	return single, nil
 }
 
-func RestoreSingleChoiceQuestion(options []string, correct string) (SingleChoiceQuestion, error) {
-	return newSingleChoiceQuestion(options, correct, ErrInvalid)
+func (s *SingleChoiceQuestion) Validate() error {
+	if len(s.Options) == 0 {
+		return fmt.Errorf("options is nil: %w", ErrInvalid)
+	}
+	if !slices.Contains(s.Options, s.Correct) {
+		return fmt.Errorf("options do not contain the correct: %w", ErrInvalid)
+	}
+	return nil
 }
 
 func (s *SingleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
@@ -205,38 +154,42 @@ func (s *SingleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
 	return true, nil
 }
 
+func (s *SingleChoiceQuestion) Variant() QuestionType {
+	return TypeSingleChoice
+}
+
 type MultipleChoiceQuestion struct {
 	Options []string `json:"options"`
 	Correct []string `json:"correct"`
 }
 
-func newMultipleChoiceQuestion(options, correct []string, errorType error) (MultipleChoiceQuestion, error) {
-	if len(options) == 0 {
-		return MultipleChoiceQuestion{}, fmt.Errorf("options is empty: %w", errorType)
-	}
-	if len(correct) == 0 {
-		return MultipleChoiceQuestion{}, fmt.Errorf("correct is empty: %w", errorType)
-	}
-	if len(correct) > len(options) {
-		return MultipleChoiceQuestion{}, fmt.Errorf("more correct answers than options: %w", errorType)
-	}
-	for i := range correct {
-		if !slices.Contains(options, correct[i]) {
-			return MultipleChoiceQuestion{}, fmt.Errorf("options do not contain the correct: %w", errorType)
-		}
-	}
-	return MultipleChoiceQuestion{
+func NewMultipleChoiceQuestion(options, correct []string) (MultipleChoiceQuestion, error) {
+	multiple := MultipleChoiceQuestion{
 		Options: slices.Clone(options),
 		Correct: slices.Clone(correct),
-	}, nil
+	}
+	if err := multiple.Validate(); err != nil {
+		return MultipleChoiceQuestion{}, err
+	}
+	return multiple, nil
 }
 
-func NewMultipleChoiceQuestion(options, correct []string) (MultipleChoiceQuestion, error) {
-	return newMultipleChoiceQuestion(options, correct, ErrValidate)
-}
-
-func RestoreMultipleChoiceQuestion(options, correct []string) (MultipleChoiceQuestion, error) {
-	return newMultipleChoiceQuestion(options, correct, ErrInvalid)
+func (m *MultipleChoiceQuestion) Validate() error {
+	if len(m.Options) == 0 {
+		return fmt.Errorf("options is empty: %w", ErrInvalid)
+	}
+	if len(m.Correct) == 0 {
+		return fmt.Errorf("correct is empty: %w", ErrInvalid)
+	}
+	if len(m.Correct) > len(m.Options) {
+		return fmt.Errorf("more correct answers than options: %w", ErrInvalid)
+	}
+	for i := range m.Correct {
+		if !slices.Contains(m.Options, m.Correct[i]) {
+			return fmt.Errorf("options do not contain the correct: %w", ErrInvalid)
+		}
+	}
+	return nil
 }
 
 func (m *MultipleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
@@ -252,20 +205,26 @@ func (m *MultipleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
 	return true, nil
 }
 
+func (m *MultipleChoiceQuestion) Variant() QuestionType {
+	return TypeMultipleChoice
+}
+
 type NumericQuestion struct {
 	Correct float64 `json:"correct"`
 }
 
-func NewNumericQuestion(correct float64) NumericQuestion {
-	return NumericQuestion{
+func NewNumericQuestion(correct float64) (NumericQuestion, error) {
+	numeric := NumericQuestion{
 		Correct: correct,
 	}
+	if err := numeric.Validate(); err != nil {
+		return NumericQuestion{}, err
+	}
+	return numeric, nil
 }
 
-func RestoreNumericQuestion(correct float64) NumericQuestion {
-	return NumericQuestion{
-		Correct: correct,
-	}
+func (n *NumericQuestion) Validate() error {
+	return nil
 }
 
 func (n *NumericQuestion) CheckAnswer(answer any) (bool, error) {
@@ -277,6 +236,10 @@ func (n *NumericQuestion) CheckAnswer(answer any) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func (n *NumericQuestion) Variant() QuestionType {
+	return TypeNumeric
 }
 
 type QuestionType string

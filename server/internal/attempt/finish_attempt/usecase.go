@@ -8,7 +8,7 @@ import (
 )
 
 type Postgres interface {
-	DomainQuestion(context.Context, uuid.UUID) (domain.QuestionAggregate, error)
+	DomainQuestion(context.Context, uuid.UUID) (domain.Question, error)
 	DomainAttempt(context.Context, uuid.UUID) (domain.Attempt, error)
 	UpdateAttempt(context.Context, *domain.Attempt) error
 }
