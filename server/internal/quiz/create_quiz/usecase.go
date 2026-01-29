@@ -3,11 +3,8 @@ package create_quiz
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"server/internal/domain"
-
-	"github.com/google/uuid"
 )
 
 type Postgres interface {
@@ -34,28 +31,33 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 	encoder.SetIndent("", "\t")
 	encoder.Encode(&quiz)
 
-	err = u.postgres.CreateQuiz(ctx, &quiz)
-	if err != nil {
-		return Output{}, err
-	}
+	// FIXME
+	/*
+		err = u.postgres.CreateQuiz(ctx, &quiz)
+		if err != nil {
+			return Output{}, err
+		}
+	*/
 
 	return Output{ID: quiz.ID}, nil
 }
 
 func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
-	quizID := uuid.New()
+	questions := make([]domain.Question, len(input.Questions))
+	for i := range questions {
+		question, err := u.createQuestion(&input.Questions[i])
+		if err != nil {
+			return domain.Quiz{}, err
+		}
 
-	content, err := u.createQuizContent(quizID, input)
-	if err != nil {
-		return domain.Quiz{}, err
+		questions[i] = question
 	}
-
 	quiz, err := domain.NewQuiz(
 		input.OwnerID,
 		input.SubjectID,
 		input.Title,
 		input.Summary,
-		content,
+		questions,
 		input.MaxAttempts,
 		input.Deadline,
 	)
@@ -66,54 +68,15 @@ func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
 	return quiz, nil
 }
 
-func (u *UseCase) createQuestionDetails(content *InputContent) (domain.QuestionDetails, error) {
-	switch domain.QuestionType(content.Type) {
-	case domain.TypeSingleChoice:
-		single, err := domain.NewSingleChoiceQuestion(
-			content.Payload.Single.Options,
-			content.Payload.Single.Correct,
-		)
-		if err != nil {
-			return nil, err
-		}
-		return &single, nil
-	case domain.TypeMultipleChoice:
-		multiple, err := domain.NewMultipleChoiceQuestion(
-			content.Payload.Multiple.Options,
-			content.Payload.Multiple.Correct,
-		)
-		if err != nil {
-			return nil, err
-		}
-		return &multiple, nil
-	case domain.TypeNumeric:
-		numeric, err := domain.NewNumericQuestion(
-			content.Payload.Numeric.Correct,
-		)
-		if err != nil {
-			return nil, err
-		}
-		return &numeric, nil
-	default:
-		return nil, fmt.Errorf("invalid type")
-	}
-}
-
-func (u *UseCase) createQuizContent(quizID uuid.UUID, input *Input) ([]domain.Question, error) {
-	content := make([]domain.Question, len(input.Content))
-	for i := range content {
-		details, err := u.createQuestionDetails(&input.Content[i])
-		if err != nil {
-			return nil, err
-		}
-
-		question, err := domain.NewQuestion(input.Content[i].Text, details, input.Content[i].Score)
-		if err != nil {
-			return nil, err
-		}
-
-		content[i] = question
+func (u *UseCase) createQuestion(input *InputQuestion) (domain.Question, error) {
+	question, err := domain.NewQuestion(
+		input.Text,
+		input.Details.Domain,
+		input.Score,
+	)
+	if err != nil {
+		return domain.Question{}, err
 	}
 
-	return content, nil
+	return question, nil
 }
