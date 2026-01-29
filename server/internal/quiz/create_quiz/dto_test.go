@@ -58,7 +58,7 @@ func TestUnmarshalInputQuestion(t *testing.T) {
 	}
 }
 
-func TestInvalidUnmarshalInputQuestion(t *testing.T) {
+func TestInvalidUnmarshalInputQuestion1(t *testing.T) {
 	request := []map[string]any{
 		{
 			"text":  "Question 1",
@@ -67,6 +67,29 @@ func TestInvalidUnmarshalInputQuestion(t *testing.T) {
 			"details": map[string]any{
 				"options": []string{"exception", "error", "throw", "fault"},
 				"correct": "error",
+			},
+		},
+	}
+	data, err := json.Marshal(&request)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	var input []InputQuestion
+	if err := json.Unmarshal(data, &input); err == nil {
+		t.Error("expected error but got nil")
+	}
+}
+
+func TestInvalidUnmarshalInputQuestion2(t *testing.T) {
+	request := []map[string]any{
+		{
+			"text":  "Question 1",
+			"score": 1,
+			"type":  "single",
+			"details": map[string]any{
+				"options": []string{"exception", "error", "throw", "fault"},
+				"correct": "invalid",
 			},
 		},
 	}
