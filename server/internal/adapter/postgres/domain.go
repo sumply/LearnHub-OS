@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"server/internal/adapter/postgres/jsonb"
 	"server/internal/domain"
 	"time"
 
@@ -21,7 +22,7 @@ func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, e
 		deadline = &row.QuizDeadline.Time
 	}
 
-	var content []QuizQuestionJSONAGG
+	var content []jsonb.QuizQuestionAGG
 	if err := json.Unmarshal(row.QuizQuestions, &content); err != nil {
 		return domain.Quiz{}, err
 	}

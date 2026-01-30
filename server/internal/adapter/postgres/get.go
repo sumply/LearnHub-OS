@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 	"server/internal/dto"
@@ -92,13 +93,21 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 		deadline = &row.QuizDeadline.Time
 	}
 
-	var helper []QuizQuestionJSONAGG
+	var helper []jsonb.QuizQuestionAGG
 	if err := json.Unmarshal(row.QuizQuestions, &helper); err != nil {
 		return dto.Quiz{}, err
 	}
 
-	var questions dtoQuizQuestions
-	questions.FromQuizQuestionJSONAGG(helper)
+	questions := make([]dto.Question, len(helper))
+	for i := range questions {
+		questions[i] = dto.Question{
+			Text:  helper[i].Title,
+			Score: helper[i].Score,
+			Details: dto.QuestionDetails{
+				Domain: helper[i].Details.Domain,
+			},
+		}
+	}
 
 	quiz := dto.Quiz{
 		QuizItem: dto.QuizItem{
@@ -126,20 +135,6 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 	return quiz, nil
 }
 
-type dtoQuizQuestions []dto.QuizQuestion
-
-func (d *dtoQuizQuestions) FromQuizQuestionJSONAGG(agg []QuizQuestionJSONAGG) {
-	*d = make([]dto.QuizQuestion, len(agg))
-	for i := range agg {
-		(*d)[i] = dto.QuizQuestion{
-			ID:      agg[i].ID,
-			Text:    agg[i].Title,
-			Variant: string(agg[i].Details.Domain.Variant()),
-			Score:   agg[i].Score,
-		}
-	}
-}
-
 func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 	row, err := p.sqlc.GetQuiz(ctx, id)
 	if err != nil {
@@ -153,7 +148,7 @@ func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (dto.Qu
 
 	fmt.Println(string(row.QuizQuestions))
 
-	var content []dto.QuizQuestion
+	var content []dto.Question
 	json.Unmarshal(row.QuizQuestions, &content)
 
 	quiz := dto.Quiz{

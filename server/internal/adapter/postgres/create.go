@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 )
@@ -113,7 +114,7 @@ func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
 	}
 
 	for _, question := range quiz.Questions {
-		details, err := json.Marshal(QuestionJSONHelper{
+		details, err := json.Marshal(jsonb.QuestionDetails{
 			Domain: question.Details,
 		})
 		if err != nil {

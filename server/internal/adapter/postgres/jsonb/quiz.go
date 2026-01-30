@@ -1,4 +1,4 @@
-package postgres
+package jsonb
 
 import (
 	"encoding/json"
@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type QuestionJSONHelper struct {
+type QuestionDetails struct {
 	Domain domain.QuestionDetails
 }
 
-func (q *QuestionJSONHelper) MarshalJSON() ([]byte, error) {
-	type Alias QuestionJSONHelper
+func (q *QuestionDetails) MarshalJSON() ([]byte, error) {
+	type Alias QuestionDetails
 	aux := struct {
 		*Alias
 		Variant domain.QuestionType
@@ -24,7 +24,7 @@ func (q *QuestionJSONHelper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&aux)
 }
 
-func (q *QuestionJSONHelper) UnmarshalJSON(data []byte) error {
+func (q *QuestionDetails) UnmarshalJSON(data []byte) error {
 	aux := struct {
 		Variant    domain.QuestionType
 		RawDetails json.RawMessage `json:"details"`
@@ -53,16 +53,16 @@ func (q *QuestionJSONHelper) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type QuizQuestionJSONAGG struct {
-	ID      uuid.UUID          `json:"id"`
-	QuizID  uuid.UUID          `json:"quiz_id"`
-	Title   string             `json:"title"`
-	Details QuestionJSONHelper `json:"details"`
-	Score   int                `json:"score"`
+type QuizQuestionAGG struct {
+	ID      uuid.UUID       `json:"id"`
+	QuizID  uuid.UUID       `json:"quiz_id"`
+	Title   string          `json:"title"`
+	Details QuestionDetails `json:"details"`
+	Score   int             `json:"score"`
 }
 
-func (q *QuizQuestionJSONAGG) UnmarshalJSON(data []byte) error {
-	type Alias QuizQuestionJSONAGG
+func (q *QuizQuestionAGG) UnmarshalJSON(data []byte) error {
+	type Alias QuizQuestionAGG
 	aux := struct {
 		*Alias
 	}{
