@@ -27,10 +27,9 @@ type Quiz struct {
 }
 
 type Question struct {
-	Text    string              `json:"text"`
-	Score   int                 `json:"score"`
-	Type    domain.QuestionType `json:"type"`
-	Details QuestionDetails     `json:"-"`
+	Text    string          `json:"text"`
+	Score   int             `json:"score"`
+	Details QuestionDetails `json:"-"`
 }
 
 type QuestionDetails struct {
@@ -41,7 +40,8 @@ func (q *Question) UnmarshalJSON(data []byte) error {
 	type Alias Question
 	aux := struct {
 		*Alias
-		RawDetails json.RawMessage `json:"details"`
+		Type       domain.QuestionType `json:"type"`
+		RawDetails json.RawMessage     `json:"details"`
 	}{
 		Alias: (*Alias)(q),
 	}
@@ -49,7 +49,7 @@ func (q *Question) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	switch q.Type {
+	switch aux.Type {
 	case domain.TypeSingleChoice:
 		single := struct {
 			Options []string `json:"options"`
@@ -102,7 +102,8 @@ func (q *Question) MarshalJSON() ([]byte, error) {
 	type Alias Question
 	aux := struct {
 		*Alias
-		Details any `json:"details"`
+		Type    domain.QuestionType `json:"type"`
+		Details any                 `json:"details"`
 	}{
 		Alias: (*Alias)(q),
 	}
@@ -146,7 +147,11 @@ func (q *Question) MarshalJSON() ([]byte, error) {
 		}{
 			Correct: details.Correct,
 		}
+	default:
+		return nil, fmt.Errorf("incorrected QuestionType")
 	}
+
+	aux.Type = q.Details.Domain.Variant()
 
 	return json.Marshal(aux)
 }
