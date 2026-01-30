@@ -16,9 +16,9 @@ type Attempt struct {
 }
 
 type AttemptAnswer struct {
-	ID        uuid.UUID    `json:"id"`
-	Question  QuizQuestion `json:"question"`
-	Score     int          `json:"score"`
-	Answer    string       `json:"answer"`
-	IsCorrect bool         `json:"is_correct"`
+	ID        uuid.UUID `json:"id"`
+	Question  any       `json:"question"`
+	Score     int       `json:"score"`
+	Answer    string    `json:"answer"`
+	IsCorrect bool      `json:"is_correct"`
 }

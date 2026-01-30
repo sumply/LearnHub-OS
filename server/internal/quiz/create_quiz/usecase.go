@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"server/internal/domain"
+	"server/internal/dto"
 )
 
 type Postgres interface {
@@ -65,7 +66,7 @@ func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
 	return quiz, nil
 }
 
-func (u *UseCase) createQuestion(input *InputQuestion) (domain.Question, error) {
+func (u *UseCase) createQuestion(input *dto.Question) (domain.Question, error) {
 	question, err := domain.NewQuestion(
 		input.Text,
 		input.Details.Domain,

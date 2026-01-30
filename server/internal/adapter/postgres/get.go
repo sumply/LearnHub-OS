@@ -92,10 +92,13 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 		deadline = &row.QuizDeadline.Time
 	}
 
-	fmt.Println(string(row.QuizQuestions))
+	var helper []QuizQuestionJSONAGG
+	if err := json.Unmarshal(row.QuizQuestions, &helper); err != nil {
+		return dto.Quiz{}, err
+	}
 
-	var content []dto.QuizQuestion
-	json.Unmarshal(row.QuizQuestions, &content)
+	var questions dtoQuizQuestions
+	questions.FromQuizQuestionJSONAGG(helper)
 
 	quiz := dto.Quiz{
 		QuizItem: dto.QuizItem{
@@ -117,10 +120,24 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 			MaxAttempts: int(row.QuizMaxAttempts),
 			CreatedAt:   row.QuizCreatedAt,
 		},
-		Content: content,
+		Content: questions,
 	}
 
 	return quiz, nil
+}
+
+type dtoQuizQuestions []dto.QuizQuestion
+
+func (d *dtoQuizQuestions) FromQuizQuestionJSONAGG(agg []QuizQuestionJSONAGG) {
+	*d = make([]dto.QuizQuestion, len(agg))
+	for i := range agg {
+		(*d)[i] = dto.QuizQuestion{
+			ID:      agg[i].ID,
+			Text:    agg[i].Title,
+			Variant: string(agg[i].Details.Domain.Variant()),
+			Score:   agg[i].Score,
+		}
+	}
 }
 
 func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
@@ -161,7 +178,6 @@ func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (dto.Qu
 		},
 		Content: content,
 	}
-	quiz.DeleteAnswers()
 
 	return quiz, nil
 }

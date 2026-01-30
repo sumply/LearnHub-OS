@@ -1,4 +1,4 @@
-package create_quiz
+package dto
 
 import (
 	"encoding/json"
@@ -40,7 +40,7 @@ func TestUnmarshalInputQuestion(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	var input []InputQuestion
+	var input []Question
 	if err := json.Unmarshal(data, &input); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestInvalidUnmarshalInputQuestion1(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	var input []InputQuestion
+	var input []Question
 	if err := json.Unmarshal(data, &input); err == nil {
 		t.Error("expected error but got nil")
 	}
@@ -98,7 +98,7 @@ func TestInvalidUnmarshalInputQuestion2(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	var input []InputQuestion
+	var input []Question
 	if err := json.Unmarshal(data, &input); err == nil {
 		t.Error("expected error but got nil")
 	}
