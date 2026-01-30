@@ -12,13 +12,13 @@ type QuestionDetails struct {
 	Domain domain.QuestionDetails
 }
 
-func (q *QuestionDetails) MarshalJSON() ([]byte, error) {
+func (q QuestionDetails) MarshalJSON() ([]byte, error) {
 	type Alias QuestionDetails
 	aux := struct {
-		*Alias
-		Variant domain.QuestionType
+		Details domain.QuestionDetails `json:"details"`
+		Variant domain.QuestionType    `json:"variant"`
 	}{
-		Alias:   (*Alias)(q),
+		Details: q.Domain,
 		Variant: q.Domain.Variant(),
 	}
 	return json.Marshal(&aux)
@@ -26,13 +26,12 @@ func (q *QuestionDetails) MarshalJSON() ([]byte, error) {
 
 func (q *QuestionDetails) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		Variant    domain.QuestionType
-		RawDetails json.RawMessage `json:"details"`
+		Variant    domain.QuestionType `json:"variant"`
+		RawDetails json.RawMessage     `json:"details"`
 	}{}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-
 	var details domain.QuestionDetails
 
 	switch aux.Variant {

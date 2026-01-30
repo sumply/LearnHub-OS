@@ -83,6 +83,7 @@ func (p *Postgres) Subjects(ctx context.Context) ([]domain.Subject, error) {
 }
 
 func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
+	fmt.Println("Calling ")
 	row, err := p.sqlc.GetQuiz(ctx, id)
 	if err != nil {
 		return dto.Quiz{}, err
