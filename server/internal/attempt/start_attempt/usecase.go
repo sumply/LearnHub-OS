@@ -11,7 +11,7 @@ import (
 type Postgres interface {
 	CreateAttempt(context.Context, *domain.Attempt) error
 	DomainQuiz(context.Context, uuid.UUID) (domain.Quiz, error)
-	QuizWithoutAnswers(context.Context, uuid.UUID) (dto.Quiz, error)
+	Quiz(context.Context, uuid.UUID) (dto.Quiz, error)
 }
 
 type UseCase struct {
@@ -35,7 +35,7 @@ func (u *UseCase) StartAttempt(ctx context.Context, input *Input) (Output, error
 		return Output{}, err
 	}
 
-	outputQuiz, err := u.postgres.QuizWithoutAnswers(ctx, input.QuizID)
+	outputQuiz, err := u.postgres.Quiz(ctx, input.QuizID)
 	if err != nil {
 		return Output{}, err
 	}
