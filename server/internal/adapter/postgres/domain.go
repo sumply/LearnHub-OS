@@ -63,7 +63,3 @@ func (p *Postgres) DomainAttempt(ctx context.Context, id uuid.UUID) (domain.Atte
 
 	return domain.Attempt{}, nil
 }
-
-func (p *Postgres) DomainQuestion(ctx context.Context, id uuid.UUID) (domain.Question, error) {
-	return domain.Question{}, nil
-}

@@ -435,4 +435,5 @@ func TestCheckAttempt(t *testing.T) {
 
 	err := quiz.CheckAttempt(&attempt)
 	assert.NoError(t, err)
+	assert.Equal(t, attempt.Score, 6)
 }

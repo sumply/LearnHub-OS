@@ -94,20 +94,9 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 		deadline = &row.QuizDeadline.Time
 	}
 
-	var helper []jsonb.QuizQuestionAGG
-	if err := json.Unmarshal(row.QuizQuestions, &helper); err != nil {
+	var questions jsonb.QuizQuestionAGGs
+	if err := json.Unmarshal(row.QuizQuestions, &questions); err != nil {
 		return dto.Quiz{}, err
-	}
-
-	questions := make([]dto.Question, len(helper))
-	for i := range questions {
-		questions[i] = dto.Question{
-			Text:  helper[i].Title,
-			Score: helper[i].Score,
-			Details: dto.QuestionDetails{
-				Domain: helper[i].Details.Domain,
-			},
-		}
 	}
 
 	quiz := dto.Quiz{
@@ -130,10 +119,70 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 			MaxAttempts: int(row.QuizMaxAttempts),
 			CreatedAt:   row.QuizCreatedAt,
 		},
-		Content: questions,
+		Content: questions.ToDTOQuestions(),
 	}
 
 	return quiz, nil
+}
+
+func (p *Postgres) FinishedAttempt(ctx context.Context, id uuid.UUID) (dto.FinishedAttempt, error) {
+	row, err := p.sqlc.GetFinishedAttempt(ctx, id)
+	if err != nil {
+		return dto.FinishedAttempt{}, err
+	}
+
+	var questions jsonb.QuizQuestionAGGs
+	if err := json.Unmarshal(row.QuizQuestions, &questions); err != nil {
+		return dto.FinishedAttempt{}, err
+	}
+
+	var answers jsonb.QuizAnswerAGGs
+	if err := json.Unmarshal(row.AttemptAnswers, &answers); err != nil {
+		return dto.FinishedAttempt{}, err
+	}
+
+	var deadline *time.Time
+	if row.QuizDeadline.Valid {
+		deadline = &row.QuizDeadline.Time
+	}
+
+	return dto.FinishedAttempt{
+		Attempt: dto.Attempt{
+			ID: row.AttemptID,
+			User: dto.User{
+				ID:        row.UserID,
+				FirstName: row.UserFirstName,
+				LastName:  row.UserLastName,
+				Role:      string(row.UserRole),
+			},
+			Answers:   answers.ToDTOAnswers(),
+			Score:     int(row.AttemptScore),
+			StartedAt: row.AttemptStartedAt,
+			EndedAt:   row.AttemptEndedAt.Time,
+		},
+		Quiz: dto.Quiz{
+			QuizItem: dto.QuizItem{
+				ID:      row.QuizID,
+				Title:   row.QuizTitle,
+				Summary: row.QuizSummary,
+				Owner: dto.User{
+					ID:        row.OwnerID,
+					FirstName: row.OwnerFirstName,
+					LastName:  row.OwnerLastName,
+					Role:      string(row.OwnerRole),
+				},
+				Subject: dto.Subject{
+					ID:   row.SubjectID,
+					Name: row.SubjectName,
+				},
+				TotalScore:  int(row.QuizTotalScore),
+				Deadline:    deadline,
+				MaxAttempts: int(row.QuizMaxAttempts),
+				CreatedAt:   row.QuizCreatedAt,
+			},
+			Content: questions.ToDTOQuestions(),
+		},
+	}, nil
 }
 
 func (p *Postgres) QuizItems(ctx context.Context) ([]dto.QuizItem, error) {

@@ -281,3 +281,86 @@ GROUP BY
     attempt.score,
     attempt.started_at,
     attempt.ended_at;
+
+-- name: GetFinishedAttempt :one
+SELECT 
+    attempt.id AS attempt_id,
+    attempt.score::INT AS attempt_score,
+    attempt.started_at AS attempt_started_at,
+    attempt.ended_at AS attempt_ended_at,
+    json_agg(answer.*) AS attempt_answers,
+
+    a_user.account_id AS user_id,
+    a_user.first_name AS user_first_name,
+    a_user.last_name AS user_last_name,
+    a_user.role AS user_role,
+    a_user.created_at AS user_created_at,
+
+    q_info.quiz_id AS quiz_id,
+    q_info.title AS quiz_title,
+    q_info.summary AS quiz_summary,
+    q_info.total_score::INT AS quiz_total_score,
+    q_info.deadline AS quiz_deadline,
+    q_info.max_attempts AS quiz_max_attempts,
+    q_info.created_at AS quiz_created_at,
+    json_agg(question.*) AS quiz_questions,
+
+    q_owner.account_id AS owner_id,
+    q_owner.first_name AS owner_first_name,
+    q_owner.last_name AS owner_last_name,
+    q_owner.role AS owner_role,
+    q_owner.created_at AS owner_created_at,
+
+    q_subject.id AS subject_id,
+    q_subject.name AS subject_name
+
+FROM quiz.attempt AS attempt
+
+JOIN account.profile AS a_user 
+    ON a_user.account_id = attempt.user_id
+
+JOIN quiz.answer AS answer
+    ON answer.attempt_id = attempt.id
+
+JOIN quiz.info AS q_info
+    ON q_info.quiz_id = attempt.quiz_id
+
+JOIN quiz.question AS question
+    ON question.quiz_id = q_info.quiz_id
+
+JOIN account.profile AS q_owner 
+    ON q_owner.account_id = q_info.owner_id
+    
+JOIN school.subject AS q_subject
+    ON q_subject.id = q_info.subject_id
+
+WHERE attempt.id = $1
+
+GROUP BY 
+	attempt.id,
+    attempt.score,
+    attempt.started_at,
+    attempt.ended_at,
+
+    a_user.account_id,
+    a_user.first_name,
+    a_user.last_name,
+    a_user.role,
+    a_user.created_at,
+
+    q_info.quiz_id,
+    q_info.title,
+    q_info.summary,
+    q_info.total_score,
+    q_info.deadline,
+    q_info.max_attempts,
+    q_info.created_at,
+
+    q_owner.account_id,
+    q_owner.first_name,
+    q_owner.last_name,
+    q_owner.role,
+    q_owner.created_at,
+
+    q_subject.id,
+    q_subject.name;

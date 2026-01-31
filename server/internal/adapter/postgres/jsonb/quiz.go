@@ -4,12 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/dto"
 
 	"github.com/google/uuid"
 )
 
 type QuestionDetails struct {
 	Domain domain.QuestionDetails
+}
+
+func (q *QuestionDetails) ToDTOQuestionDetails() dto.QuestionDetails {
+	return dto.QuestionDetails{
+		Domain: q.Domain,
+	}
 }
 
 func (q QuestionDetails) MarshalJSON() ([]byte, error) {
@@ -52,12 +59,30 @@ func (q *QuestionDetails) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type QuizQuestionAGGs []QuizQuestionAGG
+
+func (q *QuizQuestionAGGs) ToDTOQuestions() []dto.Question {
+	questions := make([]dto.Question, len(*q))
+	for i := range questions {
+		questions[i] = (*q)[i].ToDTOQuestion()
+	}
+	return questions
+}
+
 type QuizQuestionAGG struct {
 	ID      uuid.UUID       `json:"id"`
 	QuizID  uuid.UUID       `json:"quiz_id"`
 	Title   string          `json:"title"`
 	Details QuestionDetails `json:"details"`
 	Score   int             `json:"score"`
+}
+
+func (q *QuizQuestionAGG) ToDTOQuestion() dto.Question {
+	return dto.Question{
+		Text:    q.Title,
+		Score:   q.Score,
+		Details: q.Details.ToDTOQuestionDetails(),
+	}
 }
 
 func (q *QuizQuestionAGG) UnmarshalJSON(data []byte) error {
