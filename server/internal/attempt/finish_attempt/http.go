@@ -26,14 +26,9 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 		}
 
 		output, err := usecase.FinishAttempt(r.Context(), attemptID, &input)
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
 
 		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}

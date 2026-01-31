@@ -220,7 +220,3 @@ func (p *Postgres) QuizItems(ctx context.Context) ([]dto.QuizItem, error) {
 
 	return items, nil
 }
-
-func (p *Postgres) UpdateAttempt(ctx context.Context, attempt *domain.Attempt) error {
-	return nil
-}

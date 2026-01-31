@@ -27,6 +27,7 @@ type Quiz struct {
 }
 
 type Question struct {
+	ID      uuid.UUID       `json:"id"`
 	Text    string          `json:"text"`
 	Score   int             `json:"score"`
 	Details QuestionDetails `json:"-"`

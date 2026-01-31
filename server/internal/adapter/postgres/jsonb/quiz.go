@@ -69,6 +69,14 @@ func (q *QuizQuestionAGGs) ToDTOQuestions() []dto.Question {
 	return questions
 }
 
+func (q *QuizQuestionAGGs) ToDomainQuestions() []domain.Question {
+	questions := make([]domain.Question, len(*q))
+	for i := range questions {
+		questions[i] = (*q)[i].ToDomainQuestion()
+	}
+	return questions
+}
+
 type QuizQuestionAGG struct {
 	ID      uuid.UUID       `json:"id"`
 	QuizID  uuid.UUID       `json:"quiz_id"`
@@ -79,9 +87,20 @@ type QuizQuestionAGG struct {
 
 func (q *QuizQuestionAGG) ToDTOQuestion() dto.Question {
 	return dto.Question{
+		ID:      q.ID,
 		Text:    q.Title,
 		Score:   q.Score,
 		Details: q.Details.ToDTOQuestionDetails(),
+	}
+}
+
+func (q *QuizQuestionAGG) ToDomainQuestion() domain.Question {
+	return domain.Question{
+		ID:      q.ID,
+		QuizID:  q.QuizID,
+		Text:    q.Title,
+		Score:   q.Score,
+		Details: q.Details.Domain,
 	}
 }
 

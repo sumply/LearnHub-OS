@@ -15,6 +15,7 @@ type Postgres interface {
 	UpdateAttempt(context.Context, *domain.Attempt) error
 	FinishedAttempt(context.Context, uuid.UUID) (dto.FinishedAttempt, error)
 }
+
 type UseCase struct {
 	postgres Postgres
 }
@@ -66,13 +67,14 @@ func (u *UseCase) FinishAttempt(ctx context.Context, attemptID uuid.UUID, input 
 func (u *UseCase) applyAnswers(answers []domain.Answer, input []InputAnswer) error {
 	answersMap := make(map[uuid.UUID]*domain.Answer)
 	for i := range answers {
-		answersMap[answers[i].QuestionID] = &answers[i]
+		a := &answers[i]
+		answersMap[a.QuestionID] = a
 	}
 
 	for i := range input {
 		answer, ok := answersMap[input[i].QuestionID]
 		if !ok {
-			return fmt.Errorf("unknown questionID (id=%d)", input[i].QuestionID)
+			return fmt.Errorf("unknown questionID (id=%s)", input[i].QuestionID)
 		}
 
 		answer.Answer = input[i].Answer

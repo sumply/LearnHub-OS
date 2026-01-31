@@ -193,7 +193,11 @@ SELECT
     attempt.score::INT AS attempt_score,
     attempt.started_at AS attempt_started_at,
     attempt.ended_at AS attempt_ended_at,
-    json_agg(answer.*) AS attempt_answers,
+    (
+		SELECT json_agg(answer.*) 
+		FROM quiz.answer 
+		WHERE attempt_id = $1
+	) AS attempt_answers,
 
     a_user.account_id AS user_id,
     a_user.first_name AS user_first_name,
@@ -208,7 +212,11 @@ SELECT
     q_info.deadline AS quiz_deadline,
     q_info.max_attempts AS quiz_max_attempts,
     q_info.created_at AS quiz_created_at,
-    json_agg(question.*) AS quiz_questions,
+    (
+		SELECT json_agg(question.*)
+		FROM quiz.question
+		WHERE quiz_id = q_info.quiz_id
+	)AS quiz_questions,
 
     q_owner.account_id AS owner_id,
     q_owner.first_name AS owner_first_name,
@@ -224,14 +232,8 @@ FROM quiz.attempt AS attempt
 JOIN account.profile AS a_user 
     ON a_user.account_id = attempt.user_id
 
-JOIN quiz.answer AS answer
-    ON answer.attempt_id = attempt.id
-
 JOIN quiz.info AS q_info
     ON q_info.quiz_id = attempt.quiz_id
-
-JOIN quiz.question AS question
-    ON question.quiz_id = q_info.quiz_id
 
 JOIN account.profile AS q_owner 
     ON q_owner.account_id = q_info.owner_id
@@ -240,35 +242,6 @@ JOIN school.subject AS q_subject
     ON q_subject.id = q_info.subject_id
 
 WHERE attempt.id = $1
-
-GROUP BY 
-	attempt.id,
-    attempt.score,
-    attempt.started_at,
-    attempt.ended_at,
-
-    a_user.account_id,
-    a_user.first_name,
-    a_user.last_name,
-    a_user.role,
-    a_user.created_at,
-
-    q_info.quiz_id,
-    q_info.title,
-    q_info.summary,
-    q_info.total_score,
-    q_info.deadline,
-    q_info.max_attempts,
-    q_info.created_at,
-
-    q_owner.account_id,
-    q_owner.first_name,
-    q_owner.last_name,
-    q_owner.role,
-    q_owner.created_at,
-
-    q_subject.id,
-    q_subject.name
 `
 
 type GetFinishedAttemptRow struct {
@@ -299,8 +272,8 @@ type GetFinishedAttemptRow struct {
 	SubjectName      string
 }
 
-func (q *Queries) GetFinishedAttempt(ctx context.Context, id uuid.UUID) (GetFinishedAttemptRow, error) {
-	row := q.db.QueryRowContext(ctx, getFinishedAttempt, id)
+func (q *Queries) GetFinishedAttempt(ctx context.Context, attemptID uuid.UUID) (GetFinishedAttemptRow, error) {
+	row := q.db.QueryRowContext(ctx, getFinishedAttempt, attemptID)
 	var i GetFinishedAttemptRow
 	err := row.Scan(
 		&i.AttemptID,
@@ -801,5 +774,50 @@ type InsertTeacherParams struct {
 
 func (q *Queries) InsertTeacher(ctx context.Context, arg InsertTeacherParams) error {
 	_, err := q.db.ExecContext(ctx, insertTeacher, arg.AccountID, arg.GroupID, arg.SubjectID)
+	return err
+}
+
+const updateQuizAnswer = `-- name: UpdateQuizAnswer :exec
+UPDATE quiz.answer 
+SET 
+    details = $1,
+    score = $2,
+    is_correct = $3
+WHERE id = $4
+`
+
+type UpdateQuizAnswerParams struct {
+	Details   json.RawMessage
+	Score     interface{}
+	IsCorrect bool
+	ID        uuid.UUID
+}
+
+func (q *Queries) UpdateQuizAnswer(ctx context.Context, arg UpdateQuizAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuizAnswer,
+		arg.Details,
+		arg.Score,
+		arg.IsCorrect,
+		arg.ID,
+	)
+	return err
+}
+
+const updateQuizAttempt = `-- name: UpdateQuizAttempt :exec
+UPDATE quiz.attempt 
+SET 
+    score = $1,
+    ended_at = $2
+WHERE id = $3
+`
+
+type UpdateQuizAttemptParams struct {
+	Score   interface{}
+	EndedAt sql.NullTime
+	ID      uuid.UUID
+}
+
+func (q *Queries) UpdateQuizAttempt(ctx context.Context, arg UpdateQuizAttemptParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuizAttempt, arg.Score, arg.EndedAt, arg.ID)
 	return err
 }

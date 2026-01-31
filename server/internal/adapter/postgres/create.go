@@ -147,9 +147,7 @@ func (p *Postgres) CreateAttempt(ctx context.Context, attempt *domain.Attempt) e
 	}
 
 	for _, answer := range attempt.Answers {
-		details, err := json.Marshal(map[string]any{
-			"answer": answer.Answer,
-		})
+		details, err := json.Marshal(jsonb.AnswerDetails{Answer: answer.Answer})
 		if err != nil {
 			return err
 		}

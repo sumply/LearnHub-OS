@@ -224,10 +224,23 @@ func (m *MultipleChoiceQuestion) Validate() error {
 }
 
 func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
-	_answer, ok := answer.([]string)
-	if !ok {
+	var _answer []string
+
+	if a, ok := answer.([]string); ok {
+		answer = a
+	} else if a, ok := answer.([]any); ok {
+		_answer = make([]string, len(a))
+		for i := range _answer {
+			s, ok := a[i].(string)
+			if !ok {
+				return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
+			}
+			_answer[i] = s
+		}
+	} else {
 		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
 	}
+
 	for i := range m.Correct {
 		if m.Correct[i] != _answer[i] {
 			return false, nil
