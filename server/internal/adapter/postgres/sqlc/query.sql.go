@@ -417,17 +417,13 @@ INSERT INTO quiz.answer (
     id,
     attempt_id,
     question_id,
-    details,
-    score,
-    is_correct
+    details
 )
 VALUES (
     $1,
     $2,
     $3,
-    $4,
-    $5,
-    $6
+    $4
 )
 `
 
@@ -436,8 +432,6 @@ type InsertQuizAnswerParams struct {
 	AttemptID  uuid.UUID
 	QuestionID uuid.UUID
 	Details    json.RawMessage
-	Score      interface{}
-	IsCorrect  bool
 }
 
 func (q *Queries) InsertQuizAnswer(ctx context.Context, arg InsertQuizAnswerParams) error {
@@ -446,8 +440,6 @@ func (q *Queries) InsertQuizAnswer(ctx context.Context, arg InsertQuizAnswerPara
 		arg.AttemptID,
 		arg.QuestionID,
 		arg.Details,
-		arg.Score,
-		arg.IsCorrect,
 	)
 	return err
 }
@@ -457,17 +449,13 @@ INSERT INTO quiz.attempt (
     id,
     quiz_id,
     user_id,
-    score,
-    started_at,
-    ended_at
+    started_at
 )
 VALUES (
     $1,
     $2,
     $3,
-    $4,
-    $5,
-    $6
+    $4
 )
 `
 
@@ -475,9 +463,7 @@ type InsertQuizAttemptParams struct {
 	ID        uuid.UUID
 	QuizID    uuid.UUID
 	UserID    uuid.UUID
-	Score     interface{}
 	StartedAt time.Time
-	EndedAt   sql.NullTime
 }
 
 func (q *Queries) InsertQuizAttempt(ctx context.Context, arg InsertQuizAttemptParams) error {
@@ -485,9 +471,7 @@ func (q *Queries) InsertQuizAttempt(ctx context.Context, arg InsertQuizAttemptPa
 		arg.ID,
 		arg.QuizID,
 		arg.UserID,
-		arg.Score,
 		arg.StartedAt,
-		arg.EndedAt,
 	)
 	return err
 }

@@ -140,7 +140,6 @@ func (p *Postgres) CreateAttempt(ctx context.Context, attempt *domain.Attempt) e
 		ID:        attempt.ID,
 		QuizID:    attempt.QuizID,
 		UserID:    attempt.UserID,
-		Score:     attempt.Score,
 		StartedAt: attempt.StartedAt,
 	})
 	if err != nil {
@@ -160,8 +159,6 @@ func (p *Postgres) CreateAttempt(ctx context.Context, attempt *domain.Attempt) e
 			AttemptID:  attempt.ID,
 			QuestionID: answer.QuestionID,
 			Details:    details,
-			Score:      answer.Score,
-			IsCorrect:  answer.IsCorrect,
 		})
 		if err != nil {
 			return err

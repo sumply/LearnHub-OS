@@ -125,17 +125,13 @@ INSERT INTO quiz.attempt (
     id,
     quiz_id,
     user_id,
-    score,
-    started_at,
-    ended_at
+    started_at
 )
 VALUES (
     $1,
     $2,
     $3,
-    $4,
-    $5,
-    $6
+    $4
 );
 
 -- name: InsertQuizAnswer :exec
@@ -143,17 +139,13 @@ INSERT INTO quiz.answer (
     id,
     attempt_id,
     question_id,
-    details,
-    score,
-    is_correct
+    details
 )
 VALUES (
     $1,
     $2,
     $3,
-    $4,
-    $5,
-    $6
+    $4
 );
 
 
