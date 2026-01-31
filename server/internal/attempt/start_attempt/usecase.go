@@ -35,7 +35,12 @@ func (u *UseCase) StartAttempt(ctx context.Context, input *Input) (Output, error
 		return Output{}, err
 	}
 
-	outputQuiz, err := u.postgres.Quiz(ctx, input.QuizID)
+	err = u.postgres.CreateAttempt(ctx, &attempt)
+	if err != nil {
+		return Output{}, err
+	}
+
+	quizDTO, err := u.postgres.Quiz(ctx, input.QuizID)
 	if err != nil {
 		return Output{}, err
 	}
@@ -45,6 +50,6 @@ func (u *UseCase) StartAttempt(ctx context.Context, input *Input) (Output, error
 			ID:        attempt.ID,
 			StartedAt: attempt.StartedAt,
 		},
-		Quiz: outputQuiz,
+		Quiz: quizDTO,
 	}, nil
 }

@@ -13,8 +13,8 @@ type Input struct {
 }
 
 type Output struct {
-	Attempt OutputAttempt
-	Quiz    dto.Quiz `json:"quiz"`
+	Attempt OutputAttempt `json:"attempt"`
+	Quiz    dto.Quiz      `json:"quiz"`
 }
 
 type OutputAttempt struct {

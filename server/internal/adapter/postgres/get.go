@@ -136,46 +136,8 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 	return quiz, nil
 }
 
-func (p *Postgres) QuizWithoutAnswers(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
-	row, err := p.sqlc.GetQuiz(ctx, id)
-	if err != nil {
-		return dto.Quiz{}, err
-	}
-
-	var deadline *time.Time
-	if row.QuizDeadline.Valid {
-		deadline = &row.QuizDeadline.Time
-	}
-
-	fmt.Println(string(row.QuizQuestions))
-
-	var content []dto.Question
-	json.Unmarshal(row.QuizQuestions, &content)
-
-	quiz := dto.Quiz{
-		QuizItem: dto.QuizItem{
-			ID:      row.QuizID,
-			Title:   row.QuizTitle,
-			Summary: row.QuizSummary,
-			Owner: dto.User{
-				ID:        row.OwnerID,
-				FirstName: row.OwnerFirstName,
-				LastName:  row.OwnerLastName,
-				Role:      string(row.OwnerRole),
-			},
-			Subject: dto.Subject{
-				ID:   row.SubjectID,
-				Name: row.SubjectName,
-			},
-			TotalScore:  int(row.QuizTotalScore),
-			Deadline:    deadline,
-			MaxAttempts: int(row.QuizMaxAttempts),
-			CreatedAt:   row.QuizCreatedAt,
-		},
-		Content: content,
-	}
-
-	return quiz, nil
+func (p *Postgres) Attempt(ctx context.Context, id uuid.UUID) (dto.Attempt, error) {
+	return dto.Attempt{}, nil
 }
 
 func (p *Postgres) QuizItems(ctx context.Context) ([]dto.QuizItem, error) {
