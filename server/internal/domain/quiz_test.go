@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSingleChoiceQuestion(t *testing.T) {
@@ -319,6 +320,18 @@ func newValidQuizParam(t *testing.T) quizParam {
 	}
 }
 
+func newValidQuestions(t *testing.T) []Question {
+	questions := make([]Question, 5)
+	for i := range questions {
+		question, err := NewQuestion("text", newValidDetails(), 1)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		questions[i] = question
+	}
+	return questions
+}
+
 func newInvalidQuizParamOwnerID(t *testing.T) quizParam {
 	param := newValidQuizParam(t)
 	param.ownerID = uuid.Nil
@@ -364,19 +377,62 @@ func newQuizParamDeadline(t *testing.T, deadline *time.Time) quizParam {
 	return param
 }
 
-func newValidQuestions(t *testing.T) []Question {
-	questions := make([]Question, 5)
-	for i := range questions {
-		question, err := NewQuestion("text", newValidDetails(), 1)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		questions[i] = question
-	}
-	return questions
-}
-
 func newInvalidDeadline() *time.Time {
 	deadline := time.Now().UTC().Add(-time.Hour)
 	return &deadline
+}
+
+func TestCheckAttempt(t *testing.T) {
+	var (
+		qID1 = uuid.New()
+		qID2 = uuid.New()
+		qID3 = uuid.New()
+	)
+	quiz := Quiz{
+		Questions: []Question{
+			{
+				ID: qID1,
+				Details: &SingleChoiceQuestion{
+					Options: []string{"opt1", "opt2"},
+					Correct: "opt1",
+				},
+				Score: 1,
+			},
+			{
+				ID: qID2,
+				Details: &MultipleChoiceQuestion{
+					Options: []string{"opt1", "opt2"},
+					Correct: []string{"opt1", "opt2"},
+				},
+				Score: 2,
+			},
+			{
+				ID: qID3,
+				Details: &NumericQuestion{
+					Correct: 5,
+				},
+				Score: 3,
+			},
+		},
+	}
+
+	attempt := Attempt{
+		Answers: []Answer{
+			{
+				QuestionID: qID1,
+				Answer:     "opt1",
+			},
+			{
+				QuestionID: qID2,
+				Answer:     []string{"opt1", "opt2"},
+			},
+			{
+				QuestionID: qID3,
+				Answer:     5,
+			},
+		},
+	}
+
+	err := quiz.CheckAttempt(&attempt)
+	assert.NoError(t, err)
 }

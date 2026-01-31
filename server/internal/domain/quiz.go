@@ -95,7 +95,7 @@ func (q *Quiz) CheckAttempt(attempt *Attempt) error {
 		if !ok {
 			return fmt.Errorf("unknow questionID (id=%d): %w", attempt.Answers[i].QuestionID, ErrInvalid)
 		}
-		ok, err := question.Details.ReviewAnswer(attempt.Answers[i])
+		ok, err := question.Details.ReviewAnswer(attempt.Answers[i].Answer)
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func (s *SingleChoiceQuestion) Validate() error {
 func (s *SingleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.(string)
 	if !ok {
-		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
+		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
 	}
 	if s.Correct != _answer {
 		return false, nil
@@ -226,7 +226,7 @@ func (m *MultipleChoiceQuestion) Validate() error {
 func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.([]string)
 	if !ok {
-		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
+		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
 	}
 	for i := range m.Correct {
 		if m.Correct[i] != _answer[i] {
@@ -259,14 +259,30 @@ func (n *NumericQuestion) Validate() error {
 }
 
 func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
-	_answer, ok := answer.(float64)
+	_answer, ok := n.castAnyToFloat64(answer)
 	if !ok {
-		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
+		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
 	}
 	if n.Correct != _answer {
 		return false, nil
 	}
 	return true, nil
+}
+
+func (n *NumericQuestion) castAnyToFloat64(a any) (float64, bool) {
+	switch number := a.(type) {
+	case
+		int:
+		return float64(number), true
+	case int64:
+		return float64(number), true
+	case float32:
+		return float64(number), true
+	case float64:
+		return float64(number), true
+	default:
+		return 0, false
+	}
 }
 
 func (n *NumericQuestion) Variant() QuestionType {
