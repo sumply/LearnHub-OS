@@ -1,6 +1,8 @@
 package finish_attempt
 
 import (
+	"server/internal/dto"
+
 	"github.com/google/uuid"
 )
 
@@ -9,10 +11,10 @@ type Input struct {
 }
 
 type InputAnswer struct {
-	AttemptID uuid.UUID `json:"attempt_id"`
-	Answer    any       `json:"answer"`
+	QuestionID uuid.UUID `json:"question_id"`
+	Answer     any       `json:"answer"`
 }
 
 type Output struct {
-	//Attempt dto.Attempt `json:"attempt"`
+	dto.FinishedAttempt
 }

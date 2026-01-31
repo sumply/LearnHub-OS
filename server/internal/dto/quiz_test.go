@@ -237,7 +237,7 @@ func (i *unexpectedDetails) Variant() domain.QuestionType {
 	return "fff"
 }
 
-func (i *unexpectedDetails) CheckAnswer(a any) (bool, error) {
+func (i *unexpectedDetails) ReviewAnswer(a any) (bool, error) {
 	return true, nil
 }
 

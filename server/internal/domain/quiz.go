@@ -78,6 +78,37 @@ func NewQuiz(
 	}, nil
 }
 
+func (q *Quiz) CheckAttempt(attempt *Attempt) error {
+	if attempt == nil {
+		return fmt.Errorf("attempt is nil: %w", ErrInvalid)
+	}
+
+	attempt.Score = 0
+
+	questionMap := make(map[uuid.UUID]*Question)
+	for i := range q.Questions {
+		questionMap[q.Questions[i].ID] = &q.Questions[i]
+	}
+
+	for i := range attempt.Answers {
+		question, ok := questionMap[attempt.Answers[i].QuestionID]
+		if !ok {
+			return fmt.Errorf("unknow questionID (id=%d): %w", attempt.Answers[i].QuestionID, ErrInvalid)
+		}
+		ok, err := question.Details.ReviewAnswer(attempt.Answers[i])
+		if err != nil {
+			return err
+		}
+		attempt.Answers[i].IsCorrect = ok
+		if ok {
+			attempt.Answers[i].Score = question.Score
+		}
+		attempt.Score += attempt.Answers[i].Score
+	}
+
+	return nil
+}
+
 type Question struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
@@ -114,7 +145,7 @@ func NewQuestion(text string, details QuestionDetails, score int) (Question, err
 type QuestionDetails interface {
 	Validate() error
 	Variant() QuestionType
-	CheckAnswer(answer any) (bool, error)
+	ReviewAnswer(answer any) (bool, error)
 }
 
 type SingleChoiceQuestion struct {
@@ -143,7 +174,7 @@ func (s *SingleChoiceQuestion) Validate() error {
 	return nil
 }
 
-func (s *SingleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
+func (s *SingleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.(string)
 	if !ok {
 		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
@@ -192,7 +223,7 @@ func (m *MultipleChoiceQuestion) Validate() error {
 	return nil
 }
 
-func (m *MultipleChoiceQuestion) CheckAnswer(answer any) (bool, error) {
+func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.([]string)
 	if !ok {
 		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)
@@ -227,7 +258,7 @@ func (n *NumericQuestion) Validate() error {
 	return nil
 }
 
-func (n *NumericQuestion) CheckAnswer(answer any) (bool, error) {
+func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.(float64)
 	if !ok {
 		return false, fmt.Errorf("answer is incorrect type: %w", ErrValidate)

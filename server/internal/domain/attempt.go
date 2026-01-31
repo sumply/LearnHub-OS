@@ -46,6 +46,11 @@ func NewAttempt(quiz *Quiz, userID uuid.UUID) (Attempt, error) {
 	}, nil
 }
 
+func (a *Attempt) Finish() {
+	endedAt := time.Now().UTC()
+	a.EndedAt = &endedAt
+}
+
 type Answer struct {
 	ID         uuid.UUID
 	AttemptID  uuid.UUID
