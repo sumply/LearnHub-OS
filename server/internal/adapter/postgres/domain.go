@@ -56,10 +56,28 @@ func (p *Postgres) DomainQuiz(ctx context.Context, id uuid.UUID) (domain.Quiz, e
 }
 
 func (p *Postgres) DomainAttempt(ctx context.Context, id uuid.UUID) (domain.Attempt, error) {
-	_, err := p.sqlc.GetDomainAttempt(ctx)
+	row, err := p.sqlc.GetDomainAttempt(ctx)
 	if err != nil {
 		return domain.Attempt{}, fmt.Errorf("getting domain attempt: %w", err)
 	}
 
-	return domain.Attempt{}, nil
+	var answers jsonb.QuizAnswerAGGs
+	if err := json.Unmarshal(row.AttemptAnswers, &answers); err != nil {
+		return domain.Attempt{}, err
+	}
+
+	var endedAt *time.Time
+	if row.AttemptEndendAt.Valid {
+		endedAt = &row.AttemptEndendAt.Time
+	}
+
+	return domain.Attempt{
+		ID:        row.AttemptID,
+		QuizID:    row.AttemptQuizID,
+		UserID:    row.AttemptUserID,
+		Answers:   answers.ToDomainAnswers(),
+		Score:     int(row.AttemptScoreID),
+		StartedAt: row.AttemptStartedAt,
+		EndedAt:   endedAt,
+	}, nil
 }

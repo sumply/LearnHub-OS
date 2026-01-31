@@ -1,6 +1,7 @@
 package jsonb
 
 import (
+	"server/internal/domain"
 	"server/internal/dto"
 
 	"github.com/google/uuid"
@@ -12,6 +13,14 @@ func (q *QuizAnswerAGGs) ToDTOAnswers() []dto.Answer {
 	answer := make([]dto.Answer, len(*q))
 	for i := range answer {
 		answer[i] = (*q)[i].ToDTOAnswer()
+	}
+	return answer
+}
+
+func (q *QuizAnswerAGGs) ToDomainAnswers() []domain.Answer {
+	answer := make([]domain.Answer, len(*q))
+	for i := range answer {
+		answer[i] = (*q)[i].ToDomainAnswer()
 	}
 	return answer
 }
@@ -28,6 +37,17 @@ type QuizAnswerAGG struct {
 func (q *QuizAnswerAGG) ToDTOAnswer() dto.Answer {
 	return dto.Answer{
 		ID:         q.ID,
+		QuestionID: q.QuestionID,
+		Answer:     q.Details.Answer,
+		Score:      q.Score,
+		IsCorrect:  q.IsCorrect,
+	}
+}
+
+func (q *QuizAnswerAGG) ToDomainAnswer() domain.Answer {
+	return domain.Answer{
+		ID:         q.ID,
+		AttemptID:  q.AttemptID,
 		QuestionID: q.QuestionID,
 		Answer:     q.Details.Answer,
 		Score:      q.Score,
