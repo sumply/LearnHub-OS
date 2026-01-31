@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
@@ -83,46 +82,51 @@ func (p *Postgres) Subjects(ctx context.Context) ([]domain.Subject, error) {
 }
 
 func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
-	fmt.Println("Calling ")
 	row, err := p.sqlc.GetQuiz(ctx, id)
 	if err != nil {
 		return dto.Quiz{}, err
 	}
 
+	return quizRow{&row}.ToDTOQuiz()
+}
+
+type quizRow struct {
+	*sqlc.GetQuizRow
+}
+
+func (g quizRow) ToDTOQuiz() (dto.Quiz, error) {
 	var deadline *time.Time
-	if row.QuizDeadline.Valid {
-		deadline = &row.QuizDeadline.Time
+	if g.QuizDeadline.Valid {
+		deadline = &g.QuizDeadline.Time
 	}
 
 	var questions jsonb.QuizQuestionAGGs
-	if err := json.Unmarshal(row.QuizQuestions, &questions); err != nil {
+	if err := json.Unmarshal(g.QuizQuestions, &questions); err != nil {
 		return dto.Quiz{}, err
 	}
 
-	quiz := dto.Quiz{
+	return dto.Quiz{
 		QuizItem: dto.QuizItem{
-			ID:      row.QuizID,
-			Title:   row.QuizTitle,
-			Summary: row.QuizSummary,
+			ID:      g.QuizID,
+			Title:   g.QuizTitle,
+			Summary: g.QuizSummary,
 			Owner: dto.User{
-				ID:        row.OwnerID,
-				FirstName: row.OwnerFirstName,
-				LastName:  row.OwnerLastName,
-				Role:      string(row.OwnerRole),
+				ID:        g.OwnerID,
+				FirstName: g.OwnerFirstName,
+				LastName:  g.OwnerLastName,
+				Role:      string(g.OwnerRole),
 			},
 			Subject: dto.Subject{
-				ID:   row.SubjectID,
-				Name: row.SubjectName,
+				ID:   g.SubjectID,
+				Name: g.SubjectName,
 			},
-			TotalScore:  int(row.QuizTotalScore),
+			TotalScore:  int(g.QuizTotalScore),
 			Deadline:    deadline,
-			MaxAttempts: int(row.QuizMaxAttempts),
-			CreatedAt:   row.QuizCreatedAt,
+			MaxAttempts: int(g.QuizMaxAttempts),
+			CreatedAt:   g.QuizCreatedAt,
 		},
 		Content: questions.ToDTOQuestions(),
-	}
-
-	return quiz, nil
+	}, nil
 }
 
 func (p *Postgres) FinishedAttempt(ctx context.Context, id uuid.UUID) (dto.FinishedAttempt, error) {
@@ -131,54 +135,61 @@ func (p *Postgres) FinishedAttempt(ctx context.Context, id uuid.UUID) (dto.Finis
 		return dto.FinishedAttempt{}, err
 	}
 
+	return finishedAttemptRow{&row}.ToDTOFinishedAttempt()
+}
+
+type finishedAttemptRow struct {
+	*sqlc.GetFinishedAttemptRow
+}
+
+func (g finishedAttemptRow) ToDTOFinishedAttempt() (dto.FinishedAttempt, error) {
 	var questions jsonb.QuizQuestionAGGs
-	if err := json.Unmarshal(row.QuizQuestions, &questions); err != nil {
+	if err := json.Unmarshal(g.QuizQuestions, &questions); err != nil {
 		return dto.FinishedAttempt{}, err
 	}
 
 	var answers jsonb.QuizAnswerAGGs
-	if err := json.Unmarshal(row.AttemptAnswers, &answers); err != nil {
+	if err := json.Unmarshal(g.AttemptAnswers, &answers); err != nil {
 		return dto.FinishedAttempt{}, err
 	}
 
 	var deadline *time.Time
-	if row.QuizDeadline.Valid {
-		deadline = &row.QuizDeadline.Time
+	if g.QuizDeadline.Valid {
+		deadline = &g.QuizDeadline.Time
 	}
-
 	return dto.FinishedAttempt{
 		Attempt: dto.Attempt{
-			ID: row.AttemptID,
+			ID: g.AttemptID,
 			User: dto.User{
-				ID:        row.UserID,
-				FirstName: row.UserFirstName,
-				LastName:  row.UserLastName,
-				Role:      string(row.UserRole),
+				ID:        g.UserID,
+				FirstName: g.UserFirstName,
+				LastName:  g.UserLastName,
+				Role:      string(g.UserRole),
 			},
 			Answers:   answers.ToDTOAnswers(),
-			Score:     int(row.AttemptScore),
-			StartedAt: row.AttemptStartedAt,
-			EndedAt:   row.AttemptEndedAt.Time,
+			Score:     int(g.AttemptScore),
+			StartedAt: g.AttemptStartedAt,
+			EndedAt:   g.AttemptEndedAt.Time,
 		},
 		Quiz: dto.Quiz{
 			QuizItem: dto.QuizItem{
-				ID:      row.QuizID,
-				Title:   row.QuizTitle,
-				Summary: row.QuizSummary,
+				ID:      g.QuizID,
+				Title:   g.QuizTitle,
+				Summary: g.QuizSummary,
 				Owner: dto.User{
-					ID:        row.OwnerID,
-					FirstName: row.OwnerFirstName,
-					LastName:  row.OwnerLastName,
-					Role:      string(row.OwnerRole),
+					ID:        g.OwnerID,
+					FirstName: g.OwnerFirstName,
+					LastName:  g.OwnerLastName,
+					Role:      string(g.OwnerRole),
 				},
 				Subject: dto.Subject{
-					ID:   row.SubjectID,
-					Name: row.SubjectName,
+					ID:   g.SubjectID,
+					Name: g.SubjectName,
 				},
-				TotalScore:  int(row.QuizTotalScore),
+				TotalScore:  int(g.QuizTotalScore),
 				Deadline:    deadline,
-				MaxAttempts: int(row.QuizMaxAttempts),
-				CreatedAt:   row.QuizCreatedAt,
+				MaxAttempts: int(g.QuizMaxAttempts),
+				CreatedAt:   g.QuizCreatedAt,
 			},
 			Content: questions.ToDTOQuestions(),
 		},
