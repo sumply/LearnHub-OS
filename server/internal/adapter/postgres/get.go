@@ -136,10 +136,6 @@ func (p *Postgres) Quiz(ctx context.Context, id uuid.UUID) (dto.Quiz, error) {
 	return quiz, nil
 }
 
-func (p *Postgres) Attempt(ctx context.Context, id uuid.UUID) (dto.Attempt, error) {
-	return dto.Attempt{}, nil
-}
-
 func (p *Postgres) QuizItems(ctx context.Context) ([]dto.QuizItem, error) {
 	rows, err := p.sqlc.GetQuizItem(ctx)
 	if err != nil {
