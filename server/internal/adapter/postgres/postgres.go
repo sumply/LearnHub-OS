@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"server/internal/adapter/postgres/sqlc"
 
+	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
 
 type Postgres struct {
 	conn *sqlx.DB
 	sqlc *sqlc.Queries
+	goqu *goqu.Database
 }
 
 type Options struct {
@@ -36,6 +38,7 @@ func New(opt Options) (*Postgres, error) {
 	return &Postgres{
 		conn: conn,
 		sqlc: sqlc.New(conn),
+		goqu: goqu.New("postgres", conn),
 	}, nil
 }
 

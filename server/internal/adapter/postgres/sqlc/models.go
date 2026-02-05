@@ -101,74 +101,74 @@ func (ns NullQuizQuestionType) Value() (driver.Value, error) {
 }
 
 type AccountCredential struct {
-	AccountID uuid.UUID
-	Email     string
-	PwdHash   string
+	AccountID uuid.UUID `db:"account_id"`
+	Email     string    `db:"email"`
+	PwdHash   string    `db:"pwd_hash"`
 }
 
 type AccountProfile struct {
-	AccountID uuid.UUID
-	FirstName string
-	LastName  string
-	Role      AccountUserRole
-	CreatedAt time.Time
+	AccountID uuid.UUID       `db:"account_id"`
+	FirstName string          `db:"first_name"`
+	LastName  string          `db:"last_name"`
+	Role      AccountUserRole `db:"role"`
+	CreatedAt time.Time       `db:"created_at"`
 }
 
 type AccountStudent struct {
-	AccountID uuid.UUID
-	GroupID   uuid.UUID
+	AccountID uuid.UUID `db:"account_id"`
+	GroupID   uuid.UUID `db:"group_id"`
 }
 
 type AccountTeacher struct {
-	AccountID uuid.UUID
-	GroupID   uuid.UUID
-	SubjectID uuid.UUID
+	AccountID uuid.UUID `db:"account_id"`
+	GroupID   uuid.UUID `db:"group_id"`
+	SubjectID uuid.UUID `db:"subject_id"`
 }
 
 type QuizAnswer struct {
-	ID         uuid.UUID
-	AttemptID  uuid.UUID
-	QuestionID uuid.UUID
-	Details    json.RawMessage
-	Score      interface{}
-	IsCorrect  bool
+	ID         uuid.UUID       `db:"id"`
+	AttemptID  uuid.UUID       `db:"attempt_id"`
+	QuestionID uuid.UUID       `db:"question_id"`
+	Details    json.RawMessage `db:"details"`
+	Score      interface{}     `db:"score"`
+	IsCorrect  bool            `db:"is_correct"`
 }
 
 type QuizAttempt struct {
-	ID        uuid.UUID
-	QuizID    uuid.UUID
-	UserID    uuid.UUID
-	Score     interface{}
-	StartedAt time.Time
-	EndedAt   sql.NullTime
+	ID        uuid.UUID    `db:"id"`
+	QuizID    uuid.UUID    `db:"quiz_id"`
+	UserID    uuid.UUID    `db:"user_id"`
+	Score     interface{}  `db:"score"`
+	StartedAt time.Time    `db:"started_at"`
+	EndedAt   sql.NullTime `db:"ended_at"`
 }
 
 type QuizInfo struct {
-	QuizID      uuid.UUID
-	Title       string
-	Summary     string
-	SubjectID   uuid.UUID
-	OwnerID     uuid.UUID
-	MaxAttempts int32
-	TotalScore  interface{}
-	Deadline    sql.NullTime
-	CreatedAt   time.Time
+	QuizID      uuid.UUID    `db:"quiz_id"`
+	Title       string       `db:"title"`
+	Summary     string       `db:"summary"`
+	SubjectID   uuid.UUID    `db:"subject_id"`
+	OwnerID     uuid.UUID    `db:"owner_id"`
+	MaxAttempts int32        `db:"max_attempts"`
+	TotalScore  interface{}  `db:"total_score"`
+	Deadline    sql.NullTime `db:"deadline"`
+	CreatedAt   time.Time    `db:"created_at"`
 }
 
 type QuizQuestion struct {
-	ID      uuid.UUID
-	QuizID  uuid.UUID
-	Title   string
-	Score   interface{}
-	Details json.RawMessage
+	ID      uuid.UUID       `db:"id"`
+	QuizID  uuid.UUID       `db:"quiz_id"`
+	Title   string          `db:"title"`
+	Score   interface{}     `db:"score"`
+	Details json.RawMessage `db:"details"`
 }
 
 type SchoolGroup struct {
-	ID   uuid.UUID
-	Name string
+	ID   uuid.UUID `db:"id"`
+	Name string    `db:"name"`
 }
 
 type SchoolSubject struct {
-	ID   uuid.UUID
-	Name string
+	ID   uuid.UUID `db:"id"`
+	Name string    `db:"name"`
 }

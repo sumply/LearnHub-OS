@@ -40,14 +40,14 @@ GROUP BY
 `
 
 type GetDetailedUsersRow struct {
-	AccountID   uuid.UUID
-	FirstName   string
-	LastName    string
-	Role        AccountUserRole
-	CreatedAt   time.Time
-	SGroupID    uuid.NullUUID
-	TGroupIds   []uuid.UUID
-	TSubjectIds []uuid.UUID
+	AccountID   uuid.UUID       `db:"account_id"`
+	FirstName   string          `db:"first_name"`
+	LastName    string          `db:"last_name"`
+	Role        AccountUserRole `db:"role"`
+	CreatedAt   time.Time       `db:"created_at"`
+	SGroupID    uuid.NullUUID   `db:"s_group_id"`
+	TGroupIds   []uuid.UUID     `db:"t_group_ids"`
+	TSubjectIds []uuid.UUID     `db:"t_subject_ids"`
 }
 
 func (q *Queries) GetDetailedUsers(ctx context.Context) ([]GetDetailedUsersRow, error) {
@@ -104,13 +104,13 @@ GROUP BY
 `
 
 type GetDomainAttemptRow struct {
-	AttemptID        uuid.UUID
-	AttemptQuizID    uuid.UUID
-	AttemptUserID    uuid.UUID
-	AttemptScoreID   int32
-	AttemptStartedAt time.Time
-	AttemptEndendAt  sql.NullTime
-	AttemptAnswers   json.RawMessage
+	AttemptID        uuid.UUID       `db:"attempt_id"`
+	AttemptQuizID    uuid.UUID       `db:"attempt_quiz_id"`
+	AttemptUserID    uuid.UUID       `db:"attempt_user_id"`
+	AttemptScoreID   int32           `db:"attempt_score_id"`
+	AttemptStartedAt time.Time       `db:"attempt_started_at"`
+	AttemptEndendAt  sql.NullTime    `db:"attempt_endend_at"`
+	AttemptAnswers   json.RawMessage `db:"attempt_answers"`
 }
 
 func (q *Queries) GetDomainAttempt(ctx context.Context) (GetDomainAttemptRow, error) {
@@ -157,16 +157,16 @@ GROUP BY
 `
 
 type GetDomainQuizRow struct {
-	QuizID          uuid.UUID
-	QuizTitle       string
-	QuizSummary     string
-	QuizOwnerID     uuid.UUID
-	QuizSubjectID   uuid.UUID
-	QuizTotalScore  int32
-	QuizDeadline    sql.NullTime
-	QuizMaxAttempts int32
-	QuizCreatedAt   time.Time
-	QuizQuestions   json.RawMessage
+	QuizID          uuid.UUID       `db:"quiz_id"`
+	QuizTitle       string          `db:"quiz_title"`
+	QuizSummary     string          `db:"quiz_summary"`
+	QuizOwnerID     uuid.UUID       `db:"quiz_owner_id"`
+	QuizSubjectID   uuid.UUID       `db:"quiz_subject_id"`
+	QuizTotalScore  int32           `db:"quiz_total_score"`
+	QuizDeadline    sql.NullTime    `db:"quiz_deadline"`
+	QuizMaxAttempts int32           `db:"quiz_max_attempts"`
+	QuizCreatedAt   time.Time       `db:"quiz_created_at"`
+	QuizQuestions   json.RawMessage `db:"quiz_questions"`
 }
 
 func (q *Queries) GetDomainQuiz(ctx context.Context, quizID uuid.UUID) (GetDomainQuizRow, error) {
@@ -245,31 +245,31 @@ WHERE attempt.id = $1
 `
 
 type GetFinishedAttemptRow struct {
-	AttemptID        uuid.UUID
-	AttemptScore     int32
-	AttemptStartedAt time.Time
-	AttemptEndedAt   sql.NullTime
-	AttemptAnswers   json.RawMessage
-	UserID           uuid.UUID
-	UserFirstName    string
-	UserLastName     string
-	UserRole         AccountUserRole
-	UserCreatedAt    time.Time
-	QuizID           uuid.UUID
-	QuizTitle        string
-	QuizSummary      string
-	QuizTotalScore   int32
-	QuizDeadline     sql.NullTime
-	QuizMaxAttempts  int32
-	QuizCreatedAt    time.Time
-	QuizQuestions    json.RawMessage
-	OwnerID          uuid.UUID
-	OwnerFirstName   string
-	OwnerLastName    string
-	OwnerRole        AccountUserRole
-	OwnerCreatedAt   time.Time
-	SubjectID        uuid.UUID
-	SubjectName      string
+	AttemptID        uuid.UUID       `db:"attempt_id"`
+	AttemptScore     int32           `db:"attempt_score"`
+	AttemptStartedAt time.Time       `db:"attempt_started_at"`
+	AttemptEndedAt   sql.NullTime    `db:"attempt_ended_at"`
+	AttemptAnswers   json.RawMessage `db:"attempt_answers"`
+	UserID           uuid.UUID       `db:"user_id"`
+	UserFirstName    string          `db:"user_first_name"`
+	UserLastName     string          `db:"user_last_name"`
+	UserRole         AccountUserRole `db:"user_role"`
+	UserCreatedAt    time.Time       `db:"user_created_at"`
+	QuizID           uuid.UUID       `db:"quiz_id"`
+	QuizTitle        string          `db:"quiz_title"`
+	QuizSummary      string          `db:"quiz_summary"`
+	QuizTotalScore   int32           `db:"quiz_total_score"`
+	QuizDeadline     sql.NullTime    `db:"quiz_deadline"`
+	QuizMaxAttempts  int32           `db:"quiz_max_attempts"`
+	QuizCreatedAt    time.Time       `db:"quiz_created_at"`
+	QuizQuestions    json.RawMessage `db:"quiz_questions"`
+	OwnerID          uuid.UUID       `db:"owner_id"`
+	OwnerFirstName   string          `db:"owner_first_name"`
+	OwnerLastName    string          `db:"owner_last_name"`
+	OwnerRole        AccountUserRole `db:"owner_role"`
+	OwnerCreatedAt   time.Time       `db:"owner_created_at"`
+	SubjectID        uuid.UUID       `db:"subject_id"`
+	SubjectName      string          `db:"subject_name"`
 }
 
 func (q *Queries) GetFinishedAttempt(ctx context.Context, attemptID uuid.UUID) (GetFinishedAttemptRow, error) {
@@ -348,21 +348,21 @@ GROUP BY
 `
 
 type GetQuizRow struct {
-	QuizID          uuid.UUID
-	QuizTitle       string
-	QuizSummary     string
-	QuizTotalScore  int32
-	QuizDeadline    sql.NullTime
-	QuizMaxAttempts int32
-	QuizCreatedAt   time.Time
-	QuizQuestions   json.RawMessage
-	OwnerID         uuid.UUID
-	OwnerFirstName  string
-	OwnerLastName   string
-	OwnerRole       AccountUserRole
-	OwnerCreatedAt  time.Time
-	SubjectID       uuid.UUID
-	SubjectName     string
+	QuizID          uuid.UUID       `db:"quiz_id"`
+	QuizTitle       string          `db:"quiz_title"`
+	QuizSummary     string          `db:"quiz_summary"`
+	QuizTotalScore  int32           `db:"quiz_total_score"`
+	QuizDeadline    sql.NullTime    `db:"quiz_deadline"`
+	QuizMaxAttempts int32           `db:"quiz_max_attempts"`
+	QuizCreatedAt   time.Time       `db:"quiz_created_at"`
+	QuizQuestions   json.RawMessage `db:"quiz_questions"`
+	OwnerID         uuid.UUID       `db:"owner_id"`
+	OwnerFirstName  string          `db:"owner_first_name"`
+	OwnerLastName   string          `db:"owner_last_name"`
+	OwnerRole       AccountUserRole `db:"owner_role"`
+	OwnerCreatedAt  time.Time       `db:"owner_created_at"`
+	SubjectID       uuid.UUID       `db:"subject_id"`
+	SubjectName     string          `db:"subject_name"`
 }
 
 func (q *Queries) GetQuiz(ctx context.Context, quizID uuid.UUID) (GetQuizRow, error) {
@@ -412,20 +412,20 @@ JOIN school.subject AS s
 `
 
 type GetQuizItemRow struct {
-	QuizID          uuid.UUID
-	QuizTitle       string
-	QuizSummary     string
-	QuizTotalScore  int32
-	QuizCreatedAt   time.Time
-	QuizDeadline    sql.NullTime
-	QuizMaxAttempts int32
-	OwnerID         uuid.UUID
-	OwnerFirstName  string
-	OwnerLastName   string
-	OwnerRole       AccountUserRole
-	OwnerCreatedAt  time.Time
-	SubjectID       uuid.UUID
-	SubjectName     string
+	QuizID          uuid.UUID       `db:"quiz_id"`
+	QuizTitle       string          `db:"quiz_title"`
+	QuizSummary     string          `db:"quiz_summary"`
+	QuizTotalScore  int32           `db:"quiz_total_score"`
+	QuizCreatedAt   time.Time       `db:"quiz_created_at"`
+	QuizDeadline    sql.NullTime    `db:"quiz_deadline"`
+	QuizMaxAttempts int32           `db:"quiz_max_attempts"`
+	OwnerID         uuid.UUID       `db:"owner_id"`
+	OwnerFirstName  string          `db:"owner_first_name"`
+	OwnerLastName   string          `db:"owner_last_name"`
+	OwnerRole       AccountUserRole `db:"owner_role"`
+	OwnerCreatedAt  time.Time       `db:"owner_created_at"`
+	SubjectID       uuid.UUID       `db:"subject_id"`
+	SubjectName     string          `db:"subject_name"`
 }
 
 func (q *Queries) GetQuizItem(ctx context.Context) ([]GetQuizItemRow, error) {
@@ -481,9 +481,9 @@ VALUES (
 `
 
 type InsertAccountCredentialParams struct {
-	AccountID uuid.UUID
-	Email     string
-	PwdHash   string
+	AccountID uuid.UUID `db:"account_id"`
+	Email     string    `db:"email"`
+	PwdHash   string    `db:"pwd_hash"`
 }
 
 // ========================================
@@ -512,11 +512,11 @@ VALUES (
 `
 
 type InsertAccountProfileParams struct {
-	AccountID uuid.UUID
-	FirstName string
-	LastName  string
-	Role      AccountUserRole
-	CreatedAt time.Time
+	AccountID uuid.UUID       `db:"account_id"`
+	FirstName string          `db:"first_name"`
+	LastName  string          `db:"last_name"`
+	Role      AccountUserRole `db:"role"`
+	CreatedAt time.Time       `db:"created_at"`
 }
 
 func (q *Queries) InsertAccountProfile(ctx context.Context, arg InsertAccountProfileParams) error {
@@ -546,10 +546,10 @@ VALUES (
 `
 
 type InsertQuizAnswerParams struct {
-	ID         uuid.UUID
-	AttemptID  uuid.UUID
-	QuestionID uuid.UUID
-	Details    json.RawMessage
+	ID         uuid.UUID       `db:"id"`
+	AttemptID  uuid.UUID       `db:"attempt_id"`
+	QuestionID uuid.UUID       `db:"question_id"`
+	Details    json.RawMessage `db:"details"`
 }
 
 func (q *Queries) InsertQuizAnswer(ctx context.Context, arg InsertQuizAnswerParams) error {
@@ -578,10 +578,10 @@ VALUES (
 `
 
 type InsertQuizAttemptParams struct {
-	ID        uuid.UUID
-	QuizID    uuid.UUID
-	UserID    uuid.UUID
-	StartedAt time.Time
+	ID        uuid.UUID `db:"id"`
+	QuizID    uuid.UUID `db:"quiz_id"`
+	UserID    uuid.UUID `db:"user_id"`
+	StartedAt time.Time `db:"started_at"`
 }
 
 func (q *Queries) InsertQuizAttempt(ctx context.Context, arg InsertQuizAttemptParams) error {
@@ -621,15 +621,15 @@ VALUES (
 `
 
 type InsertQuizInfoParams struct {
-	QuizID      uuid.UUID
-	Title       string
-	Summary     string
-	SubjectID   uuid.UUID
-	OwnerID     uuid.UUID
-	MaxAttempts int32
-	TotalScore  interface{}
-	Deadline    sql.NullTime
-	CreatedAt   time.Time
+	QuizID      uuid.UUID    `db:"quiz_id"`
+	Title       string       `db:"title"`
+	Summary     string       `db:"summary"`
+	SubjectID   uuid.UUID    `db:"subject_id"`
+	OwnerID     uuid.UUID    `db:"owner_id"`
+	MaxAttempts int32        `db:"max_attempts"`
+	TotalScore  interface{}  `db:"total_score"`
+	Deadline    sql.NullTime `db:"deadline"`
+	CreatedAt   time.Time    `db:"created_at"`
 }
 
 // ========================================
@@ -668,11 +668,11 @@ VALUES (
 `
 
 type InsertQuizQuestionParams struct {
-	ID      uuid.UUID
-	QuizID  uuid.UUID
-	Title   string
-	Score   interface{}
-	Details json.RawMessage
+	ID      uuid.UUID       `db:"id"`
+	QuizID  uuid.UUID       `db:"quiz_id"`
+	Title   string          `db:"title"`
+	Score   interface{}     `db:"score"`
+	Details json.RawMessage `db:"details"`
 }
 
 func (q *Queries) InsertQuizQuestion(ctx context.Context, arg InsertQuizQuestionParams) error {
@@ -698,8 +698,8 @@ VALUES (
 `
 
 type InsertSchoolGroupParams struct {
-	ID   uuid.UUID
-	Name string
+	ID   uuid.UUID `db:"id"`
+	Name string    `db:"name"`
 }
 
 func (q *Queries) InsertSchoolGroup(ctx context.Context, arg InsertSchoolGroupParams) error {
@@ -720,8 +720,8 @@ VALUES (
 `
 
 type InsertSchoolSubjectParams struct {
-	ID   uuid.UUID
-	Name string
+	ID   uuid.UUID `db:"id"`
+	Name string    `db:"name"`
 }
 
 // ========================================
@@ -744,8 +744,8 @@ VALUES (
 `
 
 type InsertStudentParams struct {
-	AccountID uuid.UUID
-	GroupID   uuid.UUID
+	AccountID uuid.UUID `db:"account_id"`
+	GroupID   uuid.UUID `db:"group_id"`
 }
 
 func (q *Queries) InsertStudent(ctx context.Context, arg InsertStudentParams) error {
@@ -767,9 +767,9 @@ VALUES (
 `
 
 type InsertTeacherParams struct {
-	AccountID uuid.UUID
-	GroupID   uuid.UUID
-	SubjectID uuid.UUID
+	AccountID uuid.UUID `db:"account_id"`
+	GroupID   uuid.UUID `db:"group_id"`
+	SubjectID uuid.UUID `db:"subject_id"`
 }
 
 func (q *Queries) InsertTeacher(ctx context.Context, arg InsertTeacherParams) error {
@@ -787,10 +787,10 @@ WHERE id = $4
 `
 
 type UpdateQuizAnswerParams struct {
-	Details   json.RawMessage
-	Score     interface{}
-	IsCorrect bool
-	ID        uuid.UUID
+	Details   json.RawMessage `db:"details"`
+	Score     interface{}     `db:"score"`
+	IsCorrect bool            `db:"is_correct"`
+	ID        uuid.UUID       `db:"id"`
 }
 
 func (q *Queries) UpdateQuizAnswer(ctx context.Context, arg UpdateQuizAnswerParams) error {
@@ -812,9 +812,9 @@ WHERE id = $3
 `
 
 type UpdateQuizAttemptParams struct {
-	Score   interface{}
-	EndedAt sql.NullTime
-	ID      uuid.UUID
+	Score   interface{}  `db:"score"`
+	EndedAt sql.NullTime `db:"ended_at"`
+	ID      uuid.UUID    `db:"id"`
 }
 
 func (q *Queries) UpdateQuizAttempt(ctx context.Context, arg UpdateQuizAttemptParams) error {

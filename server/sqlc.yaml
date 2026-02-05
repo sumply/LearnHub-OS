@@ -7,3 +7,4 @@ sql:
       go: 
         package: "sqlc"
         out: "./internal/adapter/postgres/sqlc"
+        emit_db_tags: true

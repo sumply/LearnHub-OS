@@ -89,6 +89,7 @@ func (p *Postgres) UpdateAttempt(ctx context.Context, attempt *domain.Attempt) e
 	var endedAt sql.NullTime
 	if attempt.EndedAt != nil {
 		endedAt.Time = *attempt.EndedAt
+		endedAt.Valid = true
 	}
 	err := p.sqlc.UpdateQuizAttempt(ctx, sqlc.UpdateQuizAttemptParams{
 		Score:   attempt.Score,
