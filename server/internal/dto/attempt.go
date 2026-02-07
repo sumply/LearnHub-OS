@@ -20,6 +20,13 @@ type Attempt struct {
 	EndedAt   time.Time `json:"ended_at"`
 }
 
+type AttemptItem struct {
+	ID        uuid.UUID  `json:"id"`
+	Score     int        `json:"score"`
+	StartedAt time.Time  `json:"started_at"`
+	EndedAt   *time.Time `json:"ended_at"`
+}
+
 type Answer struct {
 	ID         uuid.UUID `json:"id"`
 	QuestionID uuid.UUID `json:"question_id"`

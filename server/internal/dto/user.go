@@ -8,3 +8,8 @@ type User struct {
 	LastName  string    `json:"last_name"`
 	Role      string    `json:"role"`
 }
+
+type UserLastAttempt struct {
+	User
+	LastAttempt *AttemptItem `json:"last_attempt,omitempty"`
+}

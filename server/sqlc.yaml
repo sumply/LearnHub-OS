@@ -8,3 +8,8 @@ sql:
         package: "sqlc"
         out: "./internal/adapter/postgres/sqlc"
         emit_db_tags: true
+        emit_json_tags: true
+        overrides:
+          - db_type: "quiz.score"
+            nullable: false
+            go_type: int

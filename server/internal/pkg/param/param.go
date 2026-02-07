@@ -12,6 +12,7 @@ type IDParam string
 const (
 	AttemptID IDParam = "attempt_id"
 	UserID    IDParam = "user_id"
+	QuizID    IDParam = "quiz_id"
 )
 
 func ID(r *http.Request, key IDParam) (uuid.UUID, error) {
