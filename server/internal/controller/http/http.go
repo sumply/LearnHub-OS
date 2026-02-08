@@ -5,6 +5,7 @@ import (
 	"server/internal/adapter/postgres"
 	"server/internal/controller/http/attempt"
 	"server/internal/controller/http/group"
+	"server/internal/controller/http/middleware"
 	"server/internal/controller/http/quiz"
 	"server/internal/controller/http/subject"
 	"server/internal/controller/http/user"
@@ -14,6 +15,12 @@ import (
 
 func Router() http.Handler {
 	r := chi.NewMux()
+
+	r.Use(
+		middleware.CORS(),
+		middleware.Logger(),
+		middleware.Recoverer(),
+	)
 
 	p, err := postgres.New(postgres.Options{
 		User:     "postgres",

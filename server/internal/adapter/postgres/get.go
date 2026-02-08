@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
@@ -19,10 +18,6 @@ func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.UserAggregate, e
 	if err != nil {
 		return nil, err
 	}
-
-	e := json.NewEncoder(os.Stdout)
-	e.SetIndent("", "\t")
-	e.Encode(&rows)
 
 	users := make([]domain.UserAggregate, len(rows))
 	for i := range rows {
@@ -51,8 +46,6 @@ func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.UserAggregate, e
 			users[i] = &user
 		}
 	}
-
-	e.Encode(&users)
 
 	return users, nil
 }
