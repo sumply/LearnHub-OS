@@ -2,8 +2,6 @@ package create_quiz
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"server/internal/domain"
 	"server/internal/dto"
 )
@@ -27,10 +25,6 @@ func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) 
 	if err != nil {
 		return Output{}, err
 	}
-
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "\t")
-	encoder.Encode(&quiz)
 
 	err = u.postgres.CreateQuiz(ctx, &quiz)
 	if err != nil {

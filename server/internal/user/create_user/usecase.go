@@ -46,7 +46,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 
 	case domain.RoleStudent:
 		if input.GroupID == nil {
-			return Output{}, fmt.Errorf("groupID: %w", domain.ErrInvalid)
+			return Output{}, fmt.Errorf("groupID is nil")
 		}
 		student := domain.Student{
 			User:  user,

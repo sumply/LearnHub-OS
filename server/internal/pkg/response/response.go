@@ -2,12 +2,15 @@ package response
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"server/internal/domain"
 )
 
 type ErrorMessage struct {
-	Error error `json:"error"`
+	Error   string `json:"error"`
+	Details any    `json:"details,omitempty"`
 }
 
 func (e ErrorMessage) Bytes() []byte {
@@ -24,7 +27,7 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write(
 		ErrorMessage{
-			Error: err,
+			Error: err.Error(),
 		}.Bytes(),
 	)
 }
@@ -33,11 +36,25 @@ func SendParamError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write(
 		ErrorMessage{
-			Error: err,
+			Error: err.Error(),
 		}.Bytes(),
 	)
 }
 
 func SendUseCaseError(w http.ResponseWriter, err error) {
-
+	var e *domain.Error
+	var msg ErrorMessage
+	if errors.As(err, &e) {
+		w.WriteHeader(http.StatusBadRequest)
+		msg = ErrorMessage{
+			Error:   e.Domain() + " validation",
+			Details: e.ToMap(),
+		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg = ErrorMessage{
+			Error: err.Error(),
+		}
+	}
+	w.Write(msg.Bytes())
 }

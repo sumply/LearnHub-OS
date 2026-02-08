@@ -18,12 +18,17 @@ type Attempt struct {
 }
 
 func NewAttempt(quiz *Quiz, userID uuid.UUID) (Attempt, error) {
+	err := NewError("attempt")
 	if quiz == nil {
-		return Attempt{}, fmt.Errorf("quiz is nil: %w", ErrInvalid)
+		err.Add("quiz", fmt.Errorf("quiz is nil"))
 	}
 
 	if userID == uuid.Nil {
-		return Attempt{}, fmt.Errorf("userID is empty: %w", ErrInvalid)
+		err.Add("userID", fmt.Errorf("userID is empty"))
+	}
+
+	if !err.Empty() {
+		return Attempt{}, err
 	}
 
 	attemptID := uuid.New()

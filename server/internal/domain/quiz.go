@@ -30,24 +30,25 @@ func NewQuiz(
 ) (Quiz, error) {
 	quizID := uuid.New()
 
+	err := NewError("quiz")
 	if ownerID == uuid.Nil {
-		return Quiz{}, fmt.Errorf("ownerID is empty: %w", ErrValidate)
+		err.Add("ownerID", fmt.Errorf("ownerID is empty"))
 	}
 
 	if subjectID == uuid.Nil {
-		return Quiz{}, fmt.Errorf("ownerID is empty: %w", ErrValidate)
+		err.Add("subjectID", fmt.Errorf("subjectID is empty"))
 	}
 
 	if title == "" {
-		return Quiz{}, fmt.Errorf("title is empty: %w", ErrValidate)
+		err.Add("title", fmt.Errorf("title is empty"))
 	}
 
 	if summary == "" {
-		return Quiz{}, fmt.Errorf("summary is empty: %w", ErrValidate)
+		err.Add("summary", fmt.Errorf("summary is empty"))
 	}
 
 	if len(questions) == 0 {
-		return Quiz{}, fmt.Errorf("content is empty: %w", ErrValidate)
+		err.Add("questions", fmt.Errorf("questions is empty"))
 	}
 
 	totalCount := 0
@@ -57,11 +58,15 @@ func NewQuiz(
 	}
 
 	if maxAttempts <= 0 {
-		return Quiz{}, fmt.Errorf("max_attempts less 0: %w", ErrValidate)
+		err.Add("max_attempts", fmt.Errorf("max_attempts less 0"))
 	}
 
 	if deadline != nil && deadline.Before(time.Now().UTC()) {
-		return Quiz{}, fmt.Errorf("deadline is before now: %w", ErrValidate)
+		err.Add("deadline", fmt.Errorf("deadline is before now"))
+	}
+
+	if !err.Empty() {
+		return Quiz{}, err
 	}
 
 	return Quiz{
@@ -80,7 +85,7 @@ func NewQuiz(
 
 func (q *Quiz) CheckAttempt(attempt *Attempt) error {
 	if attempt == nil {
-		return fmt.Errorf("attempt is nil: %w", ErrInvalid)
+		return fmt.Errorf("attempt is nil")
 	}
 
 	attempt.Score = 0
@@ -93,7 +98,7 @@ func (q *Quiz) CheckAttempt(attempt *Attempt) error {
 	for i := range attempt.Answers {
 		question, ok := questionMap[attempt.Answers[i].QuestionID]
 		if !ok {
-			return fmt.Errorf("unknow questionID (id=%d): %w", attempt.Answers[i].QuestionID, ErrInvalid)
+			return fmt.Errorf("unknow questionID (id=%d)", attempt.Answers[i].QuestionID)
 		}
 		ok, err := question.Details.ReviewAnswer(attempt.Answers[i].Answer)
 		if err != nil {
@@ -118,16 +123,21 @@ type Question struct {
 }
 
 func NewQuestion(text string, details QuestionDetails, score int) (Question, error) {
+	err := NewError("question")
 	if text == "" {
-		return Question{}, fmt.Errorf("text is empty: %w", ErrInvalid)
+		err.Add("text", fmt.Errorf("text is empty"))
 	}
 
 	if score <= 0 {
-		return Question{}, fmt.Errorf("score less 0: %w", ErrInvalid)
+		err.Add("score", fmt.Errorf("score less 0"))
 	}
 
 	if details == nil {
-		return Question{}, fmt.Errorf("details is nil: %w", ErrInvalid)
+		err.Add("details", fmt.Errorf("details is nil"))
+	}
+
+	if !err.Empty() {
+		return Question{}, err
 	}
 
 	if err := details.Validate(); err != nil {
@@ -166,10 +176,10 @@ func NewSingleChoiceQuestion(options []string, correct string) (SingleChoiceQues
 
 func (s *SingleChoiceQuestion) Validate() error {
 	if len(s.Options) == 0 {
-		return fmt.Errorf("options is nil: %w", ErrInvalid)
+		return fmt.Errorf("options is nil")
 	}
 	if !slices.Contains(s.Options, s.Correct) {
-		return fmt.Errorf("options do not contain the correct: %w", ErrInvalid)
+		return fmt.Errorf("options do not contain the correct")
 	}
 	return nil
 }
@@ -177,7 +187,7 @@ func (s *SingleChoiceQuestion) Validate() error {
 func (s *SingleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.(string)
 	if !ok {
-		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
+		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
 	}
 	if s.Correct != _answer {
 		return false, nil
@@ -207,17 +217,17 @@ func NewMultipleChoiceQuestion(options, correct []string) (MultipleChoiceQuestio
 
 func (m *MultipleChoiceQuestion) Validate() error {
 	if len(m.Options) == 0 {
-		return fmt.Errorf("options is empty: %w", ErrInvalid)
+		return fmt.Errorf("options is empty")
 	}
 	if len(m.Correct) == 0 {
-		return fmt.Errorf("correct is empty: %w", ErrInvalid)
+		return fmt.Errorf("correct is empty")
 	}
 	if len(m.Correct) > len(m.Options) {
-		return fmt.Errorf("more correct answers than options: %w", ErrInvalid)
+		return fmt.Errorf("more correct answers than options")
 	}
 	for i := range m.Correct {
 		if !slices.Contains(m.Options, m.Correct[i]) {
-			return fmt.Errorf("options do not contain the correct: %w", ErrInvalid)
+			return fmt.Errorf("options do not contain the correct")
 		}
 	}
 	return nil
@@ -233,12 +243,12 @@ func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 		for i := range _answer {
 			s, ok := a[i].(string)
 			if !ok {
-				return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
+				return false, fmt.Errorf("answer is incorrect type (%T)", answer)
 			}
 			_answer[i] = s
 		}
 	} else {
-		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
+		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
 	}
 
 	for i := range m.Correct {
@@ -274,7 +284,7 @@ func (n *NumericQuestion) Validate() error {
 func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := n.castAnyToFloat64(answer)
 	if !ok {
-		return false, fmt.Errorf("answer is incorrect type (%T): %w", answer, ErrValidate)
+		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
 	}
 	if n.Correct != _answer {
 		return false, nil
