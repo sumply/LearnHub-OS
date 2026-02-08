@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 type Postgres interface {
@@ -26,14 +23,15 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) {
-	user := domain.User{
-		ID:        uuid.New(),
-		FirstName: input.FirstName,
-		LastName:  input.LastName,
-		Role:      domain.UserRole(input.Role),
-		Email:     input.Email,
-		PwdHash:   "hash",
-		CreatedAt: time.Now().UTC(),
+	user, err := domain.NewUser(
+		input.FirstName,
+		input.LastName,
+		input.Email,
+		"hash",
+		domain.UserRole(input.Role),
+	)
+	if err != nil {
+		return Output{}, err
 	}
 
 	switch domain.UserRole(input.Role) {
