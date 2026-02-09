@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/usecase"
 )
 
 type Postgres interface {
@@ -31,7 +32,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 		domain.UserRole(input.Role),
 	)
 	if err != nil {
-		return Output{}, err
+		return Output{}, usecase.NewValidationError(err)
 	}
 
 	switch domain.UserRole(input.Role) {

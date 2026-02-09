@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
+	"server/internal/usecase"
 )
 
 type ErrorMessage struct {
@@ -42,19 +43,31 @@ func SendParamError(w http.ResponseWriter, err error) {
 }
 
 func SendUseCaseError(w http.ResponseWriter, err error) {
-	var e *domain.Error
 	var msg ErrorMessage
+
+	var e *usecase.ValidationError
 	if errors.As(err, &e) {
 		w.WriteHeader(http.StatusBadRequest)
-		msg = ErrorMessage{
-			Error:   e.Domain() + " validation",
-			Details: e.ToMap(),
-		}
+		msg = handleValidationError(e)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg = ErrorMessage{
 			Error: err.Error(),
 		}
 	}
+
 	w.Write(msg.Bytes())
+}
+
+func handleValidationError(err *usecase.ValidationError) ErrorMessage {
+	msg := ErrorMessage{
+		Error: err.Event(),
+	}
+	var domainErr *domain.Error
+	if errors.As(err, &domainErr) {
+		msg.Details = domainErr.ToMap()
+	} else {
+		msg.Details = err.Error()
+	}
+	return msg
 }
