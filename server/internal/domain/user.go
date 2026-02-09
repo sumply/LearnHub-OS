@@ -2,199 +2,81 @@ package domain
 
 import (
 	"errors"
-	"fmt"
-	"regexp"
-	"server/internal/common"
-	"strings"
 	"time"
-	"unicode"
+
+	"github.com/google/uuid"
 )
 
-type Credential struct {
-	ID        common.ID
-	Login     Login
-	PwdHashed PwdHash
-	Email     Email
-}
-
-func NewCredential(login, password, email string) (*Credential, error) {
-	l, err := NewLogin(login)
-	if err != nil {
-		return nil, err
-	}
-	p, err := NewPwdHashed(password)
-	if err != nil {
-		return nil, err
-	}
-	e, err := NewEmail(email)
-	if err != nil {
-		return nil, err
-	}
-	return &Credential{
-		Login:     l,
-		PwdHashed: p,
-		Email:     e,
-	}, nil
-}
-
-func (c *Credential) Authorization(login Login, hash PwdHash) bool {
-	return c.Login == login && c.PwdHashed == hash
-}
+type UserAggregate any
 
 type User struct {
-	ID         common.ID
-	FirstName  UserName
-	LastName   UserName
-	MiddleName UserName
-	Role       UserRole
-	Credential *Credential
-	CreatedAt  time.Time
+	ID        uuid.UUID
+	FirstName string
+	LastName  string
+	Role      UserRole
+	Email     string
+	PwdHash   string
+	CreatedAt time.Time
 }
 
-func NewUser(firstName, lastName, middleName string, role UserRole, credential *Credential) (*User, error) {
-	if !role.IsValid() {
-		return nil, fmt.Errorf("role (%d) is invalid", role)
+func NewUser(firstName, lastName, email, pwdHash string, role UserRole) (User, error) {
+	domainErr := NewError("user")
+
+	if firstName == "" {
+		domainErr.Add("first_name", errors.New("first_name is empty"))
 	}
-	f, err := NewUserName(firstName)
-	if err != nil {
-		return nil, fmt.Errorf("%w: first name", err)
+	if lastName == "" {
+		domainErr.Add("last_name", errors.New("last_name is empty"))
 	}
-	l, err := NewUserName(lastName)
-	if err != nil {
-		return nil, fmt.Errorf("%w: last name", err)
+	if email == "" {
+		domainErr.Add("email", errors.New("email is empty"))
 	}
-	var m UserName
-	if middleName != "" {
-		var err error
-		m, err = NewUserName(middleName)
-		if err != nil {
-			return nil, fmt.Errorf("%w: middle name", err)
-		}
+	if pwdHash == "" {
+		domainErr.Add("password_hash", errors.New("password_hash is empty"))
 	}
-	return &User{
-		FirstName:  f,
-		LastName:   l,
-		MiddleName: m,
-		Role:       role,
-		Credential: credential,
-		CreatedAt:  time.Now().UTC(),
+	if !role.Validate() {
+		domainErr.Add("role", errors.New("role is invalid"))
+	}
+
+	if !domainErr.Empty() {
+		return User{}, domainErr
+	}
+
+	return User{
+		ID:        uuid.New(),
+		FirstName: firstName,
+		LastName:  lastName,
+		Role:      role,
+		Email:     email,
+		PwdHash:   pwdHash,
+		CreatedAt: time.Now().UTC(),
 	}, nil
 }
 
-type UserName string
-
-func NewUserName(name string) (UserName, error) {
-	trimmed := strings.TrimSpace(name)
-
-	if trimmed == "" {
-		return "", errors.New("empty")
-	}
-
-	runes := []rune(trimmed)
-
-	if len(runes) < 2 {
-		return "", errors.New("too short")
-	}
-
-	if len(runes) > 100 {
-		return "", errors.New("too long")
-	}
-
-	for i, r := range runes {
-		if !unicode.IsLetter(r) {
-			return "", errors.New("not letter")
-		}
-		runes[i] = unicode.ToLower(r)
-	}
-	runes[0] = unicode.ToUpper(runes[0])
-
-	return UserName(runes), nil
-}
-
-type Login string
-
-func NewLogin(s string) (Login, error) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return "", errors.New("empty")
-	}
-	return Login(s), nil
-}
-
-type PwdHasher func(string) string
-
-var pwdHasher PwdHasher = func(s string) string {
-	return s
-}
-
-type PwdHash string
-
-func HashPassword(s string) PwdHash {
-	return PwdHash(pwdHasher(s))
-}
-
-func NewPwdHashed(s string) (PwdHash, error) {
-	s = strings.TrimSpace(s)
-	if len([]rune(s)) < 8 {
-		return "", errors.New("password shorter than 8")
-	}
-	if len([]rune(s)) > 32 {
-		return "", errors.New("password longer than 32")
-	}
-	return PwdHash(pwdHasher(s)), nil
-}
-
-type Email string
-
-var emailRegex = regexp.MustCompile(`^\S+@\S+\.\S+$`)
-
-func NewEmail(s string) (Email, error) {
-	if s == "" {
-		return "", errors.New("email is empty")
-	}
-	if !emailRegex.MatchString(s) {
-		return "", errors.New("invalid email")
-	}
-	return Email(s), nil
-}
-
-type UserRole common.Enum
+type UserRole string
 
 const (
-	UserStudent UserRole = iota
-	UserTeacher
-	UserAdmin
-	UserRoot
+	RoleAdmin   UserRole = "admin"
+	RoleStudent UserRole = "student"
+	RoleTeacher UserRole = "teacher"
 )
 
-func (r UserRole) IsValid() bool {
-	switch r {
-	case
-		UserAdmin,
-		UserRoot,
-		UserStudent,
-		UserTeacher:
+func (u UserRole) Validate() bool {
+	switch u {
+	case RoleAdmin, RoleStudent, RoleTeacher:
 		return true
 	default:
 		return false
 	}
 }
 
-func (r UserRole) IsHigherOrEqual(role UserRole) bool {
-	return r >= role
+type Student struct {
+	User
+	Group uuid.UUID
 }
 
-func (r UserRole) IsHigher(role UserRole) bool {
-	return r > role
-}
-
-func (c Credential) Copy() *Credential {
-	return &c
-}
-
-func (u User) Copy() *User {
-	if u.Credential != nil {
-		u.Credential = u.Credential.Copy()
-	}
-	return &u
+type Teacher struct {
+	User
+	Subjects uuid.UUIDs
+	Groups   uuid.UUIDs
 }

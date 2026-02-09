@@ -1,0 +1,22 @@
+package create_quiz
+
+import (
+	"server/internal/dto"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type Input struct {
+	Title       string         `json:"title"`
+	OwnerID     uuid.UUID      `json:"owner_id"`
+	Summary     string         `json:"summary"`
+	SubjectID   uuid.UUID      `json:"subject_id"`
+	Deadline    *time.Time     `json:"deadline,omitempty"`
+	MaxAttempts int            `json:"max_attempts"`
+	Questions   []dto.Question `json:"questions"`
+}
+
+type Output struct {
+	ID uuid.UUID `json:"id"`
+}

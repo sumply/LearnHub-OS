@@ -1,129 +1,439 @@
 package domain
 
 import (
-	"server/internal/common"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNewOption(t *testing.T) {
-	t.Log("creating a valid option")
-	currOpt, err := NewOption("currect", false)
-	if err != nil {
-		t.Errorf("unexcepted error: %s", err.Error())
+func TestNewSingleChoiceQuestion(t *testing.T) {
+	tests := []struct {
+		name        string
+		param       singleParam
+		expectError bool
+	}{
+		{
+			name: "options is empty",
+			param: singleParam{
+				options: nil,
+				correct: "correct",
+			},
+			expectError: true,
+		},
+		{
+			name: "correct is empty",
+			param: singleParam{
+				options: []string{"opt"},
+				correct: "",
+			},
+			expectError: true,
+		},
+		{
+			name: "answer is incorrect",
+			param: singleParam{
+				options: []string{"opt1", "opt2"},
+				correct: "opt3",
+			},
+			expectError: true,
+		},
+		{
+			name: "answer is correct",
+			param: singleParam{
+				options: []string{"opt1", "opt2"},
+				correct: "opt1",
+			},
+			expectError: false,
+		},
 	}
-	if currOpt.IsCorrect != false || currOpt.Text != "currect" {
-		t.Errorf("option fields is not valid: %v", currOpt)
-	}
-	t.Log("creating a invalid option")
-	_, err = NewOption("", false)
-	if err == nil {
-		t.Errorf("excepted error validation")
+
+	for i := range tests {
+		t.Run(tests[i].name, func(t *testing.T) {
+			_, err := NewSingleChoiceQuestion(tests[i].param.options, tests[i].param.correct)
+			if !tests[i].expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if tests[i].expectError && err == nil {
+				t.Error("expected error but got nil")
+			}
+		})
 	}
 }
 
+type singleParam struct {
+	options []string
+	correct string
+}
+
+func TestNewMultipleChoiceQuestion(t *testing.T) {
+	tests := []struct {
+		name        string
+		param       multipleParam
+		expectError bool
+	}{
+		{
+			name: "options is empty",
+			param: multipleParam{
+				options: nil,
+				correct: []string{"correct"},
+			},
+			expectError: true,
+		},
+		{
+			name: "correct is empty",
+			param: multipleParam{
+				options: []string{"opt"},
+				correct: nil,
+			},
+			expectError: true,
+		},
+		{
+			name: "answer is incorrect",
+			param: multipleParam{
+				options: []string{"opt1", "opt2"},
+				correct: []string{"opt3"},
+			},
+			expectError: true,
+		},
+		{
+			name: "answer is correct",
+			param: multipleParam{
+				options: []string{"opt1", "opt2"},
+				correct: []string{"opt1"},
+			},
+			expectError: false,
+		},
+	}
+
+	for i := range tests {
+		t.Run(tests[i].name, func(t *testing.T) {
+			_, err := NewMultipleChoiceQuestion(tests[i].param.options, tests[i].param.correct)
+			if !tests[i].expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if tests[i].expectError && err == nil {
+				t.Error("expected error but got nil")
+			}
+		})
+	}
+}
+
+type multipleParam struct {
+	options []string
+	correct []string
+}
+
 func TestNewQuestion(t *testing.T) {
-	options := []*Option{
+	tests := []struct {
+		name        string
+		param       questionParam
+		expectError bool
+	}{
 		{
-			ID:        1,
-			Text:      "false",
-			IsCorrect: false,
+			name: "text is empty",
+			param: questionParam{
+				text:    "",
+				details: newValidDetails(),
+				score:   1,
+			},
+			expectError: true,
 		},
 		{
-			ID:        2,
-			Text:      "true",
-			IsCorrect: true,
-		},
-	}
-	t.Logf("creating a question")
-	valid, err := NewQuestion("question", options)
-	if err != nil {
-		t.Errorf("unexcepted error: %v", err)
-	}
-	t.Logf("creating a question without options")
-	valid, err = NewQuestion("question", []*Option{})
-	if err != nil {
-		t.Errorf("unexcepted error: %v", err)
-	}
-	if !valid.IsWritten {
-		t.Errorf("a field IsWritten is false")
-	}
-	t.Log("creating a question with a invalid text")
-	valid, err = NewQuestion("", options)
-	if err == nil {
-		t.Errorf("excepted a empty error: %v", valid)
-	}
-	t.Log("creating a question without a current option")
-	options = []*Option{
-		{
-			ID:        1,
-			Text:      "false",
-			IsCorrect: false,
+			name: "details is nil",
+			param: questionParam{
+				text:    "text",
+				details: nil,
+				score:   1,
+			},
+			expectError: true,
 		},
 		{
-			ID:        2,
-			Text:      "true",
-			IsCorrect: false,
+			name: "score equal 0",
+			param: questionParam{
+				text:    "text",
+				details: newValidDetails(),
+				score:   0,
+			},
+			expectError: true,
+		},
+		{
+			name: "score less 0",
+			param: questionParam{
+				text:    "text",
+				details: newValidDetails(),
+				score:   -10,
+			},
+			expectError: true,
+		},
+		{
+			name: "details is invalid",
+			param: questionParam{
+				text:    "text",
+				details: newInvalidDetails(),
+				score:   1,
+			},
+			expectError: true,
+		},
+		{
+			name: "question is valid",
+			param: questionParam{
+				text:    "text",
+				details: newValidDetails(),
+				score:   1,
+			},
+			expectError: false,
 		},
 	}
-	_, err = NewQuestion("question", options)
-	if err == nil {
-		t.Logf("a question has been created without a current option")
+
+	for i := range tests {
+		t.Run(tests[i].name, func(t *testing.T) {
+			_, err := NewQuestion(
+				tests[i].param.text,
+				tests[i].param.details,
+				tests[i].param.score,
+			)
+
+			if !tests[i].expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if tests[i].expectError && err == nil {
+				t.Error("expected error but got nil")
+			}
+		})
+	}
+}
+
+type questionParam struct {
+	text    string
+	details QuestionDetails
+	score   int
+}
+
+func newValidDetails() QuestionDetails {
+	return &SingleChoiceQuestion{
+		Options: []string{"opt1", "opt2"},
+		Correct: "opt1",
+	}
+}
+
+func newInvalidDetails() QuestionDetails {
+	return &SingleChoiceQuestion{
+		Options: nil,
+		Correct: "opt1",
 	}
 }
 
 func TestNewQuiz(t *testing.T) {
-	questions := []*Question{
+	tests := []struct {
+		name        string
+		param       quizParam
+		expectError bool
+	}{
 		{
-			ID:        1,
-			Text:      "Question",
-			IsWritten: false,
-			Options: []*Option{
-				{
-					ID:        1,
-					Text:      "Option",
-					IsCorrect: false,
+			name:        "ownerID is invalid",
+			param:       newInvalidQuizParamOwnerID(t),
+			expectError: true,
+		},
+		{
+			name:        "subjectID is invalid",
+			param:       newInvalidQuizParamSubjectID(t),
+			expectError: true,
+		},
+		{
+			name:        "title is empty",
+			param:       newInvalidQuizParamTitle(t),
+			expectError: true,
+		},
+		{
+			name:        "summary is empty",
+			param:       newInvalidQuizParamSummary(t),
+			expectError: true,
+		},
+		{
+			name:        "questions are empty",
+			param:       newInvalidQuizParamQuestions(t),
+			expectError: true,
+		},
+		{
+			name:        "maxAttempts equal 0",
+			param:       newQuizParamMaxAttempts(t, 0),
+			expectError: true,
+		},
+		{
+			name:        "maxAttempts less 0",
+			param:       newQuizParamMaxAttempts(t, -10),
+			expectError: true,
+		},
+		{
+			name:        "deadline is nil",
+			param:       newQuizParamDeadline(t, nil),
+			expectError: false,
+		},
+		{
+			name:        "expired deadline",
+			param:       newQuizParamDeadline(t, newInvalidDeadline()),
+			expectError: true,
+		},
+		{
+			name:        "quiz is valid",
+			param:       newValidQuizParam(t),
+			expectError: false,
+		},
+	}
+
+	for i := range tests {
+		t.Run(tests[i].name, func(t *testing.T) {
+			_, err := NewQuiz(
+				tests[i].param.ownerID,
+				tests[i].param.subjectID,
+				tests[i].param.title,
+				tests[i].param.summary,
+				tests[i].param.questions,
+				tests[i].param.maxAttempts,
+				tests[i].param.deadline,
+			)
+
+			if !tests[i].expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if tests[i].expectError && err == nil {
+				t.Error("expected error but got nil")
+			}
+		})
+	}
+}
+
+type quizParam struct {
+	title, summary     string
+	ownerID, subjectID uuid.UUID
+	questions          []Question
+	maxAttempts        int
+	deadline           *time.Time
+}
+
+func newValidQuizParam(t *testing.T) quizParam {
+	return quizParam{
+		title:       "title",
+		summary:     "summary",
+		ownerID:     uuid.New(),
+		subjectID:   uuid.New(),
+		questions:   newValidQuestions(t),
+		maxAttempts: 5,
+		deadline:    nil,
+	}
+}
+
+func newValidQuestions(t *testing.T) []Question {
+	questions := make([]Question, 5)
+	for i := range questions {
+		question, err := NewQuestion("text", newValidDetails(), 1)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		questions[i] = question
+	}
+	return questions
+}
+
+func newInvalidQuizParamOwnerID(t *testing.T) quizParam {
+	param := newValidQuizParam(t)
+	param.ownerID = uuid.Nil
+	return param
+}
+
+func newInvalidQuizParamSubjectID(t *testing.T) quizParam {
+	param := newValidQuizParam(t)
+	param.subjectID = uuid.Nil
+	return param
+}
+
+func newInvalidQuizParamTitle(t *testing.T) quizParam {
+	param := newValidQuizParam(t)
+	param.title = ""
+	return param
+}
+
+func newInvalidQuizParamSummary(t *testing.T) quizParam {
+	param := newValidQuizParam(t)
+	param.summary = ""
+	return param
+}
+
+func newInvalidQuizParamQuestions(t *testing.T) quizParam {
+	param := newValidQuizParam(t)
+	param.questions = nil
+
+	return param
+}
+
+func newQuizParamMaxAttempts(t *testing.T, maxAttempts int) quizParam {
+	param := newValidQuizParam(t)
+	param.maxAttempts = maxAttempts
+
+	return param
+}
+
+func newQuizParamDeadline(t *testing.T, deadline *time.Time) quizParam {
+	param := newValidQuizParam(t)
+	param.deadline = deadline
+
+	return param
+}
+
+func newInvalidDeadline() *time.Time {
+	deadline := time.Now().UTC().Add(-time.Hour)
+	return &deadline
+}
+
+func TestCheckAttempt(t *testing.T) {
+	var (
+		qID1 = uuid.New()
+		qID2 = uuid.New()
+		qID3 = uuid.New()
+	)
+	quiz := Quiz{
+		Questions: []Question{
+			{
+				ID: qID1,
+				Details: &SingleChoiceQuestion{
+					Options: []string{"opt1", "opt2"},
+					Correct: "opt1",
 				},
-				{
-					ID:        1,
-					Text:      "Option",
-					IsCorrect: true,
+				Score: 1,
+			},
+			{
+				ID: qID2,
+				Details: &MultipleChoiceQuestion{
+					Options: []string{"opt1", "opt2"},
+					Correct: []string{"opt1", "opt2"},
 				},
+				Score: 2,
+			},
+			{
+				ID: qID3,
+				Details: &NumericQuestion{
+					Correct: 5,
+				},
+				Score: 3,
 			},
 		},
 	}
-	t.Logf("creating a quiz without groupIDs")
-	quiz, err := NewQuiz("quiz", "summary", questions, 1, 1, []common.ID{})
-	if err != nil {
-		t.Errorf("unexcepted error: %v", err)
-	}
-	if !quiz.IsForEveryone {
-		t.Errorf("a field IsForEveryone is false")
+
+	attempt := Attempt{
+		Answers: []Answer{
+			{
+				QuestionID: qID1,
+				Answer:     "opt1",
+			},
+			{
+				QuestionID: qID2,
+				Answer:     []string{"opt1", "opt2"},
+			},
+			{
+				QuestionID: qID3,
+				Answer:     5,
+			},
+		},
 	}
 
-	t.Logf("creating a quiz with groupIDs")
-	quiz, err = NewQuiz("quiz", "summary", questions, 1, 1, []common.ID{1, 2, 3})
-	if err != nil {
-		t.Errorf("unexcepted error: %v", err)
-	}
-	if quiz.IsForEveryone {
-		t.Errorf("a field IsForEveryone is true")
-	}
-
-	t.Logf("creating a quiz with invalid title")
-	_, err = NewQuiz("", "summary", questions, 1, 1, []common.ID{1, 2, 3})
-	if err == nil {
-		t.Errorf("excepted a error")
-	}
-
-	t.Logf("creating a quiz with invalid summary")
-	_, err = NewQuiz("title", "", questions, 1, 1, []common.ID{1, 2, 3})
-	if err == nil {
-		t.Errorf("excepted a error")
-	}
-
-	t.Logf("creating a quiz with invalid questions")
-	_, err = NewQuiz("title", "summary", nil, 1, 1, []common.ID{1, 2, 3})
-	if err == nil {
-		t.Errorf("excepted a error")
-	}
+	err := quiz.CheckAttempt(&attempt)
+	assert.NoError(t, err)
+	assert.Equal(t, attempt.Score, 6)
 }

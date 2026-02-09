@@ -19,3 +19,14 @@ services:
       SMTP_PORT: "587"
       LOG_LEVEL: "DEBUG"
     restart: unless-stopped
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: database
+    environment:
+      POSTGRES_DB: learnHUB
+      POSTGRES_USER: server
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "8001:5432"
