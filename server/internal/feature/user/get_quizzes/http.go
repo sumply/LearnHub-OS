@@ -3,12 +3,19 @@ package get_quizzes
 import (
 	"encoding/json"
 	"net/http"
+	"server/internal/pkg/param"
 	"server/internal/pkg/response"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		output, err := usecase.GetQuizzes(r.Context())
+		userID, err := param.ID(r, param.UserID)
+		if err != nil {
+			response.SendParamError(w, err)
+			return
+		}
+
+		output, err := usecase.GetQuizzes(r.Context(), userID)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return

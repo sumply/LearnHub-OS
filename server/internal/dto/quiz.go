@@ -21,6 +21,11 @@ type QuizItem struct {
 	CreatedAt   time.Time  `json:"created_at"`
 }
 
+type QuizLastAttempt struct {
+	Quiz        QuizItem     `json:"quiz"`
+	LastAttempt *AttemptItem `json:"last_attempt,omitempty"`
+}
+
 type Quiz struct {
 	QuizItem
 	Content []Question `json:"content"`

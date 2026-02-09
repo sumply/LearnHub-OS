@@ -21,7 +21,8 @@ func (p *Postgres) FindQuizItems(ctx context.Context, filter *filter.Quiz) ([]dt
 
 	defer scanner.Close()
 
-	return utils.ScanDTO[row.QuizItem, dto.QuizItem](scanner)
+	row := new(row.QuizItem)
+	return utils.ScanDTO(scanner, row)
 }
 
 func (p *Postgres) joinAttemptToQuiz(ds *goqu.SelectDataset, filter *filter.Attempt) *goqu.SelectDataset {
@@ -60,7 +61,8 @@ func (p *Postgres) FindUserLastAttempt(ctx context.Context, quizID uuid.UUID) ([
 	}
 	defer scanner.Close()
 
-	return utils.ScanDTO[row.UserLastAttempt, dto.UserLastAttempt](scanner)
+	row := new(row.UserLastAttempt)
+	return utils.ScanDTO(scanner, row)
 }
 
 func (p *Postgres) FindStudents(ctx context.Context, groupID uuid.UUID) ([]dto.User, error) {
@@ -72,7 +74,50 @@ func (p *Postgres) FindStudents(ctx context.Context, groupID uuid.UUID) ([]dto.U
 	}
 	defer scanner.Close()
 
-	return utils.ScanDTO[row.User, dto.User](scanner)
+	row := new(row.User)
+	return utils.ScanDTO(scanner, row)
+}
+
+func (p *Postgres) FindQuizLastAttempt(ctx context.Context, userID uuid.UUID) ([]dto.QuizLastAttempt, error) {
+	ds := p.buildQuizLastAttemptQuery(userID)
+
+	scanner, err := ds.Executor().ScannerContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	row := new(row.QuizLastAttempt)
+	return utils.ScanDTO(scanner, row)
+}
+
+func (p *Postgres) buildQuizLastAttemptQuery(userID uuid.UUID) *goqu.SelectDataset {
+	info := p.tables.QuizInfo
+	attempt := p.tables.QuizAttempt
+
+	owner := p.tables.AccountProfile.As("owner")
+	subject := p.tables.SchoolSubject
+
+	attemptOn := goqu.On(
+		attempt.Col("user_id").Eq(userID),
+		attempt.Col("quiz_id").Eq(info.Col("quiz_id")),
+	)
+	ownerOn := goqu.On(
+		info.Col("owner_id").Eq(owner.Col("account_id")),
+	)
+	subjectOn := goqu.On(
+		info.Col("subject_id").Eq(subject.Col("id")),
+	)
+
+	return p.goqu.From(info).
+		Distinct(info.Col("quiz_id")).
+		Select(&row.QuizLastAttempt{}).
+		LeftJoin(attempt, attemptOn).
+		InnerJoin(owner, ownerOn).
+		InnerJoin(subject, subjectOn).
+		Order(
+			info.Col("quiz_id").Asc(),
+			attempt.Col("started_at").Desc(),
+		)
 }
 
 func (p *Postgres) buildFindUserLastAttemptQuery(quizID uuid.UUID) *goqu.SelectDataset {
