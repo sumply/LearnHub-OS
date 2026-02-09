@@ -31,13 +31,13 @@ func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.UserAggregate, e
 		switch rows[i].Role {
 		case sqlc.AccountUserRoleStudent:
 			student := domain.Student{
-				User:  &user,
+				User:  user,
 				Group: rows[i].SGroupID.UUID,
 			}
 			users[i] = &student
 		case sqlc.AccountUserRoleTeacher:
 			teacher := domain.Teacher{
-				User:     &user,
+				User:     user,
 				Groups:   rows[i].TGroupIds,
 				Subjects: rows[i].TSubjectIds,
 			}

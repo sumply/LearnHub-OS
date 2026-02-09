@@ -65,8 +65,9 @@ func (e *Error) ToMap() map[string]any {
 		var target *Error
 		if errors.As(e.data[i].Error, &target) {
 			fieldMap[e.data[i].Field] = target.ToMap()
+		} else {
+			fieldMap[e.data[i].Field] = e.data[i].Error.Error()
 		}
-		fieldMap[e.data[i].Field] = e.data[i].Error.Error()
 	}
 
 	return map[string]any{

@@ -43,7 +43,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 		}
 
 	case domain.RoleStudent:
-		student, err := domain.NewStudent(&user, input.GroupID)
+		student, err := domain.NewStudent(user, input.GroupID)
 		if err != nil {
 			return Output{}, err
 		}
@@ -53,7 +53,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 		}
 
 	case domain.RoleTeacher:
-		teacher, err := domain.NewTeacher(&user, input.SubjectIDs, input.GroupIDs)
+		teacher, err := domain.NewTeacher(user, input.SubjectIDs, input.GroupIDs)
 		if err != nil {
 			return Output{}, err
 		}
