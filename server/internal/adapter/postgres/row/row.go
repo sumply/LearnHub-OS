@@ -82,3 +82,16 @@ func (q *QuizItem) DTO() dto.QuizItem {
 		},
 	}
 }
+
+type User struct {
+	sqlc.AccountProfile
+}
+
+func (u *User) DTO() dto.User {
+	return dto.User{
+		ID:        u.AccountID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Role:      string(u.Role),
+	}
+}

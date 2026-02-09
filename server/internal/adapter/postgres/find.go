@@ -63,6 +63,18 @@ func (p *Postgres) FindUserLastAttempt(ctx context.Context, quizID uuid.UUID) ([
 	return utils.ScanDTO[row.UserLastAttempt, dto.UserLastAttempt](scanner)
 }
 
+func (p *Postgres) FindStudents(ctx context.Context, groupID uuid.UUID) ([]dto.User, error) {
+	ds := p.buildFindStudentsQuery(groupID)
+
+	scanner, err := ds.Executor().ScannerContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer scanner.Close()
+
+	return utils.ScanDTO[row.User, dto.User](scanner)
+}
+
 func (p *Postgres) buildFindUserLastAttemptQuery(quizID uuid.UUID) *goqu.SelectDataset {
 	attempt := p.tables.QuizAttempt
 	user := p.tables.AccountProfile
@@ -103,4 +115,18 @@ func (p *Postgres) buildFindQuizItemsQuery(filter *filter.Quiz) *goqu.SelectData
 	}
 
 	return ds
+}
+
+func (p *Postgres) buildFindStudentsQuery(groupID uuid.UUID) *goqu.SelectDataset {
+	student := p.tables.AccountStudent
+	profile := p.tables.AccountProfile
+
+	studentOn := goqu.On(
+		student.Col("account_id").Eq(profile.Col("account_id")),
+		student.Col("group_id").Eq(groupID),
+	)
+
+	return p.goqu.From(profile).
+		Select(profile.All()).
+		InnerJoin(student, studentOn)
 }

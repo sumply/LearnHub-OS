@@ -68,6 +68,7 @@ type goquTableNames struct {
 	SchoolGroup    exp.IdentifierExpression
 	SchoolSubject  exp.IdentifierExpression
 	AccountProfile exp.IdentifierExpression
+	AccountStudent exp.IdentifierExpression
 	QuizInfo       exp.IdentifierExpression
 	QuizAttempt    exp.IdentifierExpression
 }
@@ -80,6 +81,7 @@ func newGoquTables() goquTableNames {
 		SchoolGroup:    school.Table("group"),
 		SchoolSubject:  school.Table("subject"),
 		AccountProfile: account.Table("profile"),
+		AccountStudent: account.Table("student"),
 		QuizInfo:       quiz.Table("info"),
 		QuizAttempt:    quiz.Table("attempt"),
 	}

@@ -13,7 +13,12 @@ const (
 	AttemptID IDParam = "attempt_id"
 	UserID    IDParam = "user_id"
 	QuizID    IDParam = "quiz_id"
+	GroupID   IDParam = "group_id"
 )
+
+func (param IDParam) Path() string {
+	return "{" + string(param) + "}"
+}
 
 func ID(r *http.Request, key IDParam) (uuid.UUID, error) {
 	param := chi.URLParam(r, string(key))
