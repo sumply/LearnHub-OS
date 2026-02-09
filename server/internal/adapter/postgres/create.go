@@ -43,7 +43,7 @@ func (p *Postgres) CreateSubject(ctx context.Context, subject *domain.Subject) e
 }
 
 func (p *Postgres) CreateStudent(ctx context.Context, student *domain.Student) error {
-	err := p.createAccount(ctx, &student.User)
+	err := p.createAccount(ctx, student.User)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (p *Postgres) CreateStudent(ctx context.Context, student *domain.Student) e
 }
 
 func (p *Postgres) CreateTeacher(ctx context.Context, teacher *domain.Teacher) error {
-	err := p.createAccount(ctx, &teacher.User)
+	err := p.createAccount(ctx, teacher.User)
 	if err != nil {
 		return err
 	}

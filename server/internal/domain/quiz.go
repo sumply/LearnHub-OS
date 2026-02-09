@@ -32,23 +32,23 @@ func NewQuiz(
 
 	err := NewError("quiz")
 	if ownerID == uuid.Nil {
-		err.Add("ownerID", fmt.Errorf("ownerID is empty"))
+		err.add("ownerID", fmt.Errorf("ownerID is empty"))
 	}
 
 	if subjectID == uuid.Nil {
-		err.Add("subjectID", fmt.Errorf("subjectID is empty"))
+		err.add("subjectID", fmt.Errorf("subjectID is empty"))
 	}
 
 	if title == "" {
-		err.Add("title", fmt.Errorf("title is empty"))
+		err.add("title", fmt.Errorf("title is empty"))
 	}
 
 	if summary == "" {
-		err.Add("summary", fmt.Errorf("summary is empty"))
+		err.add("summary", fmt.Errorf("summary is empty"))
 	}
 
 	if len(questions) == 0 {
-		err.Add("questions", fmt.Errorf("questions is empty"))
+		err.add("questions", fmt.Errorf("questions is empty"))
 	}
 
 	totalCount := 0
@@ -58,11 +58,11 @@ func NewQuiz(
 	}
 
 	if maxAttempts <= 0 {
-		err.Add("max_attempts", fmt.Errorf("max_attempts less 0"))
+		err.add("max_attempts", fmt.Errorf("max_attempts less 0"))
 	}
 
 	if deadline != nil && deadline.Before(time.Now().UTC()) {
-		err.Add("deadline", fmt.Errorf("deadline is before now"))
+		err.add("deadline", fmt.Errorf("deadline is before now"))
 	}
 
 	if !err.Empty() {
@@ -125,15 +125,15 @@ type Question struct {
 func NewQuestion(text string, details QuestionDetails, score int) (Question, error) {
 	err := NewError("question")
 	if text == "" {
-		err.Add("text", fmt.Errorf("text is empty"))
+		err.add("text", fmt.Errorf("text is empty"))
 	}
 
 	if score <= 0 {
-		err.Add("score", fmt.Errorf("score less 0"))
+		err.add("score", fmt.Errorf("score less 0"))
 	}
 
 	if details == nil {
-		err.Add("details", fmt.Errorf("details is nil"))
+		err.add("details", fmt.Errorf("details is nil"))
 	}
 
 	if !err.Empty() {

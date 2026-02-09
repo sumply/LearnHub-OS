@@ -21,7 +21,7 @@ func NewError(domain string) *Error {
 	}
 }
 
-func (f *Error) Add(field string, err error) {
+func (f *Error) add(field string, err error) {
 	f.data = append(f.data, ErrorData{
 		Field: field,
 		Error: err,

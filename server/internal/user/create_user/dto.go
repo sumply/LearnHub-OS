@@ -8,9 +8,9 @@ type Input struct {
 	Email     string `json:"email"`
 	Role      string `json:"role"`
 
-	GroupID    *uuid.UUID `json:"group_id,omitempty"`
-	GroupIDs   uuid.UUIDs `json:"group_ids,omitempty"`
-	SubjectIDs uuid.UUIDs `json:"subject_ids,omitempty"`
+	GroupID    uuid.UUID  `json:"group_id"`
+	GroupIDs   uuid.UUIDs `json:"group_ids"`
+	SubjectIDs uuid.UUIDs `json:"subject_ids"`
 }
 
 type Output struct {

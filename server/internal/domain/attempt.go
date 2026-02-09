@@ -20,11 +20,11 @@ type Attempt struct {
 func NewAttempt(quiz *Quiz, userID uuid.UUID) (Attempt, error) {
 	err := NewError("attempt")
 	if quiz == nil {
-		err.Add("quiz", fmt.Errorf("quiz is nil"))
+		err.add("quiz", fmt.Errorf("quiz is nil"))
 	}
 
 	if userID == uuid.Nil {
-		err.Add("userID", fmt.Errorf("userID is empty"))
+		err.add("userID", fmt.Errorf("userID is empty"))
 	}
 
 	if !err.Empty() {
