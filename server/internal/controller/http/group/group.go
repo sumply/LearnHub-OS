@@ -2,10 +2,10 @@ package group
 
 import (
 	"server/internal/adapter/postgres"
-	"server/internal/group/create_group"
-	"server/internal/group/delete_group"
-	"server/internal/group/get_group"
-	"server/internal/group/update_group"
+	"server/internal/feature/group/create_group"
+	"server/internal/feature/group/delete_group"
+	"server/internal/feature/group/get_group"
+	"server/internal/feature/group/update_group"
 
 	"github.com/go-chi/chi/v5"
 )

@@ -2,12 +2,12 @@ package quiz
 
 import (
 	"server/internal/adapter/postgres"
-	"server/internal/quiz/create_quiz"
-	"server/internal/quiz/delete_quiz"
-	"server/internal/quiz/find_quiz"
-	"server/internal/quiz/get_by_id"
-	"server/internal/quiz/get_quiz"
-	"server/internal/quiz/get_users"
+	"server/internal/feature/quiz/create_quiz"
+	"server/internal/feature/quiz/delete_quiz"
+	"server/internal/feature/quiz/find_quiz"
+	"server/internal/feature/quiz/get_by_id"
+	"server/internal/feature/quiz/get_quiz"
+	"server/internal/feature/quiz/get_users"
 
 	"github.com/go-chi/chi/v5"
 )

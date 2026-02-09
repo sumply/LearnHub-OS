@@ -2,10 +2,10 @@ package subject
 
 import (
 	"server/internal/adapter/postgres"
-	"server/internal/subject/create_subject"
-	"server/internal/subject/delete_subject"
-	"server/internal/subject/get_subject"
-	"server/internal/subject/update_subject"
+	"server/internal/feature/subject/create_subject"
+	"server/internal/feature/subject/delete_subject"
+	"server/internal/feature/subject/get_subject"
+	"server/internal/feature/subject/update_subject"
 
 	"github.com/go-chi/chi/v5"
 )

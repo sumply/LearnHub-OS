@@ -2,8 +2,8 @@ package attempt
 
 import (
 	"server/internal/adapter/postgres"
-	"server/internal/attempt/finish_attempt"
-	"server/internal/attempt/start_attempt"
+	"server/internal/feature/attempt/finish_attempt"
+	"server/internal/feature/attempt/start_attempt"
 
 	"github.com/go-chi/chi/v5"
 )

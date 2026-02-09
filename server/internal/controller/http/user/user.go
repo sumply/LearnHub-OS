@@ -2,10 +2,10 @@ package user
 
 import (
 	"server/internal/adapter/postgres"
-	"server/internal/user/create_user"
-	"server/internal/user/delete_user"
-	"server/internal/user/get_user"
-	"server/internal/user/update_user"
+	"server/internal/feature/user/create_user"
+	"server/internal/feature/user/delete_user"
+	"server/internal/feature/user/get_user"
+	"server/internal/feature/user/update_user"
 
 	"github.com/go-chi/chi/v5"
 )
