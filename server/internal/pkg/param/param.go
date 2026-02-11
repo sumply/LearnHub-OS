@@ -14,6 +14,7 @@ const (
 	UserID    IDParam = "user_id"
 	QuizID    IDParam = "quiz_id"
 	GroupID   IDParam = "group_id"
+	SubjectID IDParam = "subject_id"
 )
 
 func (param IDParam) Path() string {
