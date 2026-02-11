@@ -15,6 +15,7 @@ type Quiz struct {
 	OwnerID     uuid.UUID
 	SubjectID   uuid.UUID
 	Questions   []Question
+	GroupIDs    uuid.UUIDs
 	Deadline    *time.Time
 	MaxAttempts int
 	TotalScore  int
@@ -25,6 +26,7 @@ func NewQuiz(
 	ownerID, subjectID uuid.UUID,
 	title, summary string,
 	questions []Question,
+	groupIDs uuid.UUIDs,
 	maxAttempts int,
 	deadline *time.Time,
 ) (Quiz, error) {
@@ -49,6 +51,10 @@ func NewQuiz(
 
 	if len(questions) == 0 {
 		err.add("questions", fmt.Errorf("questions is empty"))
+	}
+
+	if len(groupIDs) == 0 {
+		err.add("group_ids", fmt.Errorf("group_ids is empty"))
 	}
 
 	totalCount := 0
@@ -77,6 +83,7 @@ func NewQuiz(
 		SubjectID:   subjectID,
 		Questions:   questions,
 		Deadline:    deadline,
+		GroupIDs:    groupIDs,
 		MaxAttempts: maxAttempts,
 		TotalScore:  totalCount,
 		CreatedAt:   time.Now().UTC(),
@@ -237,7 +244,7 @@ func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	var _answer []string
 
 	if a, ok := answer.([]string); ok {
-		answer = a
+		_answer = a
 	} else if a, ok := answer.([]any); ok {
 		_answer = make([]string, len(a))
 		for i := range _answer {

@@ -273,6 +273,11 @@ func TestNewQuiz(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name:        "groupIDs is empty",
+			param:       newInvalidQuizParamGroupIDs(t),
+			expectError: true,
+		},
+		{
 			name:        "quiz is valid",
 			param:       newValidQuizParam(t),
 			expectError: false,
@@ -287,6 +292,7 @@ func TestNewQuiz(t *testing.T) {
 				tests[i].param.title,
 				tests[i].param.summary,
 				tests[i].param.questions,
+				tests[i].param.groupIDs,
 				tests[i].param.maxAttempts,
 				tests[i].param.deadline,
 			)
@@ -304,6 +310,7 @@ type quizParam struct {
 	title, summary     string
 	ownerID, subjectID uuid.UUID
 	questions          []Question
+	groupIDs           uuid.UUIDs
 	maxAttempts        int
 	deadline           *time.Time
 }
@@ -315,6 +322,7 @@ func newValidQuizParam(t *testing.T) quizParam {
 		ownerID:     uuid.New(),
 		subjectID:   uuid.New(),
 		questions:   newValidQuestions(t),
+		groupIDs:    []uuid.UUID{uuid.New(), uuid.New()},
 		maxAttempts: 5,
 		deadline:    nil,
 	}
@@ -359,6 +367,13 @@ func newInvalidQuizParamSummary(t *testing.T) quizParam {
 func newInvalidQuizParamQuestions(t *testing.T) quizParam {
 	param := newValidQuizParam(t)
 	param.questions = nil
+
+	return param
+}
+
+func newInvalidQuizParamGroupIDs(t *testing.T) quizParam {
+	param := newValidQuizParam(t)
+	param.groupIDs = nil
 
 	return param
 }
