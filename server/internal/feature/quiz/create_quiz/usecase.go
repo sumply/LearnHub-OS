@@ -50,6 +50,7 @@ func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
 		input.Title,
 		input.Summary,
 		questions,
+		input.GroupIDs,
 		input.MaxAttempts,
 		input.Deadline,
 	)
