@@ -21,7 +21,7 @@ func New(repository Repository) *UseCase {
 	}
 }
 
-func (u *UseCase) GetQuizzes(ctx context.Context, userID uuid.UUID) (Output, error) {
+func (u *UseCase) GetQuizzes(ctx context.Context, userID uuid.UUID, opts Options) (Output, error) {
 	quizzes, err := u.repository.FindQuizLastAttempt(ctx, userID)
 	if err != nil {
 		return Output{}, err

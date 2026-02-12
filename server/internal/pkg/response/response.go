@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
+	"server/internal/pkg/param"
 	"server/internal/usecase"
 )
 
@@ -34,12 +35,16 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 }
 
 func SendParamError(w http.ResponseWriter, err error) {
+	var queryErr *param.QueryError
+	var msg ErrorMessage
+	if errors.As(err, &queryErr) {
+		msg.Error = queryErr.Error()
+		msg.Details = queryErr.ToMap()
+	} else {
+		msg.Error = err.Error()
+	}
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write(
-		ErrorMessage{
-			Error: err.Error(),
-		}.Bytes(),
-	)
+	w.Write(msg.Bytes())
 }
 
 func SendUseCaseError(w http.ResponseWriter, err error) {

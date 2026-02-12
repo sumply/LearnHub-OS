@@ -132,6 +132,17 @@ func (p *Postgres) CreateQuiz(ctx context.Context, quiz *domain.Quiz) error {
 			return err
 		}
 	}
+
+	for _, groupID := range quiz.GroupIDs {
+		err = p.sqlc.InsertQuizAssigment(ctx, sqlc.InsertQuizAssigmentParams{
+			QuizID:  quiz.ID,
+			GroupID: groupID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

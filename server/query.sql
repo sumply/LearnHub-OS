@@ -149,6 +149,16 @@ VALUES (
 );
 
 
+-- name: InsertQuizAssigment :exec
+INSERT INTO quiz.assignment(
+    quiz_id,
+    group_id
+)
+VALUES (
+    $1,
+    $2
+);
+
 -- name: GetDetailedUsers :many
 SELECT 
 	p.account_id, 
