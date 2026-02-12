@@ -1,4 +1,4 @@
-package get_quiz
+package get_quizzes
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 
 func HTTP(usecase *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		output, err := usecase.GetQuiz(r.Context())
+		output, err := usecase.GetQuizzes(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))

@@ -13,7 +13,7 @@ type Input struct {
 	Summary     string         `json:"summary"`
 	SubjectID   uuid.UUID      `json:"subject_id"`
 	GroupIDs    uuid.UUIDs     `json:"group_ids"`
-	Deadline    *time.Time     `json:"deadline,omitempty"`
+	Deadline    *time.Time     `json:"deadline"`
 	MaxAttempts int            `json:"max_attempts"`
 	Questions   []dto.Question `json:"questions"`
 }

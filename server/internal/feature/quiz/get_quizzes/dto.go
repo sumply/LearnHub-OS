@@ -1,4 +1,4 @@
-package get_quiz
+package get_quizzes
 
 import "server/internal/dto"
 
