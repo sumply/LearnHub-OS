@@ -66,7 +66,7 @@ func SendUseCaseError(w http.ResponseWriter, err error) {
 
 func handleValidationError(err *usecase.ValidationError) ErrorMessage {
 	msg := ErrorMessage{
-		Error: err.Event(),
+		Error: err.Error(),
 	}
 	var domainErr *domain.Error
 	if errors.As(err, &domainErr) {

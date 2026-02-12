@@ -12,16 +12,17 @@ func TestNewValidationError(t *testing.T) {
 	domainErr := getDomainError(t)
 	validErr := NewValidationError(domainErr)
 
-	assert.Equal(t, domainErr, validErr.Err())
-	assert.Equal(t, "user validation", validErr.Event())
+	assert.ErrorAs(t, validErr, &domainErr)
+	assert.Equal(t, "user validation", validErr.Error())
 
 	anotherErr := errors.New("another")
 	validErr = NewValidationError(anotherErr)
-	assert.Equal(t, anotherErr, validErr.Err())
-	assert.Equal(t, "validation", validErr.Event())
+
+	assert.ErrorAs(t, validErr, &anotherErr)
+	assert.Equal(t, "validation", validErr.Error())
 }
 
-func getDomainError(t *testing.T) error {
+func getDomainError(t *testing.T) *domain.Error {
 	_, err := domain.NewUser("", "", "", "", "")
 
 	assert.Error(t, err)
@@ -29,5 +30,5 @@ func getDomainError(t *testing.T) error {
 	var target *domain.Error
 	assert.ErrorAs(t, err, &target)
 
-	return err
+	return target
 }

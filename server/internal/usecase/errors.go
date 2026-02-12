@@ -2,21 +2,12 @@ package usecase
 
 import (
 	"errors"
-	"fmt"
 	"server/internal/domain"
 )
 
 type ValidationError struct {
 	event string
 	err   error
-}
-
-func (e *ValidationError) Event() string {
-	return e.event
-}
-
-func (e *ValidationError) Err() error {
-	return e.err
 }
 
 func NewValidationError(err error) *ValidationError {
@@ -35,5 +26,9 @@ func NewValidationError(err error) *ValidationError {
 }
 
 func (e *ValidationError) Error() string {
-	return fmt.Sprintf("usecase(%s): %s", e.event, e.err.Error())
+	return e.event
+}
+
+func (e *ValidationError) Unwrap() error {
+	return e.err
 }
