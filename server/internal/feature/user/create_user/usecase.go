@@ -2,8 +2,8 @@ package create_user
 
 import (
 	"context"
-	"fmt"
 	"server/internal/domain"
+	"server/internal/usecase"
 )
 
 type Postgres interface {
@@ -31,7 +31,7 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 		domain.UserRole(input.Role),
 	)
 	if err != nil {
-		return Output{}, err
+		return Output{}, usecase.NewValidationError(err)
 	}
 
 	switch domain.UserRole(input.Role) {
@@ -43,25 +43,21 @@ func (u *UseCase) CreateUser(ctx context.Context, input *Input) (Output, error) 
 		}
 
 	case domain.RoleStudent:
-		if input.GroupID == nil {
-			return Output{}, fmt.Errorf("groupID is nil")
+		student, err := domain.NewStudent(user, input.GroupID)
+		if err != nil {
+			return Output{}, err
 		}
-		student := domain.Student{
-			User:  user,
-			Group: *input.GroupID,
-		}
-		err := u.postgres.CreateStudent(ctx, &student)
+		err = u.postgres.CreateStudent(ctx, &student)
 		if err != nil {
 			return Output{}, err
 		}
 
 	case domain.RoleTeacher:
-		teacher := domain.Teacher{
-			User:     user,
-			Subjects: input.SubjectIDs,
-			Groups:   input.GroupIDs,
+		teacher, err := domain.NewTeacher(user, input.SubjectIDs, input.GroupIDs)
+		if err != nil {
+			return Output{}, err
 		}
-		err := u.postgres.CreateTeacher(ctx, &teacher)
+		err = u.postgres.CreateTeacher(ctx, &teacher)
 		if err != nil {
 			return Output{}, err
 		}

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
+	"server/internal/pkg/param"
+	"server/internal/usecase"
 )
 
 type ErrorMessage struct {
@@ -33,28 +35,44 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 }
 
 func SendParamError(w http.ResponseWriter, err error) {
+	var queryErr *param.QueryError
+	var msg ErrorMessage
+	if errors.As(err, &queryErr) {
+		msg.Error = queryErr.Error()
+		msg.Details = queryErr.ToMap()
+	} else {
+		msg.Error = err.Error()
+	}
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write(
-		ErrorMessage{
-			Error: err.Error(),
-		}.Bytes(),
-	)
+	w.Write(msg.Bytes())
 }
 
 func SendUseCaseError(w http.ResponseWriter, err error) {
-	var e *domain.Error
 	var msg ErrorMessage
+
+	var e *usecase.ValidationError
 	if errors.As(err, &e) {
 		w.WriteHeader(http.StatusBadRequest)
-		msg = ErrorMessage{
-			Error:   e.Domain() + " validation",
-			Details: e.ToMap(),
-		}
+		msg = handleValidationError(e)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg = ErrorMessage{
 			Error: err.Error(),
 		}
 	}
+
 	w.Write(msg.Bytes())
+}
+
+func handleValidationError(err *usecase.ValidationError) ErrorMessage {
+	msg := ErrorMessage{
+		Error: err.Error(),
+	}
+	var domainErr *domain.Error
+	if errors.As(err, &domainErr) {
+		msg.Details = domainErr.ToMap()
+	} else {
+		msg.Details = err.Error()
+	}
+	return msg
 }

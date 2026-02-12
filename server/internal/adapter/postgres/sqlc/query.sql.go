@@ -562,6 +562,27 @@ func (q *Queries) InsertQuizAnswer(ctx context.Context, arg InsertQuizAnswerPara
 	return err
 }
 
+const insertQuizAssigment = `-- name: InsertQuizAssigment :exec
+INSERT INTO quiz.assignment(
+    quiz_id,
+    group_id
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertQuizAssigmentParams struct {
+	QuizID  uuid.UUID `db:"quiz_id" json:"quiz_id"`
+	GroupID uuid.UUID `db:"group_id" json:"group_id"`
+}
+
+func (q *Queries) InsertQuizAssigment(ctx context.Context, arg InsertQuizAssigmentParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizAssigment, arg.QuizID, arg.GroupID)
+	return err
+}
+
 const insertQuizAttempt = `-- name: InsertQuizAttempt :exec
 INSERT INTO quiz.attempt (
     id,

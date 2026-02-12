@@ -1,4 +1,4 @@
-package get_quiz
+package get_quizzes
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) GetQuiz(ctx context.Context) (Output, error) {
+func (u *UseCase) GetQuizzes(ctx context.Context) (Output, error) {
 	quizzes, err := u.postgres.QuizItems(ctx)
 	if err != nil {
 		return Output{}, err

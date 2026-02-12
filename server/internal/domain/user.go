@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,30 +20,34 @@ type User struct {
 	CreatedAt time.Time
 }
 
-func NewUser(firstName, lastName, email, pwdHash string, role UserRole) (User, error) {
+func (u *User) Validate() error {
 	domainErr := NewError("user")
 
-	if firstName == "" {
-		domainErr.Add("first_name", errors.New("first_name is empty"))
+	if u.FirstName == "" {
+		domainErr.add("first_name", errors.New("first_name is empty"))
 	}
-	if lastName == "" {
-		domainErr.Add("last_name", errors.New("last_name is empty"))
+	if u.LastName == "" {
+		domainErr.add("last_name", errors.New("last_name is empty"))
 	}
-	if email == "" {
-		domainErr.Add("email", errors.New("email is empty"))
+	if u.Email == "" {
+		domainErr.add("email", errors.New("email is empty"))
 	}
-	if pwdHash == "" {
-		domainErr.Add("password_hash", errors.New("password_hash is empty"))
+	if u.PwdHash == "" {
+		domainErr.add("password_hash", errors.New("password_hash is empty"))
 	}
-	if !role.Validate() {
-		domainErr.Add("role", errors.New("role is invalid"))
+	if !u.Role.Validate() {
+		domainErr.add("role", errors.New("role is invalid"))
 	}
 
 	if !domainErr.Empty() {
-		return User{}, domainErr
+		return domainErr
 	}
 
-	return User{
+	return nil
+}
+
+func NewUser(firstName, lastName, email, pwdHash string, role UserRole) (User, error) {
+	u := User{
 		ID:        uuid.New(),
 		FirstName: firstName,
 		LastName:  lastName,
@@ -50,7 +55,13 @@ func NewUser(firstName, lastName, email, pwdHash string, role UserRole) (User, e
 		Email:     email,
 		PwdHash:   pwdHash,
 		CreatedAt: time.Now().UTC(),
-	}, nil
+	}
+
+	if err := u.Validate(); err != nil {
+		return User{}, err
+	}
+
+	return u, nil
 }
 
 type UserRole string
@@ -75,8 +86,82 @@ type Student struct {
 	Group uuid.UUID
 }
 
+func (s *Student) Validate() error {
+	if s.User.Role != RoleStudent {
+		panic(fmt.Errorf("student domain got user with role (%s)", s.User.Role))
+	}
+
+	domainErr := NewError("student")
+
+	if err := s.User.Validate(); err != nil {
+		domainErr.add("user", err)
+	}
+
+	if s.Group == uuid.Nil {
+		domainErr.add("group_id", fmt.Errorf("group_id is empty"))
+	}
+
+	if !domainErr.Empty() {
+		return domainErr
+	}
+
+	return nil
+}
+
+func NewStudent(user User, groupID uuid.UUID) (Student, error) {
+	s := Student{
+		User:  user,
+		Group: groupID,
+	}
+
+	if err := s.Validate(); err != nil {
+		return Student{}, err
+	}
+
+	return s, nil
+}
+
 type Teacher struct {
 	User
 	Subjects uuid.UUIDs
 	Groups   uuid.UUIDs
+}
+
+func (t *Teacher) Validate() error {
+	if t.User.Role != RoleTeacher {
+		panic(fmt.Errorf("teacher domain got user with role (%s)", t.User.Role))
+	}
+
+	domainErr := NewError("teacher")
+
+	if err := t.User.Validate(); err != nil {
+		domainErr.add("user", err)
+	}
+
+	if len(t.Subjects) == 0 {
+		domainErr.add("subject_ids", errors.New("subject_ids is empty"))
+	}
+	if len(t.Groups) == 0 {
+		domainErr.add("group_ids", errors.New("group_ids is empty"))
+	}
+
+	if !domainErr.Empty() {
+		return domainErr
+	}
+
+	return nil
+}
+
+func NewTeacher(user User, subjects, groups uuid.UUIDs) (Teacher, error) {
+	t := Teacher{
+		User:     user,
+		Subjects: subjects,
+		Groups:   groups,
+	}
+
+	if err := t.Validate(); err != nil {
+		return Teacher{}, err
+	}
+
+	return t, nil
 }

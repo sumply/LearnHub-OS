@@ -21,7 +21,7 @@ func NewError(domain string) *Error {
 	}
 }
 
-func (f *Error) Add(field string, err error) {
+func (f *Error) add(field string, err error) {
 	f.data = append(f.data, ErrorData{
 		Field: field,
 		Error: err,
@@ -65,8 +65,9 @@ func (e *Error) ToMap() map[string]any {
 		var target *Error
 		if errors.As(e.data[i].Error, &target) {
 			fieldMap[e.data[i].Field] = target.ToMap()
+		} else {
+			fieldMap[e.data[i].Field] = e.data[i].Error.Error()
 		}
-		fieldMap[e.data[i].Field] = e.data[i].Error.Error()
 	}
 
 	return map[string]any{

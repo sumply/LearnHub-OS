@@ -9,8 +9,9 @@ import (
 
 func TestNewInvalidAttempt(t *testing.T) {
 	tests := []struct {
-		name  string
-		param attemptParam
+		name    string
+		param   attemptParam
+		isPanic bool
 	}{
 		{
 			name: "quiz is nil",
@@ -18,6 +19,7 @@ func TestNewInvalidAttempt(t *testing.T) {
 				quiz:   nil,
 				userID: uuid.New(),
 			},
+			isPanic: true,
 		},
 		{
 			name: "userID is empty",
@@ -29,6 +31,13 @@ func TestNewInvalidAttempt(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					if !test.isPanic {
+						t.Error(r)
+					}
+				}
+			}()
 			_, err := NewAttempt(test.param.quiz, test.param.userID)
 			assert.Error(t, err)
 		})

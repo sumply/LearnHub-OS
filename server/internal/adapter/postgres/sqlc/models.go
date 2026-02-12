@@ -134,13 +134,19 @@ type QuizAnswer struct {
 	IsCorrect  bool            `db:"is_correct" json:"is_correct"`
 }
 
+type QuizAssignment struct {
+	QuizID  uuid.UUID `db:"quiz_id" json:"quiz_id"`
+	GroupID uuid.UUID `db:"group_id" json:"group_id"`
+}
+
 type QuizAttempt struct {
-	ID        uuid.UUID    `db:"id" json:"id"`
-	QuizID    uuid.UUID    `db:"quiz_id" json:"quiz_id"`
-	UserID    uuid.UUID    `db:"user_id" json:"user_id"`
-	Score     int          `db:"score" json:"score"`
-	StartedAt time.Time    `db:"started_at" json:"started_at"`
-	EndedAt   sql.NullTime `db:"ended_at" json:"ended_at"`
+	ID            uuid.UUID    `db:"id" json:"id"`
+	NumberAttempt int16        `db:"number_attempt" json:"number_attempt"`
+	QuizID        uuid.UUID    `db:"quiz_id" json:"quiz_id"`
+	UserID        uuid.UUID    `db:"user_id" json:"user_id"`
+	Score         int          `db:"score" json:"score"`
+	StartedAt     time.Time    `db:"started_at" json:"started_at"`
+	EndedAt       sql.NullTime `db:"ended_at" json:"ended_at"`
 }
 
 type QuizInfo struct {
@@ -156,11 +162,12 @@ type QuizInfo struct {
 }
 
 type QuizQuestion struct {
-	ID      uuid.UUID       `db:"id" json:"id"`
-	QuizID  uuid.UUID       `db:"quiz_id" json:"quiz_id"`
-	Title   string          `db:"title" json:"title"`
-	Score   int             `db:"score" json:"score"`
-	Details json.RawMessage `db:"details" json:"details"`
+	ID       uuid.UUID       `db:"id" json:"id"`
+	QuizID   uuid.UUID       `db:"quiz_id" json:"quiz_id"`
+	Title    string          `db:"title" json:"title"`
+	Score    int             `db:"score" json:"score"`
+	Details  json.RawMessage `db:"details" json:"details"`
+	Position int16           `db:"position" json:"position"`
 }
 
 type SchoolGroup struct {

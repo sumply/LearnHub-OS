@@ -1,30 +1,24 @@
 package utils
 
 import (
-	"fmt"
-
 	"github.com/doug-martin/goqu/v9/exec"
 )
 
-type DTOMapper[dtoType any] interface {
+type Rower[dtoType any] interface {
 	DTO() dtoType
+	Clear()
 }
 
-func ScanDTO[rowType, dtoType any](s exec.Scanner) ([]dtoType, error) {
+func ScanDTO[dtoType any](s exec.Scanner, rower Rower[dtoType]) ([]dtoType, error) {
 	items := make([]dtoType, 0)
 
 	for s.Next() {
-		var row rowType
-
-		if err := s.ScanStruct(&row); err != nil {
+		rower.Clear()
+		if err := s.ScanStruct(rower); err != nil {
 			return nil, err
 		}
 
-		if rower, ok := any(&row).(DTOMapper[dtoType]); ok {
-			items = append(items, rower.DTO())
-		} else {
-			return nil, fmt.Errorf("type %T does not implement DTOMapper[%T]", row, *new(dtoType))
-		}
+		items = append(items, rower.DTO())
 	}
 
 	return items, nil

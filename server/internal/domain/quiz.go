@@ -15,6 +15,7 @@ type Quiz struct {
 	OwnerID     uuid.UUID
 	SubjectID   uuid.UUID
 	Questions   []Question
+	GroupIDs    uuid.UUIDs
 	Deadline    *time.Time
 	MaxAttempts int
 	TotalScore  int
@@ -25,6 +26,7 @@ func NewQuiz(
 	ownerID, subjectID uuid.UUID,
 	title, summary string,
 	questions []Question,
+	groupIDs uuid.UUIDs,
 	maxAttempts int,
 	deadline *time.Time,
 ) (Quiz, error) {
@@ -32,23 +34,27 @@ func NewQuiz(
 
 	err := NewError("quiz")
 	if ownerID == uuid.Nil {
-		err.Add("ownerID", fmt.Errorf("ownerID is empty"))
+		err.add("ownerID", fmt.Errorf("ownerID is empty"))
 	}
 
 	if subjectID == uuid.Nil {
-		err.Add("subjectID", fmt.Errorf("subjectID is empty"))
+		err.add("subjectID", fmt.Errorf("subjectID is empty"))
 	}
 
 	if title == "" {
-		err.Add("title", fmt.Errorf("title is empty"))
+		err.add("title", fmt.Errorf("title is empty"))
 	}
 
 	if summary == "" {
-		err.Add("summary", fmt.Errorf("summary is empty"))
+		err.add("summary", fmt.Errorf("summary is empty"))
 	}
 
 	if len(questions) == 0 {
-		err.Add("questions", fmt.Errorf("questions is empty"))
+		err.add("questions", fmt.Errorf("questions is empty"))
+	}
+
+	if len(groupIDs) == 0 {
+		err.add("group_ids", fmt.Errorf("group_ids is empty"))
 	}
 
 	totalCount := 0
@@ -58,11 +64,11 @@ func NewQuiz(
 	}
 
 	if maxAttempts <= 0 {
-		err.Add("max_attempts", fmt.Errorf("max_attempts less 0"))
+		err.add("max_attempts", fmt.Errorf("max_attempts less 0"))
 	}
 
 	if deadline != nil && deadline.Before(time.Now().UTC()) {
-		err.Add("deadline", fmt.Errorf("deadline is before now"))
+		err.add("deadline", fmt.Errorf("deadline is before now"))
 	}
 
 	if !err.Empty() {
@@ -77,6 +83,7 @@ func NewQuiz(
 		SubjectID:   subjectID,
 		Questions:   questions,
 		Deadline:    deadline,
+		GroupIDs:    groupIDs,
 		MaxAttempts: maxAttempts,
 		TotalScore:  totalCount,
 		CreatedAt:   time.Now().UTC(),
@@ -125,15 +132,15 @@ type Question struct {
 func NewQuestion(text string, details QuestionDetails, score int) (Question, error) {
 	err := NewError("question")
 	if text == "" {
-		err.Add("text", fmt.Errorf("text is empty"))
+		err.add("text", fmt.Errorf("text is empty"))
 	}
 
 	if score <= 0 {
-		err.Add("score", fmt.Errorf("score less 0"))
+		err.add("score", fmt.Errorf("score less 0"))
 	}
 
 	if details == nil {
-		err.Add("details", fmt.Errorf("details is nil"))
+		err.add("details", fmt.Errorf("details is nil"))
 	}
 
 	if !err.Empty() {
@@ -237,7 +244,7 @@ func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	var _answer []string
 
 	if a, ok := answer.([]string); ok {
-		answer = a
+		_answer = a
 	} else if a, ok := answer.([]any); ok {
 		_answer = make([]string, len(a))
 		for i := range _answer {

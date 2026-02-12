@@ -9,30 +9,41 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserLastAttempt struct {
-	User    sqlc.AccountProfile `db:"user"`
-	Attempt struct {
-		ID        sql.Null[uuid.UUID] `db:"id"`
-		Score     sql.Null[int]       `db:"score"`
-		StartedAt sql.NullTime        `db:"started_at"`
-		EndedAt   sql.NullTime        `db:"ended_at"`
+type NullAttemptItem struct {
+	ID        sql.Null[uuid.UUID] `db:"id"`
+	Score     sql.Null[int]       `db:"score"`
+	StartedAt sql.NullTime        `db:"started_at"`
+	EndedAt   sql.NullTime        `db:"ended_at"`
+}
+
+func (n *NullAttemptItem) DTO() *dto.AttemptItem {
+	if !n.StartedAt.Valid {
+		return nil
+	}
+
+	var endedTime *time.Time
+	if n.EndedAt.Valid {
+		endedTime = &n.EndedAt.Time
+	}
+
+	return &dto.AttemptItem{
+		ID:        n.ID.V,
+		Score:     n.Score.V,
+		StartedAt: n.StartedAt.Time,
+		EndedAt:   endedTime,
 	}
 }
 
+func (n *NullAttemptItem) Clear() {
+	*n = NullAttemptItem{}
+}
+
+type UserLastAttempt struct {
+	User    sqlc.AccountProfile `db:"user"`
+	Attempt NullAttemptItem     `db:"attempt"`
+}
+
 func (u *UserLastAttempt) DTO() dto.UserLastAttempt {
-	var attemptItem *dto.AttemptItem
-	if u.Attempt.StartedAt.Valid {
-		var endedAt *time.Time
-		if u.Attempt.EndedAt.Valid {
-			endedAt = &u.Attempt.EndedAt.Time
-		}
-		attemptItem = &dto.AttemptItem{
-			ID:        u.Attempt.ID.V,
-			StartedAt: u.Attempt.StartedAt.Time,
-			EndedAt:   endedAt,
-			Score:     u.Attempt.Score.V,
-		}
-	}
 	return dto.UserLastAttempt{
 		User: dto.User{
 			ID:        u.User.AccountID,
@@ -40,8 +51,12 @@ func (u *UserLastAttempt) DTO() dto.UserLastAttempt {
 			LastName:  u.User.LastName,
 			Role:      string(u.User.Role),
 		},
-		LastAttempt: attemptItem,
+		LastAttempt: u.Attempt.DTO(),
 	}
+}
+
+func (u *UserLastAttempt) Clear() {
+	*u = UserLastAttempt{}
 }
 
 type QuizItem struct {
@@ -81,4 +96,41 @@ func (q *QuizItem) DTO() dto.QuizItem {
 			Name: subject.Name,
 		},
 	}
+}
+
+func (q *QuizItem) Clear() {
+	*q = QuizItem{}
+}
+
+type User struct {
+	sqlc.AccountProfile
+}
+
+func (u *User) DTO() dto.User {
+	return dto.User{
+		ID:        u.AccountID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Role:      string(u.Role),
+	}
+}
+
+func (u *User) Clear() {
+	*u = User{}
+}
+
+type QuizLastAttempt struct {
+	QuizItem
+	Attempt NullAttemptItem `db:"attempt"`
+}
+
+func (q *QuizLastAttempt) DTO() dto.QuizLastAttempt {
+	return dto.QuizLastAttempt{
+		Quiz:        q.QuizItem.DTO(),
+		LastAttempt: q.Attempt.DTO(),
+	}
+}
+
+func (q *QuizLastAttempt) Clear() {
+	*q = QuizLastAttempt{}
 }
