@@ -5,6 +5,7 @@ import (
 	"server/internal/adapter/postgres"
 	"server/internal/config"
 	"server/internal/controller/http/attempt"
+	"server/internal/controller/http/auth"
 	"server/internal/controller/http/group"
 	"server/internal/controller/http/middleware"
 	"server/internal/controller/http/quiz"
@@ -35,6 +36,7 @@ func Router(creator config.Creator) http.Handler {
 	subject.Route(r, p)
 	quiz.Route(r, p)
 	attempt.Route(r, p)
+	auth.Route(r, p)
 
 	return r
 }

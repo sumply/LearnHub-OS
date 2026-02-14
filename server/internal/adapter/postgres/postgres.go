@@ -67,12 +67,13 @@ type executer interface {
 }
 
 type goquTableNames struct {
-	SchoolGroup    exp.IdentifierExpression
-	SchoolSubject  exp.IdentifierExpression
-	AccountProfile exp.IdentifierExpression
-	AccountStudent exp.IdentifierExpression
-	QuizInfo       exp.IdentifierExpression
-	QuizAttempt    exp.IdentifierExpression
+	SchoolGroup       exp.IdentifierExpression
+	SchoolSubject     exp.IdentifierExpression
+	AccountProfile    exp.IdentifierExpression
+	AccountStudent    exp.IdentifierExpression
+	AccountCredential exp.IdentifierExpression
+	QuizInfo          exp.IdentifierExpression
+	QuizAttempt       exp.IdentifierExpression
 }
 
 func newGoquTables() goquTableNames {
@@ -80,11 +81,12 @@ func newGoquTables() goquTableNames {
 	account := goqu.S("account")
 	quiz := goqu.S("quiz")
 	return goquTableNames{
-		SchoolGroup:    school.Table("group"),
-		SchoolSubject:  school.Table("subject"),
-		AccountProfile: account.Table("profile"),
-		AccountStudent: account.Table("student"),
-		QuizInfo:       quiz.Table("info"),
-		QuizAttempt:    quiz.Table("attempt"),
+		SchoolGroup:       school.Table("group"),
+		SchoolSubject:     school.Table("subject"),
+		AccountProfile:    account.Table("profile"),
+		AccountStudent:    account.Table("student"),
+		AccountCredential: account.Table("credential"),
+		QuizInfo:          quiz.Table("info"),
+		QuizAttempt:       quiz.Table("attempt"),
 	}
 }

@@ -7,11 +7,51 @@ import (
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 	"server/internal/dto"
+	"server/internal/repository"
+	"server/internal/repository/filter"
 	"time"
 
+	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
+
+func (p *Postgres) UserByCredential(ctx context.Context, filter filter.Credential) (domain.User, error) {
+	ds, row := p.buildUserByEmailQuery(filter)
+
+	ok, err := ds.Executor().ScanStructContext(ctx, row)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if !ok {
+		return domain.User{}, repository.NewNotFoundError()
+	}
+
+	return domain.User{
+		ID:        row.AccountID,
+		FirstName: row.FirstName,
+		LastName:  row.LastName,
+		Role:      domain.UserRole(row.Role),
+		CreatedAt: row.CreatedAt,
+	}, nil
+}
+
+func (p *Postgres) buildUserByEmailQuery(filter filter.Credential) (*goqu.SelectDataset, *sqlc.AccountProfile) {
+	credential := p.tables.AccountCredential
+	profile := p.tables.AccountProfile
+
+	profileOn := goqu.On(profile.Col("account_id").Eq(credential.Col("account_id")))
+
+	ds := p.goqu.From(credential).
+		Select(profile.All()).
+		Join(profile, profileOn).
+		Where(
+			credential.Col("email").Eq(filter.Email),
+			credential.Col("pwd_hash").Eq(filter.PwdHash),
+		)
+
+	return ds, &sqlc.AccountProfile{}
+}
 
 func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.UserAggregate, error) {
 	rows, err := p.sqlc.GetDetailedUsers(ctx)
