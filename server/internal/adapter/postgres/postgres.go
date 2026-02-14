@@ -18,6 +18,20 @@ type Postgres struct {
 	tables goquTableNames
 }
 
+func (p *Postgres) MakeGroup() *Group {
+	return &Group{
+		goqu:   p.goqu,
+		tables: p.tables,
+	}
+}
+
+func (p *Postgres) MakeQuizItem() *QuizItem {
+	return &QuizItem{
+		goqu:   p.goqu,
+		tables: p.tables,
+	}
+}
+
 type Options struct {
 	User     string
 	Password string
@@ -74,6 +88,7 @@ type goquTableNames struct {
 	AccountCredential exp.IdentifierExpression
 	QuizInfo          exp.IdentifierExpression
 	QuizAttempt       exp.IdentifierExpression
+	QuizAssignment    exp.IdentifierExpression
 }
 
 func newGoquTables() goquTableNames {
@@ -88,5 +103,6 @@ func newGoquTables() goquTableNames {
 		AccountCredential: account.Table("credential"),
 		QuizInfo:          quiz.Table("info"),
 		QuizAttempt:       quiz.Table("attempt"),
+		QuizAssignment:    quiz.Table("assignment"),
 	}
 }

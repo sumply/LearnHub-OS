@@ -2,54 +2,101 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"server/internal/adapter/postgres/row"
+	"server/internal/adapter/postgres/sqlc"
 	"server/internal/adapter/postgres/utils"
+	"server/internal/domain"
 	"server/internal/dto"
-	"server/internal/repository/filter"
+	"server/internal/repository"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
 )
 
-func (p *Postgres) FindQuizItems(ctx context.Context, filter *filter.Quiz) ([]dto.QuizItem, error) {
-	ds := p.buildFindQuizItemsQuery(filter)
+type QuizItem struct {
+	goqu   *goqu.Database
+	tables goquTableNames
+}
+
+func (p *QuizItem) ListByOwner(ctx context.Context, ownerID uuid.UUID) ([]dto.QuizItem, error) {
+	quiz := p.tables.QuizInfo
+
+	ds := p.goqu.From(quiz).
+		Select(quiz.All()).
+		Where(quiz.Col("owner_id").Eq(ownerID))
 
 	scanner, err := ds.Executor().ScannerContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	defer scanner.Close()
-
-	row := new(row.QuizItem)
-	return utils.ScanDTO(scanner, row)
+	return utils.ScanDTO(scanner, new(row.QuizItem))
 }
 
-func (p *Postgres) joinAttemptToQuiz(ds *goqu.SelectDataset, filter *filter.Attempt) *goqu.SelectDataset {
-	if filter == nil {
-		return ds
+func (p *QuizItem) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]dto.QuizItem, error) {
+	quiz := p.tables.QuizInfo
+	assignment := p.tables.QuizAssignment
+	subject := p.tables.SchoolSubject
+	owner := p.tables.AccountProfile.As("owner")
+
+	ds := p.goqu.From(quiz).
+		Select(&row.QuizItem{}).
+		InnerJoin(owner, goqu.On(
+			owner.Col("account_id").Eq(quiz.Col("owner_id")),
+		)).
+		InnerJoin(subject, goqu.On(
+			subject.Col("id").Eq(quiz.Col("subject_id")),
+		)).
+		InnerJoin(assignment, goqu.On(
+			assignment.Col("quiz_id").Eq(quiz.Col("quiz_id")),
+		)).
+		Where(
+			assignment.Col("group_id").Eq(groupID),
+		)
+
+	fmt.Println(ds.ToSQL())
+
+	scanner, err := ds.Executor().ScannerContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	attempt := p.tables.QuizAttempt
-	info := p.tables.QuizInfo
+	return utils.ScanDTO(scanner, new(row.QuizItem))
+}
 
-	attemptOn := goqu.On(attempt.Col("quiz_id").Eq(info.Col("quiz_id")))
+type Group struct {
+	goqu   *goqu.Database
+	tables goquTableNames
+}
 
-	if filter.IsCompleted != nil {
-		if *filter.IsCompleted {
-			ds = ds.InnerJoin(attempt, attemptOn).
-				Where(
-					attempt.Col("ended_at").IsNotNull(),
-				)
-			if filter.UserID != nil {
-				ds = ds.Where(
-					attempt.Col("user_id").Eq(filter.UserID),
-				)
-			}
-		}
+func (p *Group) GetByStudent(ctx context.Context, studentID uuid.UUID) (domain.Group, error) {
+	group := p.tables.SchoolGroup
+	student := p.tables.AccountStudent
+
+	ds := p.goqu.From(group).
+		Select(group.All()).
+		InnerJoin(student, goqu.On(
+			student.Col("group_id").Eq(group.Col("id")),
+		)).
+		Where(
+			student.Col("account_id").Eq(studentID),
+		)
+
+	var row sqlc.SchoolGroup
+	ok, err := ds.Executor().ScanStructContext(ctx, &row)
+	if err != nil {
+		return domain.Group{}, err
 	}
 
-	return ds
+	if !ok {
+		return domain.Group{}, repository.NewNotFoundError()
+	}
+
+	return domain.Group{
+		ID:   row.ID,
+		Name: row.Name,
+	}, nil
 }
 
 func (p *Postgres) FindUserLastAttempt(ctx context.Context, quizID uuid.UUID) ([]dto.UserLastAttempt, error) {
@@ -140,26 +187,6 @@ func (p *Postgres) buildFindUserLastAttemptQuery(quizID uuid.UUID) *goqu.SelectD
 			user.Col("account_id").Asc(),
 			attempt.Col("started_at").Desc(),
 		)
-}
-
-func (p *Postgres) buildFindQuizItemsQuery(filter *filter.Quiz) *goqu.SelectDataset {
-	info := p.tables.QuizInfo
-	subject := p.tables.SchoolSubject
-	owner := p.tables.AccountProfile.As("owner")
-
-	subjectOn := goqu.On(subject.Col("id").Eq(info.Col("subject_id")))
-	ownerOn := goqu.On(owner.Col("account_id").Eq(info.Col("owner_id")))
-
-	ds := p.goqu.From(info).
-		SelectDistinct(&row.QuizItem{}).
-		InnerJoin(subject, subjectOn).
-		InnerJoin(owner, ownerOn)
-
-	if filter != nil {
-		ds = p.joinAttemptToQuiz(ds, filter.Attempt)
-	}
-
-	return ds
 }
 
 func (p *Postgres) buildFindStudentsQuery(groupID uuid.UUID) *goqu.SelectDataset {
