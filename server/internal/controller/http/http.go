@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"server/internal/adapter/postgres"
 	"server/internal/config"
 	"server/internal/controller/http/attempt"
 	"server/internal/controller/http/group"
@@ -24,7 +25,7 @@ func Router(creator config.Creator) http.Handler {
 
 	cfgPostgres := creator.CreatePostgresConnection()
 
-	p, err := cfgPostgres.Create()
+	p, err := postgres.New(cfgPostgres.CreateOptions())
 	if err != nil {
 		panic(err)
 	}

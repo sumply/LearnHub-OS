@@ -3,7 +3,8 @@ package app
 import (
 	"net/http"
 	"server/internal/config"
-	myhttp "server/internal/controller/http"
+
+	controller "server/internal/controller/http"
 )
 
 func Run() error {
@@ -11,5 +12,5 @@ func Run() error {
 
 	addr := env.CreateServeAddress()
 
-	return http.ListenAndServe(addr.String(), myhttp.Router(env))
+	return http.ListenAndServe(addr.String(), controller.Router(env))
 }

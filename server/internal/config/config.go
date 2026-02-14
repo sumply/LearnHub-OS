@@ -25,15 +25,15 @@ type PostgresConnection struct {
 	Host     string
 }
 
-func (p *PostgresConnection) Create() (*postgres.Postgres, error) {
-	return postgres.New(postgres.Options{
+func (p *PostgresConnection) CreateOptions() postgres.Options {
+	return postgres.Options{
 		User:     p.User,
 		Password: p.Password,
 		DB:       p.Database,
 		SSLMode:  p.SSLMode,
 		Port:     p.Port,
 		Host:     p.Host,
-	})
+	}
 }
 
 type Env struct{}
