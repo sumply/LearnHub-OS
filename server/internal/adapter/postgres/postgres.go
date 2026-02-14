@@ -23,10 +23,12 @@ type Options struct {
 	Password string
 	DB       string
 	SSLMode  string
+	Port     int
+	Host     string
 }
 
 func (o *Options) String() string {
-	return fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", o.User, o.Password, o.DB, o.SSLMode)
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", o.Host, o.Port, o.User, o.Password, o.DB, o.SSLMode)
 }
 
 func New(opt Options) (*Postgres, error) {

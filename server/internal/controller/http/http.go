@@ -2,7 +2,7 @@ package http
 
 import (
 	"net/http"
-	"server/internal/adapter/postgres"
+	"server/internal/config"
 	"server/internal/controller/http/attempt"
 	"server/internal/controller/http/group"
 	"server/internal/controller/http/middleware"
@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Router() http.Handler {
+func Router(creator config.Creator) http.Handler {
 	r := chi.NewMux()
 
 	r.Use(
@@ -22,12 +22,9 @@ func Router() http.Handler {
 		middleware.Recoverer(),
 	)
 
-	p, err := postgres.New(postgres.Options{
-		User:     "postgres",
-		Password: "2121",
-		DB:       "test",
-		SSLMode:  "disable",
-	})
+	cfgPostgres := creator.CreatePostgresConnection()
+
+	p, err := cfgPostgres.Create()
 	if err != nil {
 		panic(err)
 	}

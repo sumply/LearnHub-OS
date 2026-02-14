@@ -5,19 +5,21 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    depends_on:
+      - database
     container_name: server
     ports:
       - "8000:8000"
     environment:
-      JWT_SECRET_KEY: "secret"
-      JWT_ACCESS_DURATION: "60"
-      JWT_REFRESH_DURATION: "3600"
-      JWT_ISSUER: "learnHUB-OS"
-      SMTP_FROM: "<email>"
-      SMTP_PASSWORD: "<pwd>"
-      SMTP_HOST: "smtp.mail.ru"
-      SMTP_PORT: "587"
-      LOG_LEVEL: "DEBUG"
+      POSTGRES_DATABASE: learnHUB
+      POSTGRES_USER: server
+      POSTGRES_PASSWORD: secret
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432
+      POSTGRES_SSLMODE: disable
+
+      SERVE_HOST: 0.0.0.0
+      SERVE_PORT: 8000
     restart: unless-stopped
   database:
     build:
@@ -28,5 +30,3 @@ services:
       POSTGRES_DB: learnHUB
       POSTGRES_USER: server
       POSTGRES_PASSWORD: secret
-    ports:
-      - "8001:5432"
