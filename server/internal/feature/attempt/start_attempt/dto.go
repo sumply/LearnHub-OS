@@ -9,7 +9,6 @@ import (
 
 type Input struct {
 	UserID uuid.UUID `json:"user_id"`
-	QuizID uuid.UUID `json:"quiz_id"`
 }
 
 type Output struct {

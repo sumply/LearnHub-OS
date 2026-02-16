@@ -24,8 +24,8 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) StartAttempt(ctx context.Context, input *Input) (Output, error) {
-	quiz, err := u.postgres.DomainQuiz(ctx, input.QuizID)
+func (u *UseCase) StartAttempt(ctx context.Context, quizID uuid.UUID, input *Input) (Output, error) {
+	quiz, err := u.postgres.DomainQuiz(ctx, quizID)
 	if err != nil {
 		return Output{}, err
 	}
@@ -40,7 +40,7 @@ func (u *UseCase) StartAttempt(ctx context.Context, input *Input) (Output, error
 		return Output{}, err
 	}
 
-	quizDTO, err := u.postgres.Quiz(ctx, input.QuizID)
+	quizDTO, err := u.postgres.Quiz(ctx, quizID)
 	if err != nil {
 		return Output{}, err
 	}
