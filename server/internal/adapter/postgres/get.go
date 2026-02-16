@@ -101,9 +101,8 @@ func (p *Postgres) DetailedUsers(ctx context.Context) ([]domain.UserAggregate, e
 			users[i] = &student
 		case sqlc.AccountUserRoleTeacher:
 			teacher := domain.Teacher{
-				User:     user,
-				Groups:   rows[i].TGroupIds,
-				Subjects: rows[i].TSubjectIds,
+				User:   user,
+				Groups: rows[i].TGroupIds,
 			}
 			users[i] = &teacher
 		default:

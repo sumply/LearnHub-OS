@@ -32,6 +32,18 @@ func (p *Postgres) MakeQuizItem() *QuizItem {
 	}
 }
 
+func (p *Postgres) MakeDomain() *Domain {
+	return &Domain{
+		Postgres: p,
+	}
+}
+
+func (p *Postgres) MakeQuery() *Query {
+	return &Query{
+		Postgres: p,
+	}
+}
+
 type Options struct {
 	User     string
 	Password string
@@ -86,6 +98,7 @@ type goquTableNames struct {
 	AccountProfile    exp.IdentifierExpression
 	AccountStudent    exp.IdentifierExpression
 	AccountCredential exp.IdentifierExpression
+	AccountTeacher    exp.IdentifierExpression
 	QuizInfo          exp.IdentifierExpression
 	QuizAttempt       exp.IdentifierExpression
 	QuizAssignment    exp.IdentifierExpression
@@ -100,6 +113,7 @@ func newGoquTables() goquTableNames {
 		SchoolSubject:     school.Table("subject"),
 		AccountProfile:    account.Table("profile"),
 		AccountStudent:    account.Table("student"),
+		AccountTeacher:    account.Table("teacher"),
 		AccountCredential: account.Table("credential"),
 		QuizInfo:          quiz.Table("info"),
 		QuizAttempt:       quiz.Table("attempt"),

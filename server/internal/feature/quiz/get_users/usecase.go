@@ -2,7 +2,6 @@ package get_users
 
 import (
 	"context"
-	"fmt"
 	"server/internal/dto"
 
 	"github.com/google/uuid"
@@ -23,13 +22,10 @@ func New(repository Repository) *UseCase {
 }
 
 func (u *UseCase) GetUsers(ctx context.Context, quizID uuid.UUID) (Output, error) {
-	fmt.Println("calling use case")
-
 	users, err := u.repository.FindUserLastAttempt(ctx, quizID)
 	if err != nil {
 		return Output{}, err
 	}
-	fmt.Printf("got users: %v\n", users)
 
 	return Output{
 		Users: users,

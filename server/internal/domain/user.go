@@ -136,8 +136,7 @@ func NewStudent(user User, groupID uuid.UUID) (Student, error) {
 
 type Teacher struct {
 	User
-	Subjects uuid.UUIDs
-	Groups   uuid.UUIDs
+	Groups uuid.UUIDs
 }
 
 func (t *Teacher) Validate() error {
@@ -151,9 +150,6 @@ func (t *Teacher) Validate() error {
 		domainErr.add("user", err)
 	}
 
-	if len(t.Subjects) == 0 {
-		domainErr.add("subject_ids", errors.New("subject_ids is empty"))
-	}
 	if len(t.Groups) == 0 {
 		domainErr.add("group_ids", errors.New("group_ids is empty"))
 	}
@@ -165,11 +161,10 @@ func (t *Teacher) Validate() error {
 	return nil
 }
 
-func NewTeacher(user User, subjects, groups uuid.UUIDs) (Teacher, error) {
+func NewTeacher(user User, groups uuid.UUIDs) (Teacher, error) {
 	t := Teacher{
-		User:     user,
-		Subjects: subjects,
-		Groups:   groups,
+		User:   user,
+		Groups: groups,
 	}
 
 	if err := t.Validate(); err != nil {

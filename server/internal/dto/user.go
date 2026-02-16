@@ -13,5 +13,5 @@ type User struct {
 
 type UserLastAttempt struct {
 	User
-	LastAttempt *AttemptItem `json:"last_attempt,omitempty"`
+	LastAttempt *AttemptItem `json:"last_attempt"`
 }

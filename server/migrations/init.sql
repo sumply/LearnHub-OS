@@ -42,8 +42,7 @@ CREATE TABLE account.student(
 CREATE TABLE account.teacher(
 	account_id UUID REFERENCES account.profile(account_id) ON DELETE CASCADE NOT NULL,
 	group_id UUID REFERENCES school.group(id) NOT NULL,
-	subject_id UUID REFERENCES school.subject(id) NOT NULL,
-	UNIQUE(account_id, group_id, subject_id)
+	UNIQUE(account_id, group_id)
 );
 
 CREATE SCHEMA quiz;

@@ -3,27 +3,25 @@ package create_group
 import (
 	"encoding/json"
 	"net/http"
+	"server/internal/pkg/response"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input Input
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			response.SendJSONDecodeError(w, err)
 			return
 		}
 
 		output, err := usecase.CreateGroup(r.Context(), &input)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendUseCaseError(w, err)
 			return
 		}
 
 		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendJSONEncodeError(w, err)
 			return
 		}
 

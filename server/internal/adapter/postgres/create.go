@@ -65,7 +65,6 @@ func (p *Postgres) CreateTeacher(ctx context.Context, teacher *domain.Teacher) e
 	err = p.sqlc.InsertTeacher(ctx, sqlc.InsertTeacherParams{
 		AccountID: teacher.ID,
 		GroupID:   teacher.Groups[0],
-		SubjectID: teacher.Subjects[0],
 	})
 
 	return nil

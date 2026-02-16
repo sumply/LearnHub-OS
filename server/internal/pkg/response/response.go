@@ -73,7 +73,7 @@ func SendUseCaseError(w http.ResponseWriter, err error) {
 
 	var e *usecase.ValidationError
 	if errors.As(err, &e) {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		msg = handleValidationError(e)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -93,7 +93,7 @@ func handleValidationError(err *usecase.ValidationError) ErrorMessage {
 	if errors.As(err, &domainErr) {
 		msg.Details = domainErr.ToMap()
 	} else {
-		msg.Details = err.Error()
+		msg.Details = errors.Unwrap(err).Error()
 	}
 	return msg
 }

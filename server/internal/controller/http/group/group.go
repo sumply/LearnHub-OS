@@ -13,8 +13,8 @@ import (
 )
 
 func Route(r chi.Router, p *postgres.Postgres) {
-	createUC := create_group.New(p)
-	getUC := get_group.New(p)
+	createUC := create_group.New(p.MakeDomain())
+	getUC := get_group.New(p.MakeQuery())
 	updateUC := update_group.New(p)
 	deleteUC := delete_group.New(p)
 	getStudentsUC := get_students.New(p)

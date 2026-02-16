@@ -169,7 +169,7 @@ func (p *Postgres) buildQuizLastAttemptQuery(userID uuid.UUID) *goqu.SelectDatas
 
 func (p *Postgres) buildFindUserLastAttemptQuery(quizID uuid.UUID) *goqu.SelectDataset {
 	attempt := p.tables.QuizAttempt
-	user := p.tables.AccountProfile
+	user := p.tables.AccountProfile.As("user")
 
 	attemptOn := goqu.On(attempt.Col("user_id").Eq(user.Col("account_id")))
 
