@@ -16,6 +16,30 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func (p *Postgres) User(ctx context.Context, userID uuid.UUID) (dto.User, error) {
+	user := p.tables.AccountProfile
+	ds := p.goqu.From(user).
+		Select(user.All()).
+		Where(
+			user.Col("account_id").Eq(userID),
+		)
+	var row sqlc.AccountProfile
+	ok, err := ds.Executor().ScanStructContext(ctx, &row)
+	if err != nil {
+		return dto.User{}, err
+	}
+	if !ok {
+		return dto.User{}, repository.NewNotFoundError()
+	}
+
+	return dto.User{
+		ID:        row.AccountID,
+		FirstName: row.FirstName,
+		LastName:  row.LastName,
+		Role:      string(row.Role),
+	}, nil
+}
+
 func (p *Postgres) UserByCredential(ctx context.Context, filter filter.Credential) (domain.User, error) {
 	ds, row := p.buildUserByEmailQuery(filter)
 

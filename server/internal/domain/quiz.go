@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,50 +33,13 @@ func NewQuiz(
 ) (Quiz, error) {
 	quizID := uuid.New()
 
-	err := NewError("quiz")
-	if ownerID == uuid.Nil {
-		err.add("ownerID", fmt.Errorf("ownerID is empty"))
-	}
-
-	if subjectID == uuid.Nil {
-		err.add("subjectID", fmt.Errorf("subjectID is empty"))
-	}
-
-	if title == "" {
-		err.add("title", fmt.Errorf("title is empty"))
-	}
-
-	if summary == "" {
-		err.add("summary", fmt.Errorf("summary is empty"))
-	}
-
-	if len(questions) == 0 {
-		err.add("questions", fmt.Errorf("questions is empty"))
-	}
-
-	if len(groupIDs) == 0 {
-		err.add("group_ids", fmt.Errorf("group_ids is empty"))
-	}
-
 	totalCount := 0
 	for i := range questions {
 		totalCount += questions[i].Score
 		questions[i].QuizID = quizID
 	}
 
-	if maxAttempts <= 0 {
-		err.add("max_attempts", fmt.Errorf("max_attempts less 0"))
-	}
-
-	if deadline != nil && deadline.Before(time.Now().UTC()) {
-		err.add("deadline", fmt.Errorf("deadline is before now"))
-	}
-
-	if !err.Empty() {
-		return Quiz{}, err
-	}
-
-	return Quiz{
+	quiz := Quiz{
 		ID:          quizID,
 		Title:       title,
 		Summary:     summary,
@@ -87,7 +51,59 @@ func NewQuiz(
 		MaxAttempts: maxAttempts,
 		TotalScore:  totalCount,
 		CreatedAt:   time.Now().UTC(),
-	}, nil
+	}
+
+	if err := quiz.Validate(); err != nil {
+		return Quiz{}, err
+	}
+
+	return quiz, nil
+}
+
+func (q *Quiz) Validate() error {
+	domainErr := NewError("quiz")
+
+	if q.OwnerID == uuid.Nil {
+		domainErr.add("ownerID", fmt.Errorf("ownerID is empty"))
+	}
+
+	if q.SubjectID == uuid.Nil {
+		domainErr.add("subjectID", fmt.Errorf("subjectID is empty"))
+	}
+
+	q.Title = strings.TrimSpace(q.Title)
+
+	if q.Title == "" {
+		domainErr.add("title", fmt.Errorf("title is empty"))
+	}
+
+	q.Summary = strings.TrimSpace(q.Summary)
+
+	if q.Summary == "" {
+		domainErr.add("summary", fmt.Errorf("summary is empty"))
+	}
+
+	if len(q.Questions) == 0 {
+		domainErr.add("questions", fmt.Errorf("questions is empty"))
+	}
+
+	if len(q.GroupIDs) == 0 {
+		domainErr.add("group_ids", fmt.Errorf("group_ids is empty"))
+	}
+
+	if q.MaxAttempts <= 0 {
+		domainErr.add("max_attempts", fmt.Errorf("max_attempts less 0"))
+	}
+
+	if q.Deadline != nil && q.Deadline.Before(time.Now().UTC()) {
+		domainErr.add("deadline", fmt.Errorf("deadline is expired"))
+	}
+
+	if !domainErr.Empty() {
+		return domainErr
+	}
+
+	return nil
 }
 
 func (q *Quiz) CheckAttempt(attempt *Attempt) error {
@@ -130,33 +146,45 @@ type Question struct {
 }
 
 func NewQuestion(text string, details QuestionDetails, score int) (Question, error) {
-	err := NewError("question")
-	if text == "" {
-		err.add("text", fmt.Errorf("text is empty"))
-	}
-
-	if score <= 0 {
-		err.add("score", fmt.Errorf("score less 0"))
-	}
-
-	if details == nil {
-		err.add("details", fmt.Errorf("details is nil"))
-	}
-
-	if !err.Empty() {
-		return Question{}, err
-	}
-
-	if err := details.Validate(); err != nil {
-		return Question{}, err
-	}
-
-	return Question{
+	question := Question{
 		ID:      uuid.New(),
 		Text:    text,
 		Details: details,
 		Score:   score,
-	}, nil
+	}
+
+	if err := question.Validate(); err != nil {
+		return Question{}, err
+	}
+
+	return question, nil
+}
+
+func (q *Question) Validate() error {
+	domainErr := NewError("question")
+
+	q.Text = strings.TrimSpace(q.Text)
+	if q.Text == "" {
+		domainErr.add("text", fmt.Errorf("text is empty"))
+	}
+
+	if q.Score <= 0 {
+		domainErr.add("score", fmt.Errorf("score less 0"))
+	}
+
+	if q.Details == nil {
+		domainErr.add("details", fmt.Errorf("details is nil"))
+	} else {
+		if err := q.Details.Validate(); err != nil {
+			domainErr.add("details", err)
+		}
+	}
+
+	if !domainErr.Empty() {
+		return domainErr
+	}
+
+	return nil
 }
 
 type QuestionDetails interface {
@@ -185,6 +213,12 @@ func (s *SingleChoiceQuestion) Validate() error {
 	if len(s.Options) == 0 {
 		return fmt.Errorf("options is nil")
 	}
+
+	for i := range s.Options {
+		s.Options[i] = strings.TrimSpace(s.Options[i])
+	}
+
+	s.Correct = strings.TrimSpace(s.Correct)
 	if !slices.Contains(s.Options, s.Correct) {
 		return fmt.Errorf("options do not contain the correct")
 	}
@@ -226,17 +260,26 @@ func (m *MultipleChoiceQuestion) Validate() error {
 	if len(m.Options) == 0 {
 		return fmt.Errorf("options is empty")
 	}
+
+	for i := range m.Options {
+		m.Options[i] = strings.TrimSpace(m.Options[i])
+	}
+
 	if len(m.Correct) == 0 {
 		return fmt.Errorf("correct is empty")
 	}
+
 	if len(m.Correct) > len(m.Options) {
 		return fmt.Errorf("more correct answers than options")
 	}
+
 	for i := range m.Correct {
+		m.Correct[i] = strings.TrimSpace(m.Correct[i])
 		if !slices.Contains(m.Options, m.Correct[i]) {
 			return fmt.Errorf("options do not contain the correct")
 		}
 	}
+
 	return nil
 }
 

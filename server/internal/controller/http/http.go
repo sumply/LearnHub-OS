@@ -21,6 +21,7 @@ func Router(creator config.Creator) http.Handler {
 	r.Use(
 		middleware.CORS(),
 		middleware.Logger(),
+		middleware.BodyLogger(),
 		middleware.Recoverer(),
 	)
 

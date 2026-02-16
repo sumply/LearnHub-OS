@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"server/internal/pkg/response"
+	"server/internal/pkg/validator"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {
@@ -11,6 +12,11 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 		var input Input
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			response.SendJSONDecodeError(w, err)
+			return
+		}
+
+		if err := validator.V.StructCtx(r.Context(), input); err != nil {
+			response.SendDTOValidateError(w, err)
 			return
 		}
 

@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,18 +24,30 @@ type User struct {
 func (u *User) Validate() error {
 	domainErr := NewError("user")
 
+	u.FirstName = strings.TrimSpace(u.FirstName)
+
 	if u.FirstName == "" {
 		domainErr.add("first_name", errors.New("first_name is empty"))
 	}
+
+	u.LastName = strings.TrimSpace(u.LastName)
+
 	if u.LastName == "" {
 		domainErr.add("last_name", errors.New("last_name is empty"))
 	}
+
+	u.Email = strings.TrimSpace(u.Email)
+
 	if u.Email == "" {
 		domainErr.add("email", errors.New("email is empty"))
 	}
+
+	u.PwdHash = strings.TrimSpace(u.PwdHash)
+
 	if u.PwdHash == "" {
 		domainErr.add("password_hash", errors.New("password_hash is empty"))
 	}
+
 	if !u.Role.Validate() {
 		domainErr.add("role", errors.New("role is invalid"))
 	}

@@ -8,6 +8,8 @@ import (
 	"server/internal/domain"
 	"server/internal/pkg/param"
 	"server/internal/usecase"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type ErrorMessage struct {
@@ -32,6 +34,25 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 			Error: err.Error(),
 		}.Bytes(),
 	)
+}
+
+func SendDTOValidateError(w http.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	var target validator.ValidationErrors
+	var msg ErrorMessage
+	if errors.As(err, &target) {
+		msg.Error = "Validation"
+		details := make(map[string]string)
+		for _, e := range target {
+			details[e.Field()] = e.ActualTag()
+		}
+		msg.Details = details
+	} else {
+		msg = ErrorMessage{
+			Error: err.Error(),
+		}
+	}
+	w.Write(msg.Bytes())
 }
 
 func SendParamError(w http.ResponseWriter, err error) {

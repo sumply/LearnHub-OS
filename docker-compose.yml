@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   server:
+    image: sumply/learnhub-server:latest
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -23,14 +24,14 @@ services:
     restart: unless-stopped
     
   database:
-    build:
-      context: ./database
-      dockerfile: Dockerfile
+    image: postgres:18
     container_name: database
     environment:
       POSTGRES_DB: learnHUB
       POSTGRES_USER: server
       POSTGRES_PASSWORD: secret
+    volumes:
+      - ./server/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
   
   pgadmin:
     image: dpage/pgadmin4:9.12.0

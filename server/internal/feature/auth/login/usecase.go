@@ -25,6 +25,7 @@ func (u *UseCase) Login(ctx context.Context, input Input) (Output, error) {
 		Email:   input.Email,
 		PwdHash: "hash",
 	})
+
 	if err != nil {
 		return Output{}, err
 	}
