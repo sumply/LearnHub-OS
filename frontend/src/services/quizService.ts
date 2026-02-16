@@ -23,6 +23,16 @@ export async function getQuizzes(): Promise<apiClient.QuizShortResponse[]> {
   }
 }
 
+// Получить квизы пользователя
+export async function getUserQuizzes(userId?: string): Promise<apiClient.QuizShortResponse[]> {
+  try {
+    return await apiClient.getUserQuizzes(userId);
+  } catch (error) {
+    console.error('Ошибка загрузки квизов пользователя:', error);
+    return [];
+  }
+}
+
 // Получить полный квиз по ID
 export async function getQuizById(quizId: number): Promise<apiClient.QuizFullResponse> {
   try {

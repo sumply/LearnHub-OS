@@ -131,7 +131,7 @@ export async function getAllUsersWithRoles(): Promise<UserWithRole[]> {
             // Используем роль по умолчанию только если её нет в ответе
             return {
               ...userFull,
-              role: apiClient.UserRole.STUDENT,
+              role: 'student',
             };
           }
           

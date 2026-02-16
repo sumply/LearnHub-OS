@@ -7,6 +7,9 @@ import Library from './pages/Library';
 import Tasks from './pages/Tasks';
 import Flashcards from './pages/Flashcards';
 import Quiz from './pages/Quiz';
+import QuizTake from './pages/QuizTake';
+import QuizInfo from './pages/QuizInfo';
+import Progress from './pages/Progress';
 import ProtectedRoute from './components/ProtectedRoute';
 import StudentDashboard from './pages/StudentDashboard';
 import ParentDashboard from './pages/ParentDashboard';
@@ -18,7 +21,8 @@ const AppRoutes = () => (
   <Router>
     <Route path="/" component={Home} />
     <Route path="/login" component={Login} />
-    <Route path="/register" component={Register} />
+    {/* Регистрация временно отключена */}
+    {/* <Route path="/register" component={Register} /> */}
     <Route 
       path="/dashboard" 
       component={() => (
@@ -60,10 +64,34 @@ const AppRoutes = () => (
       )} 
     />
     <Route 
+      path="/quiz/:quizId" 
+      component={() => (
+        <ProtectedRoute>
+          <QuizInfo />
+        </ProtectedRoute>
+      )} 
+    />
+    <Route 
+      path="/quiz/take/:quizId" 
+      component={() => (
+        <ProtectedRoute>
+          <QuizTake />
+        </ProtectedRoute>
+      )} 
+    />
+    <Route 
       path="/profile" 
       component={() => (
         <ProtectedRoute>
           <Profile />
+        </ProtectedRoute>
+      )} 
+    />
+    <Route 
+      path="/progress" 
+      component={() => (
+        <ProtectedRoute>
+          <Progress />
         </ProtectedRoute>
       )} 
     />

@@ -1,4 +1,4 @@
-import { type Component, createSignal, For, Show, createResource } from 'solid-js';
+import { type Component, createSignal, For, Show, createResource, Index } from 'solid-js';
 import { getCurrentUser } from '../utils/api';
 import { getAllActivities, type TaskUnion, addActivity, updateActivity, removeActivity } from '../utils/activitiesService';
 import Header from '../components/Header';
@@ -6,49 +6,26 @@ import { getSubjects, getGroups } from '../services/subjectGroupService';
 import { getAllUsers } from '../services/userService';
 import { getAuthToken } from '../utils/api';
 import { createQuiz } from '../services/quizService';
-import { getProgress } from '../services/progressService';
+import { getQuizzes } from '../services/quizService';
 import * as apiClient from '../utils/apiClient';
 import type { MaterialAttachment } from '../utils/api';
+import QuizStatistics from '../components/QuizStatistics';
 
 const Tasks: Component = () => {
   const [selectedTask, setSelectedTask] = createSignal<TaskUnion | null>(null);
   const [subjectFilter, setSubjectFilter] = createSignal('all');
   const [typeFilter, setTypeFilter] = createSignal('all');
   const [teacherFilter, setTeacherFilter] = createSignal('all');
-  // Загружаем квизы через GET /progress
-  const [progressData, { refetch: refetchProgress }] = createResource(getProgress);
+  // Загружаем все квизы через GET /quizzes
+  const [quizzesData, { refetch: refetchQuizzes }] = createResource(getQuizzes);
   
-  // Объединяем квизы из прогресса с локальными карточками
+  // Объединяем квизы с локальными карточками
   const allTasks = (): TaskUnion[] => {
     const localTasks = getAllActivities().filter(t => t.type === 'flashcard'); // Только карточки из локального хранилища
-    const progress = progressData() || [];
+    const quizzes = quizzesData() || [];
     
-    // Извлекаем уникальные квизы из прогресса
-    const uniqueQuizzes = new Map<number, apiClient.QuizShortResponse>();
-    progress.forEach(p => {
-      if (p.quiz && !uniqueQuizzes.has(p.quiz.id)) {
-        // Преобразуем QuizProgressResponse.quiz в QuizShortResponse формат
-        uniqueQuizzes.set(p.quiz.id, {
-          id: p.quiz.id,
-          title: p.quiz.title,
-          summary: p.quiz.summary,
-          total_score: 0, // Не доступно в progress
-          owner: {
-            id: p.quiz.owner.id,
-            short_name: p.quiz.owner.short_name,
-            role: apiClient.UserRole.STUDENT, // Не доступно в progress, используем дефолт
-          },
-          subject: {
-            id: p.quiz.subject.id,
-            name: p.quiz.subject.name,
-          },
-          group: [], // Не доступно в progress
-        });
-      }
-    });
-    
-    // Преобразуем квизы из прогресса в формат TaskUnion
-    const apiQuizzes: TaskUnion[] = Array.from(uniqueQuizzes.values()).map(quiz => ({
+    // Преобразуем квизы в формат TaskUnion
+    const apiQuizzes: TaskUnion[] = quizzes.map(quiz => ({
       id: `quiz_${quiz.id}`,
       type: 'quiz' as const,
       title: quiz.title,
@@ -65,21 +42,25 @@ const Tasks: Component = () => {
   const [showAddModal, setShowAddModal] = createSignal(false);
   const [showEditModal, setShowEditModal] = createSignal(false);
   const [showDeleteModal, setShowDeleteModal] = createSignal(false);
+  const [showStatisticsModal, setShowStatisticsModal] = createSignal(false);
+  const [statisticsQuizId, setStatisticsQuizId] = createSignal<string>('');
+  const [statisticsQuizTitle, setStatisticsQuizTitle] = createSignal<string>('');
   const [editTask, setEditTask] = createSignal<TaskUnion | null>(null);
   const [deleteTask, setDeleteTask] = createSignal<TaskUnion | null>(null);
 
   // Управляемые поля формы
   const [formType, setFormType] = createSignal<'quiz' | 'flashcard'>('quiz');
   const [formCategory, setFormCategory] = createSignal('math');
-  const [formSubjectId, setFormSubjectId] = createSignal<number | null>(null);
-  const [formGroupIds, setFormGroupIds] = createSignal<number[]>([]);
+  const [formSubjectId, setFormSubjectId] = createSignal<string | null>(null);
+  const [formGroupIds, setFormGroupIds] = createSignal<string[]>([]);
   const [formTitle, setFormTitle] = createSignal('');
   const [formSummary, setFormSummary] = createSignal('');
   const [formAnswer, setFormAnswer] = createSignal('');
+  const [formDeadline, setFormDeadline] = createSignal('');
+  const [formMaxAttempts, setFormMaxAttempts] = createSignal<number | undefined>(undefined);
   const [formQuestions, setFormQuestions] = createSignal([
-    { question: '', options: ['', '', '', ''], correct: 0 },
+    { question: '', options: ['', '', '', ''], correct: 0, type: 'single' as 'single' | 'multiple' | 'numeric', score: 1 },
   ]);
-  const [formTeacher, setFormTeacher] = createSignal('');
   const [formAttachments, setFormAttachments] = createSignal<MaterialAttachment[]>([]);
   const [newAttachmentType, setNewAttachmentType] = createSignal('pdf');
   const [newAttachmentUrl, setNewAttachmentUrl] = createSignal('');
@@ -156,8 +137,9 @@ const Tasks: Component = () => {
     setFormTitle('');
     setFormSummary('');
     setFormAnswer('');
-    setFormQuestions([{ question: '', options: ['', '', '', ''], correct: 0 }]);
-    setFormTeacher(user.name);
+    setFormDeadline('');
+    setFormMaxAttempts(undefined);
+    setFormQuestions([{ question: '', options: ['', '', '', ''], correct: 0, type: 'single', score: 1 }]);
     setFormAttachments([]);
     setNewAttachmentType('pdf');
     setNewAttachmentUrl('');
@@ -171,55 +153,109 @@ const Tasks: Component = () => {
     
     if (formType() === 'quiz') {
       // Создаем квиз через API
-      if (!formSubjectId()) {
-        alert('Пожалуйста, выберите предмет');
-        return;
-      }
-      
       setIsCreatingQuiz(true);
       try {
+        // Получаем owner_id из auth данных
+        const authData = apiClient.getAuthData();
+        if (!authData) {
+          alert('Ошибка: пользователь не авторизован');
+          return;
+        }
+        const ownerId = authData.user_id;
+
         // Преобразуем вопросы в формат API
         const apiQuestions: apiClient.QuizQuestion[] = formQuestions()
           .filter(q => q.question.trim() !== '') // Фильтруем пустые вопросы
           .map(q => {
-            // Если есть варианты ответов, создаем options
+            const questionText = q.question.trim();
+            const score = q.score || 1;
+            const type = q.type || 'single';
+            
+            // Обрабатываем варианты ответов в зависимости от типа вопроса
             const allOptions = q.options || [];
             const validOptions = allOptions.filter(opt => opt.trim() !== '');
             
-            if (validOptions.length > 0) {
-              // Находим правильный ответ среди валидных опций
-              const originalCorrectIndex = q.correct;
-              const originalCorrectOption = allOptions[originalCorrectIndex];
-              const correctIndexInValid = validOptions.findIndex(opt => opt === originalCorrectOption);
+            if (type === 'numeric') {
+              // Для числового вопроса
+              const numericValue = validOptions.length > 0 && !isNaN(parseFloat(validOptions[0])) 
+                ? parseFloat(validOptions[0]) 
+                : 0;
+              return {
+                text: questionText,
+                score,
+                type: 'numeric' as const,
+                details: {
+                  correct: numericValue
+                } as apiClient.QuizQuestionDetailsNumeric
+              };
+            } else if (type === 'multiple') {
+              // Для множественного выбора
+              const originalCorrectIndices = Array.isArray(q.correct) ? q.correct : [q.correct];
+              const correctAnswers = originalCorrectIndices
+                .map(idx => allOptions[idx])
+                .filter(opt => opt && opt.trim() !== '')
+                .map(opt => opt.trim());
               
               return {
-                text: q.question.trim(),
-                options: validOptions.map((opt, idx) => ({
-                  text: opt.trim(),
-                  is_correct: idx === correctIndexInValid && correctIndexInValid >= 0
-                }))
+                text: questionText,
+                score,
+                type: 'multiple' as const,
+                details: {
+                  options: validOptions.map(opt => opt.trim()),
+                  correct: correctAnswers
+                } as apiClient.QuizQuestionDetailsMultiple
               };
             } else {
-              // Если вариантов нет - открытый вопрос (пустой массив options)
+              // Для одиночного выбора (single) - по умолчанию
+              const originalCorrectIndex = typeof q.correct === 'number' ? q.correct : 0;
+              const originalCorrectOption = allOptions[originalCorrectIndex];
+              const correctAnswer = originalCorrectOption && originalCorrectOption.trim() !== '' 
+                ? originalCorrectOption.trim() 
+                : (validOptions.length > 0 ? validOptions[0].trim() : '');
+              
               return {
-                text: q.question.trim(),
-                options: []
+                text: questionText,
+                score,
+                type: 'single' as const,
+                details: {
+                  options: validOptions.map(opt => opt.trim()),
+                  correct: correctAnswer
+                } as apiClient.QuizQuestionDetailsSingle
               };
             }
           });
 
+        // Формируем deadline в формате ISO, если указан
+        let deadline: string | undefined = undefined;
+        if (formDeadline()) {
+          const deadlineDate = new Date(formDeadline());
+          if (!isNaN(deadlineDate.getTime())) {
+            deadline = deadlineDate.toISOString();
+          }
+        }
+
+        // Определяем subject_id: если не выбран, используем "все темы" (возможно, нужно специальное значение или пустая строка)
+        // Пока отправляем пустую строку или null, если не выбран
+        const subjectId = formSubjectId() || 'все темы';
+        
+        // Определяем group_ids: если не выбраны, отправляем ["общий"]
+        const groupIds = formGroupIds().length > 0 ? formGroupIds() : ['общий'];
+
         const quizData: apiClient.QuizCreateRequest = {
           title: formTitle(),
-          summary: formSummary() || formTitle(), // Используем summary или title как fallback
-          subject_id: formSubjectId()!,
-          group_ids: formGroupIds(), // Всегда массив, может быть пустым
+          owner_id: ownerId,
+          summary: formSummary() || formTitle(),
+          subject_id: subjectId, // UUID предмета или "все темы"
+          group_ids: groupIds, // UUID[] групп или ["общий"]
+          deadline: deadline,
+          max_attempts: formMaxAttempts(),
           questions: apiQuestions
         };
 
         await createQuiz(quizData);
         
         // Обновляем список квизов через прогресс
-        await refetchProgress();
+        await refetchQuizzes();
         
         setShowAddModal(false);
         resetForm();
@@ -239,7 +275,7 @@ const Tasks: Component = () => {
         question: formTitle(),
         answer: formAnswer(),
         category: formCategory(),
-        teacher: user.role === 'admin' ? formTeacher() : user.name,
+        teacher: user.name,
         attachments: formAttachments(),
         requiresConfirmation: formRequiresConfirmation(),
       });
@@ -257,7 +293,6 @@ const Tasks: Component = () => {
     setFormTitle(task.type === 'quiz' ? task.title : task.question);
     setFormAnswer(task.type === 'flashcard' ? task.answer : '');
     setFormQuestions(task.type === 'quiz' ? [...task.questions] : [{ question: '', options: ['', '', '', ''], correct: 0 }]);
-    setFormTeacher(task.teacher);
     setFormAttachments(task.attachments ? [...task.attachments] : []);
     setFormRequiresConfirmation(!!task.requiresConfirmation);
   }
@@ -393,7 +428,13 @@ const Tasks: Component = () => {
           </div>
         </div>
         <Show when={filteredTasks().length > 0} fallback={<div style={{ color: '#888', 'font-size': '1.1em' }}>Нет доступных заданий.</div>}>
-          <ul style={{ 'list-style': 'none', padding: 0, display: 'grid', gap: '3rem', 'grid-template-columns': 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+          <ul class="tasks-grid" style={{ 
+            'list-style': 'none', 
+            padding: 0, 
+            display: 'grid', 
+            gap: '2rem', 
+            'grid-template-columns': 'repeat(3, 1fr)'
+          }}>
             <For each={filteredTasks()}>{task => (
               <li
                 style={{
@@ -405,14 +446,23 @@ const Tasks: Component = () => {
                   cursor: 'pointer',
                   transition: 'box-shadow 0.2s, transform 0.2s',
                   border: '1.5px solid #e3eafc',
-                  'min-height': '120px',
+                  'min-height': '140px',
                   'display': 'flex',
                   'flex-direction': 'column',
-                  'justify-content': 'center',
+                  'justify-content': 'space-between',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
-                onClick={() => setSelectedTask(task)}
+                onClick={() => {
+                  if (task.type === 'quiz' && user && user.role === 'student') {
+                    // Для студентов - переходим на страницу информации о квизе
+                    const quizId = task.id.replace('quiz_', '');
+                    window.location.href = `/quiz/${quizId}`;
+                  } else {
+                    // Для остальных - открываем модальное окно
+                    setSelectedTask(task);
+                  }
+                }}
                 onMouseOver={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,99,235,0.13)')}
                 onMouseOut={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(37,99,235,0.09)')}
               >
@@ -433,13 +483,151 @@ const Tasks: Component = () => {
                 <span style={{ color: '#888', 'font-size': '0.98em', 'margin-top': '0.2em', 'margin-left': '12px' }}>Преподаватель: {task.teacher}</span>
                 {/* Кнопки редактировать/удалить */}
                 {canEditOrDelete(task) && (
-                  <div style={{ display: 'flex', gap: '0.5em', marginTop: '0.7em' }}>
-                    <button title={task.hidden ? 'Показать задание' : 'Скрыть задание'} style={{ background: '#e3eafc', color: task.hidden ? '#888' : '#2563eb', border: 'none', borderRadius: '7px', padding: '0.3em 0.9em', cursor: 'pointer', fontWeight: 600 }} onClick={e => { e.stopPropagation(); handleToggleHidden(task); }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '0.4em', 
+                    marginTop: '0.7em',
+                    flexWrap: 'wrap',
+                    alignItems: 'center'
+                  }}>
+                    <button 
+                      class="task-action-btn"
+                      title={task.hidden ? 'Показать задание' : 'Скрыть задание'} 
+                      style={{ 
+                        background: '#e3eafc', 
+                        color: task.hidden ? '#888' : '#2563eb', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        padding: '0',
+                        cursor: 'pointer', 
+                        fontWeight: 600,
+                        fontSize: '0.9em',
+                        width: '28px',
+                        height: '28px',
+                        minWidth: '28px',
+                        maxWidth: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        boxSizing: 'border-box'
+                      }} 
+                      onClick={e => { e.stopPropagation(); handleToggleHidden(task); }}
+                    >
                       {task.hidden ? '👁‍🗨' : '👁'}
                     </button>
-                    <button style={{ background: '#e3eafc', color: '#2563eb', border: 'none', borderRadius: '7px', padding: '0.3em 0.9em', cursor: 'pointer', fontWeight: 600 }} onClick={e => { e.stopPropagation(); openEditModal(task); }}>✎</button>
-                    <button style={{ background: '#fff0f0', color: '#e76f51', border: 'none', borderRadius: '7px', padding: '0.3em 0.9em', cursor: 'pointer', fontWeight: 600 }} onClick={e => { e.stopPropagation(); openDeleteModal(task); }}>🗑</button>
-                    <button style={{ background: '#e3eafc', color: '#2563eb', border: 'none', borderRadius: '7px', padding: '0.3em 0.9em', cursor: 'pointer', fontWeight: 600 }} onClick={e => { e.stopPropagation(); setSelectedTask(task); }}>Перейти</button>
+                    <button 
+                      class="task-action-btn"
+                      style={{ 
+                        background: '#e3eafc', 
+                        color: '#2563eb', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        padding: '0',
+                        cursor: 'pointer', 
+                        fontWeight: 600,
+                        fontSize: '0.9em',
+                        width: '28px',
+                        height: '28px',
+                        minWidth: '28px',
+                        maxWidth: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        boxSizing: 'border-box'
+                      }} 
+                      onClick={e => { e.stopPropagation(); openEditModal(task); }}
+                      title="Редактировать"
+                    >
+                      ✎
+                    </button>
+                    <button 
+                      class="task-action-btn"
+                      style={{ 
+                        background: '#fff0f0', 
+                        color: '#e76f51', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        padding: '0',
+                        cursor: 'pointer', 
+                        fontWeight: 600,
+                        fontSize: '0.9em',
+                        width: '28px',
+                        height: '28px',
+                        minWidth: '28px',
+                        maxWidth: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        boxSizing: 'border-box'
+                      }} 
+                      onClick={e => { e.stopPropagation(); openDeleteModal(task); }}
+                      title="Удалить"
+                    >
+                      🗑
+                    </button>
+                    {task.type === 'quiz' && (user.role === 'admin' || user.role === 'teacher') && (
+                      <button 
+                        class="task-action-btn"
+                        style={{ 
+                          background: '#e8f5e9', 
+                          color: '#2e7d32', 
+                          border: 'none', 
+                          borderRadius: '6px', 
+                          padding: '0',
+                          cursor: 'pointer', 
+                          fontWeight: 600,
+                          fontSize: '0.9em',
+                          width: '28px',
+                          height: '28px',
+                          minWidth: '28px',
+                          maxWidth: '28px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxSizing: 'border-box'
+                        }} 
+                        onClick={e => { 
+                          e.stopPropagation(); 
+                          const quizId = task.id.replace('quiz_', '');
+                          setStatisticsQuizId(quizId);
+                          setStatisticsQuizTitle(task.title);
+                          setShowStatisticsModal(true);
+                        }}
+                        title="Статистика квиза"
+                      >
+                        📊
+                      </button>
+                    )}
+                    <button 
+                      class="task-action-btn"
+                      style={{ 
+                        background: '#e3eafc', 
+                        color: '#2563eb', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        padding: '0',
+                        cursor: 'pointer', 
+                        fontWeight: 600,
+                        fontSize: '0.9em',
+                        width: '28px',
+                        height: '28px',
+                        minWidth: '28px',
+                        maxWidth: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        boxSizing: 'border-box'
+                      }} 
+                      onClick={e => { e.stopPropagation(); setSelectedTask(task); }}
+                      title="Перейти"
+                    >
+                      →
+                    </button>
                   </div>
                 )}
               </li>
@@ -503,18 +691,38 @@ const Tasks: Component = () => {
                   <div style={{ color: '#888', 'margin-bottom': '1.2em' }}>
                     Тест по категории: {(selectedTask() as any).category}
                   </div>
-                  <ol>
-                    {((selectedTask() as any)?.questions || []).map((q: any, idx: number) => (
-                      <li style={{ 'margin-bottom': '1em' }}>
-                        <div style={{ 'font-weight': 500 }}>{q.question}</div>
-                        <ul style={{ 'padding-left': '1.2em', 'margin-top': '0.5em' }}>
-                          {(q.options || []).map((opt: string, i: number) => (
-                            <li>{opt}</li>
-                          ))}
-                        </ul>
-                      </li>
-                    ))}
-                  </ol>
+                  <div style={{ color: '#888', 'margin-bottom': '1.2em' }}>
+                    Преподаватель: {(selectedTask() as any).teacher}
+                  </div>
+                  <Show when={user && user.role === 'student'}>
+                    <div style={{ 'margin-top': '2em', 'margin-bottom': '1em' }}>
+                      <A 
+                        href={`/quiz/take/${(selectedTask() as any).id.replace('quiz_', '')}`}
+                        style={{
+                          display: 'inline-block',
+                          background: '#2563eb',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.75em 2em',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontSize: '1.1em',
+                          textDecoration: 'none',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#1e4ed8'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#2563eb'}
+                      >
+                        Начать попытку
+                      </A>
+                    </div>
+                  </Show>
+                  <Show when={user && (user.role === 'admin' || user.role === 'teacher')}>
+                    <div style={{ color: '#888', 'margin-bottom': '1.2em', fontSize: '0.9em' }}>
+                      Для просмотра вопросов используйте кнопку "Статистика"
+                    </div>
+                  </Show>
                 </>
               ) : (
                 <>
@@ -684,51 +892,80 @@ const Tasks: Component = () => {
                   </select>
                 </div>
                 <div style={{ 'margin-bottom': '1em' }}>
-                  <label style={{ 'font-weight': 500 }}>Предмет:</label><br />
-                  <select value={formSubjectId()?.toString() || ''} onInput={e => {
+                  <label style={{ 'font-weight': 500 }}>Предмет (необязательно):</label><br />
+                  <select value={formSubjectId() || ''} onInput={e => {
                     const value = e.currentTarget.value;
-                    setFormSubjectId(value ? parseInt(value, 10) : null);
-                  }} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }} required>
-                    <option value="">Выберите предмет</option>
+                    setFormSubjectId(value || null);
+                  }} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
+                    <option value="">Все темы</option>
                     <For each={teacherSubjects()}>
                       {(subj) => (
-                        <option value={subj.id.toString()}>{subj.name}</option>
+                        <option value={typeof subj.id === 'string' ? subj.id : subj.id.toString()}>{subj.name}</option>
                       )}
                     </For>
                   </select>
                 </div>
                 {formType() === 'quiz' && (
-                  <div style={{ 'margin-bottom': '1em' }}>
-                    <label style={{ 'font-weight': 500 }}>Группы (необязательно):</label><br />
-                    <select 
-                      multiple 
-                      value={formGroupIds().map(id => id.toString())} 
-                      onInput={e => {
-                        const selected = Array.from(e.currentTarget.selectedOptions, opt => parseInt(opt.value, 10));
-                        setFormGroupIds(selected);
-                      }} 
-                      style={{ width: '100%', padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600, minHeight: '100px' }}
-                    >
-                      <Show when={groupsData()} fallback={<option disabled>Загрузка...</option>}>
-                        <For each={groupsData() || []}>
-                          {(group) => (
-                            <option value={group.id.toString()}>{group.name}</option>
-                          )}
-                        </For>
-                      </Show>
-                    </select>
-                    <div style={{ fontSize: '0.85em', color: '#888', marginTop: '0.3em' }}>Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп</div>
-                  </div>
-                )}
-                {user && user.role === 'admin' && (
-                  <div style={{ 'margin-bottom': '1em' }}>
-                    <label style={{ 'font-weight': 500 }}>Учитель:</label><br />
-                    <select value={formTeacher()} onInput={e => setFormTeacher(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
-                      {teacherNames().map(name => (
-                        <option value={name}>{name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div style={{ 'margin-bottom': '1em' }}>
+                      <label style={{ 'font-weight': 500 }}>Группы (необязательно):</label><br />
+                      <div style={{ border: '1px solid #e3eafc', borderRadius: '8px', padding: '0.5em', maxHeight: '200px', overflowY: 'auto' }}>
+                        <Show when={groupsData()} fallback={<div style={{ color: '#888', padding: '0.5em' }}>Загрузка...</div>}>
+                          <For each={groupsData() || []}>
+                            {(group) => {
+                              const groupId = typeof group.id === 'string' ? group.id : group.id.toString();
+                              const isSelected = formGroupIds().includes(groupId);
+                              return (
+                                <label style={{ display: 'flex', alignItems: 'center', padding: '0.4em', cursor: 'pointer', borderRadius: '4px', marginBottom: '0.2em', background: isSelected ? '#e3eafc' : 'transparent' }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isSelected}
+                                    onChange={() => {
+                                      const currentIds = formGroupIds();
+                                      if (isSelected) {
+                                        setFormGroupIds(currentIds.filter(id => id !== groupId));
+                                      } else {
+                                        setFormGroupIds([...currentIds, groupId]);
+                                      }
+                                    }}
+                                    style={{ marginRight: '0.5em', cursor: 'pointer' }}
+                                  />
+                                  <span style={{ color: '#213547', fontSize: '0.95em' }}>{group.name}</span>
+                                </label>
+                              );
+                            }}
+                          </For>
+                        </Show>
+                        {(!groupsData() || groupsData()!.length === 0) && (
+                          <div style={{ color: '#888', padding: '0.5em', fontSize: '0.9em' }}>Нет доступных групп</div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ 'margin-bottom': '1em' }}>
+                      <label style={{ 'font-weight': 500 }}>Дедлайн (необязательно):</label><br />
+                      <input 
+                        type="datetime-local" 
+                        value={formDeadline()} 
+                        max="2027-12-31T23:59"
+                        onInput={e => setFormDeadline(e.currentTarget.value)} 
+                        style={{ width: '100%', padding: '0.5em', 'border-radius': '8px', border: '1.5px solid #e3eafc' }} 
+                      />
+                    </div>
+                    <div style={{ 'margin-bottom': '1em' }}>
+                      <label style={{ 'font-weight': 500 }}>Максимальное количество попыток (необязательно):</label><br />
+                      <input 
+                        type="number" 
+                        min="1" 
+                        value={formMaxAttempts() || ''} 
+                        onInput={e => {
+                          const value = e.currentTarget.value;
+                          setFormMaxAttempts(value ? parseInt(value, 10) : undefined);
+                        }} 
+                        style={{ width: '100%', padding: '0.5em', 'border-radius': '8px', border: '1.5px solid #e3eafc' }} 
+                        placeholder="Например: 3"
+                      />
+                    </div>
+                  </>
                 )}
                 <div style={{ 'margin-bottom': '1em' }}>
                   <label style={{ 'font-weight': 500 }}>{formType() === 'quiz' ? 'Название теста' : 'Вопрос'}:</label><br />
@@ -743,62 +980,143 @@ const Tasks: Component = () => {
                 {formType() === 'quiz' ? (
                   <div style={{ 'margin-bottom': '1em' }}>
                     <label style={{ 'font-weight': 500 }}>Вопросы теста:</label>
-                    {formQuestions().map((q, idx) => (
+                    <Index each={formQuestions()}>
+                      {(q, idx) => (
                       <div style={{ 'margin-bottom': '0.7em', 'border': '1px solid #e3eafc', 'border-radius': '8px', padding: '0.7em' }}>
-                        <input 
-                          type="text" 
-                          value={q.question} 
-                          onInput={(e) => {
-                            const arr = formQuestions().map((item, i) => 
-                              i === idx ? { ...item, question: e.currentTarget.value } : item
-                            );
-                            setFormQuestions(arr);
-                          }} 
-                          placeholder={`Вопрос ${idx + 1}`} 
-                          style={{ width: '100%', marginBottom: '0.5em', padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
-                        />
-                        {q.options.map((opt, oidx) => (
+                        <div style={{ display: 'flex', gap: '0.5em', marginBottom: '0.5em' }}>
+                          <input 
+                            type="text" 
+                            value={q().question} 
+                            onInput={(e) => {
+                              const arr = formQuestions().map((item, i) => 
+                                i === idx ? { ...item, question: e.currentTarget.value } : item
+                              );
+                              setFormQuestions(arr);
+                            }} 
+                            placeholder={`Вопрос ${idx + 1}`} 
+                            style={{ flex: 1, padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
+                          />
+                          <select 
+                            value={q().type} 
+                            onInput={(e) => {
+                              const arr = formQuestions().map((item, i) => 
+                                i === idx ? { ...item, type: e.currentTarget.value as 'single' | 'multiple' | 'numeric' } : item
+                              );
+                              setFormQuestions(arr);
+                            }} 
+                            style={{ padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }}
+                          >
+                            <option value="single">Одиночный выбор</option>
+                            <option value="multiple">Множественный выбор</option>
+                            <option value="numeric">Числовой ответ</option>
+                          </select>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            value={q().score || 1} 
+                            onInput={(e) => {
+                              const arr = formQuestions().map((item, i) => 
+                                i === idx ? { ...item, score: parseInt(e.currentTarget.value, 10) || 1 } : item
+                              );
+                              setFormQuestions(arr);
+                            }} 
+                            placeholder="Баллы" 
+                            style={{ width: '80px', padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
+                          />
+                        </div>
+                        {q().type === 'numeric' ? (
                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
                             <input 
-                              type="text" 
-                              value={opt} 
+                              type="number" 
+                              step="any"
+                              value={q().options && q().options[0] ? q().options[0] : ''} 
                               onInput={(e) => {
                                 const arr = formQuestions().map((item, i) => {
                                   if (i === idx) {
-                                    const newOptions = [...item.options];
-                                    newOptions[oidx] = e.currentTarget.value;
+                                    const newOptions = [e.currentTarget.value, '', '', ''];
                                     return { ...item, options: newOptions };
                                   }
                                   return item;
                                 });
                                 setFormQuestions(arr);
                               }} 
-                              placeholder={`Вариант ${oidx + 1}`} 
+                              placeholder="Правильный числовой ответ" 
                               style={{ flex: 1, padding: '0.3em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
                             />
-                            <input 
-                              type="radio" 
-                              name={`correct${idx}`} 
-                              checked={q.correct === oidx} 
-                              onChange={() => {
-                                const arr = formQuestions().map((item, i) => 
-                                  i === idx ? { ...item, correct: oidx } : item
-                                );
-                                setFormQuestions(arr);
-                              }} 
-                              style={{ marginLeft: '0.7em' }} 
-                            />
-                            <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
                           </div>
-                        ))}
+                        ) : (
+                          <Index each={q().options}>
+                            {(opt, oidx) => (
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
+                              <input 
+                                type="text" 
+                                value={opt()} 
+                                onInput={(e) => {
+                                  const arr = formQuestions().map((item, i) => {
+                                    if (i === idx) {
+                                      const newOptions = [...item.options];
+                                      newOptions[oidx] = e.currentTarget.value;
+                                      return { ...item, options: newOptions };
+                                    }
+                                    return item;
+                                  });
+                                  setFormQuestions(arr);
+                                }} 
+                                placeholder={`Вариант ${oidx + 1}`} 
+                                style={{ flex: 1, padding: '0.3em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
+                              />
+                              {q().type === 'single' ? (
+                                <>
+                                  <input 
+                                    type="radio" 
+                                    name={`correct${idx}`} 
+                                    checked={q().correct === oidx} 
+                                    onChange={() => {
+                                      const arr = formQuestions().map((item, i) => 
+                                        i === idx ? { ...item, correct: oidx } : item
+                                      );
+                                      setFormQuestions(arr);
+                                    }} 
+                                    style={{ marginLeft: '0.7em' }} 
+                                  />
+                                  <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
+                                </>
+                              ) : (
+                                <>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={Array.isArray(q().correct) ? q().correct.includes(oidx) : false} 
+                                    onChange={() => {
+                                      const arr = formQuestions().map((item, i) => {
+                                        if (i === idx) {
+                                          const currentCorrect = Array.isArray(item.correct) ? item.correct : [];
+                                          const newCorrect = currentCorrect.includes(oidx)
+                                            ? currentCorrect.filter(c => c !== oidx)
+                                            : [...currentCorrect, oidx];
+                                          return { ...item, correct: newCorrect };
+                                        }
+                                        return item;
+                                      });
+                                      setFormQuestions(arr);
+                                    }} 
+                                    style={{ marginLeft: '0.7em' }} 
+                                  />
+                                  <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
+                                </>
+                              )}
+                            </div>
+                            )}
+                          </Index>
+                        )}
                         <button type="button" onClick={() => {
                           const arr = [...formQuestions()];
                           arr.splice(idx, 1);
                           setFormQuestions(arr);
                         }} style={{ color: '#e76f51', background: 'none', border: 'none', cursor: 'pointer', marginTop: '0.3em' }}>Удалить вопрос</button>
                       </div>
-                    ))}
-                    <button type="button" onClick={() => setFormQuestions([...formQuestions(), { question: '', options: ['', '', '', ''], correct: 0 }])} style={{ background: '#2563eb', color: '#fff', fontWeight: 600, padding: '0.4em 1em', borderRadius: '8px', border: 'none', cursor: 'pointer', marginTop: '0.5em' }}>+ Добавить вопрос</button>
+                      )}
+                    </Index>
+                    <button type="button" onClick={() => setFormQuestions([...formQuestions(), { question: '', options: ['', '', '', ''], correct: 0, type: 'single', score: 1 }])} style={{ background: '#2563eb', color: '#fff', fontWeight: 600, padding: '0.4em 1em', borderRadius: '8px', border: 'none', cursor: 'pointer', marginTop: '0.5em' }}>+ Добавить вопрос</button>
                   </div>
                 ) : (
                   <div style={{ 'margin-bottom': '1em' }}>
@@ -858,29 +1176,19 @@ const Tasks: Component = () => {
                   <input type="text" value={formType() === 'quiz' ? 'Тест' : 'Карточка'} disabled style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600, background: '#f3f6fa' }} />
                 </div>
                 <div style={{ 'margin-bottom': '1em' }}>
-                  <label style={{ 'font-weight': 500 }}>Предмет:</label><br />
-                  <select value={formSubjectId()?.toString() || ''} onInput={e => {
+                  <label style={{ 'font-weight': 500 }}>Предмет (необязательно):</label><br />
+                  <select value={formSubjectId() || ''} onInput={e => {
                     const value = e.currentTarget.value;
-                    setFormSubjectId(value ? parseInt(value, 10) : null);
-                  }} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }} required>
-                    <option value="">Выберите предмет</option>
+                    setFormSubjectId(value || null);
+                  }} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
+                    <option value="">Все темы</option>
                     <For each={teacherSubjects()}>
                       {(subj) => (
-                        <option value={subj.id.toString()}>{subj.name}</option>
+                        <option value={typeof subj.id === 'string' ? subj.id : subj.id.toString()}>{subj.name}</option>
                       )}
                     </For>
                   </select>
                 </div>
-                {user && user.role === 'admin' && (
-                  <div style={{ 'margin-bottom': '1em' }}>
-                    <label style={{ 'font-weight': 500 }}>Учитель:</label><br />
-                    <select value={formTeacher()} onInput={e => setFormTeacher(e.currentTarget.value)} style={{ padding: '0.4em 1em', 'border-radius': '8px', border: '1.5px solid #e3eafc', color: '#2563eb', 'font-weight': 600 }}>
-                      {teacherNames().map(name => (
-                        <option value={name}>{name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <div style={{ 'margin-bottom': '1em' }}>
                   <label style={{ 'font-weight': 500 }}>{formType() === 'quiz' ? 'Название теста' : 'Вопрос'}:</label><br />
                   <input type="text" value={formTitle()} onInput={e => setFormTitle(e.currentTarget.value)} style={{ width: '100%', padding: '0.5em', 'border-radius': '8px', border: '1.5px solid #e3eafc' }} required />
@@ -888,11 +1196,12 @@ const Tasks: Component = () => {
                 {formType() === 'quiz' ? (
                   <div style={{ 'margin-bottom': '1em' }}>
                     <label style={{ 'font-weight': 500 }}>Вопросы теста:</label>
-                    {formQuestions().map((q, idx) => (
+                    <Index each={formQuestions()}>
+                      {(q, idx) => (
                       <div style={{ 'margin-bottom': '0.7em', 'border': '1px solid #e3eafc', 'border-radius': '8px', padding: '0.7em' }}>
                         <input 
                           type="text" 
-                          value={q.question} 
+                          value={q().question} 
                           onInput={(e) => {
                             const arr = formQuestions().map((item, i) => 
                               i === idx ? { ...item, question: e.currentTarget.value } : item
@@ -902,11 +1211,12 @@ const Tasks: Component = () => {
                           placeholder={`Вопрос ${idx + 1}`} 
                           style={{ width: '100%', marginBottom: '0.5em', padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
                         />
-                        {q.options.map((opt, oidx) => (
+                        <Index each={q().options}>
+                          {(opt, oidx) => (
                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
                             <input 
                               type="text" 
-                              value={opt} 
+                              value={opt()} 
                               onInput={(e) => {
                                 const arr = formQuestions().map((item, i) => {
                                   if (i === idx) {
@@ -924,7 +1234,7 @@ const Tasks: Component = () => {
                             <input 
                               type="radio" 
                               name={`correct${idx}`} 
-                              checked={q.correct === oidx} 
+                              checked={q().correct === oidx} 
                               onChange={() => {
                                 const arr = formQuestions().map((item, i) => 
                                   i === idx ? { ...item, correct: oidx } : item
@@ -935,14 +1245,16 @@ const Tasks: Component = () => {
                             />
                             <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
                           </div>
-                        ))}
+                          )}
+                        </Index>
                         <button type="button" onClick={() => {
                           const arr = [...formQuestions()];
                           arr.splice(idx, 1);
                           setFormQuestions(arr);
                         }} style={{ color: '#e76f51', background: 'none', border: 'none', cursor: 'pointer', marginTop: '0.3em' }}>Удалить вопрос</button>
                       </div>
-                    ))}
+                      )}
+                    </Index>
                     <button type="button" onClick={() => setFormQuestions([...formQuestions(), { question: '', options: ['', '', '', ''], correct: 0 }])} style={{ background: '#2563eb', color: '#fff', fontWeight: 600, padding: '0.4em 1em', borderRadius: '8px', border: 'none', cursor: 'pointer', marginTop: '0.5em' }}>+ Добавить вопрос</button>
                   </div>
                 ) : (
@@ -1029,6 +1341,19 @@ const Tasks: Component = () => {
           background: #1e4ed8;
         }
       `}</style>
+
+      {/* Модальное окно статистики квиза */}
+      <Show when={showStatisticsModal()}>
+        <QuizStatistics
+          quizId={statisticsQuizId()}
+          quizTitle={statisticsQuizTitle()}
+          onClose={() => {
+            setShowStatisticsModal(false);
+            setStatisticsQuizId('');
+            setStatisticsQuizTitle('');
+          }}
+        />
+      </Show>
     </>
   );
 };

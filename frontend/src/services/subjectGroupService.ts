@@ -67,9 +67,9 @@ export async function createSubject(name: string): Promise<void> {
 }
 
 // Создать группу
-export async function createGroup(name: string, curatorId: number): Promise<void> {
+export async function createGroup(groupData: apiClient.GroupCreateRequest): Promise<void> {
   try {
-    await apiClient.createGroup({ name, curator_id: curatorId });
+    await apiClient.createGroup(groupData);
     // Очищаем кэш
     groupsCache = null;
     groupsCacheTimestamp = 0;
@@ -80,9 +80,12 @@ export async function createGroup(name: string, curatorId: number): Promise<void
 }
 
 // Добавить студентов в группу
-export async function addStudentsToGroup(groupId: number, studentIds: number[]): Promise<void> {
+export async function addStudentsToGroup(groupId: string | number, studentIds: number[]): Promise<void> {
   try {
     await apiClient.addStudentsToGroup(groupId, { student_ids: studentIds });
+    // Очищаем кэш
+    groupsCache = null;
+    groupsCacheTimestamp = 0;
   } catch (error) {
     console.error('Ошибка добавления студентов в группу:', error);
     throw error;
@@ -90,7 +93,7 @@ export async function addStudentsToGroup(groupId: number, studentIds: number[]):
 }
 
 // Получить студентов группы
-export async function getGroupStudents(groupId: number): Promise<apiClient.UserShort[]> {
+export async function getGroupStudents(groupId: string | number): Promise<apiClient.UserShort[]> {
   try {
     return await apiClient.getGroupStudents(groupId);
   } catch (error) {

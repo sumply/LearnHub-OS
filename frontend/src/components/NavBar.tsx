@@ -16,7 +16,8 @@ const NavBar = () => {
       {!user() && (
         <>
           <A class="nav-btn" href="/login" style={{ 'min-width': '120px', 'margin-right': '0.5rem' }}>Войти</A>
-          <A class="nav-btn" href="/register" style={{ 'min-width': '120px', 'margin-right': '0.5rem' }}>Зарегистрироваться</A>
+          {/* Регистрация временно отключена */}
+          {/* <A class="nav-btn" href="/register" style={{ 'min-width': '120px', 'margin-right': '0.5rem' }}>Зарегистрироваться</A> */}
         </>
       )}
       {user() && (

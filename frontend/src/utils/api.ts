@@ -120,19 +120,11 @@ export const isAuthenticated = (): boolean => !!getAuthToken();
 // Регистрация пользователя
 export const register = async (userData: RegisterRequest): Promise<ApiResponse> => {
   try {
-    // Маппинг ролей из старого формата в новый
-    const roleMap: Record<string, apiClient.UserRole> = {
-      'student': apiClient.UserRole.STUDENT,
-      'teacher': apiClient.UserRole.TEACHER,
-      'admin': apiClient.UserRole.ADMIN,
-      'parent': apiClient.UserRole.STUDENT, // parent маппится в student
-    };
-    
     const createUserData: apiClient.UserCreateRequest = {
       first_name: userData.name,
       last_name: userData.surname,
       email: userData.email,
-      role: roleMap[userData.role] || apiClient.UserRole.STUDENT,
+      role: userData.role || 'student',
     };
     
     await apiClient.createUser(createUserData);
@@ -151,63 +143,41 @@ export const register = async (userData: RegisterRequest): Promise<ApiResponse> 
 export const login = async (credentials: LoginRequest): Promise<ApiResponse> => {
   try {
     // Используем новый API клиент
-    // Преобразуем email в login (API использует login)
-    const loginData = {
-      login: credentials.email,
-      password: credentials.password,
-    };
-    
-    const response = await apiClient.login(loginData);
+    // Теперь API использует email напрямую и возвращает user_id и role
+    await apiClient.login(credentials);
     
     // Получаем информацию о текущем пользователе
     const userInfo = await apiClient.getCurrentUser();
     
-    // Парсим роль из токена (токен в base64 содержит {id, role})
+    // Проверяем, что userInfo существует и имеет нужные поля
+    if (!userInfo) {
+      throw new Error('Не удалось получить информацию о пользователе');
+    }
+    
+    // Парсим роль из информации о пользователе
     let role: 'student' | 'parent' | 'teacher' | 'admin' = 'student';
-    try {
-      const token = response.access_token;
-      // Токен - это base64 закодированный JSON объект {id, role}
-      // Пробуем декодировать
-      let payload;
-      try {
-        // JWT токен состоит из трех частей, разделенных точками: header.payload.signature
-        // Нас интересует payload (вторая часть)
-        const parts = token.split('.');
-        if (parts.length >= 2) {
-          // Декодируем payload
-          payload = JSON.parse(atob(parts[1]));
-        } else {
-          // Если формат не JWT, пробуем декодировать весь токен
-          payload = JSON.parse(atob(token));
-        }
-      } catch {
-        // Если не получилось, возможно токен уже в другом формате
-        // Пробуем получить роль из информации о пользователе
-        payload = { role: 0 }; // По умолчанию student
-      }
-      
-      const apiRole = payload.role;
-      // Маппинг ролей: 0=student, 1=teacher, 2=admin, 3=root (суперпользователь)
-      if (apiRole === 0) role = 'student';
-      else if (apiRole === 1) role = 'teacher';
-      else if (apiRole === 2) role = 'admin';
-      else if (apiRole === 3) role = 'admin'; // root (суперпользователь) маппится в admin
-      
-      // Отладочная информация
-      if (import.meta.env.DEV) {
-        console.log('[Login] Роль из токена:', { apiRole, role, payload });
-      }
-    } catch (err) {
-      console.warn('Не удалось распарсить роль из токена:', err);
-      // Если не удалось распарсить, используем значение по умолчанию
+    
+    // Получаем роль из userInfo (теперь это строка, а не число)
+    if (userInfo.role) {
+      const apiRole = userInfo.role;
+      // Маппинг ролей: строковые значения
+      if (apiRole === 'student' || apiRole === '0') role = 'student';
+      else if (apiRole === 'teacher' || apiRole === '1') role = 'teacher';
+      else if (apiRole === 'admin' || apiRole === '2' || apiRole === 'root' || apiRole === '3') role = 'admin';
+      else if (apiRole === 'parent') role = 'parent';
     }
     
     // Преобразуем в старый формат для совместимости
+    const userId = userInfo.id;
+    if (!userId) {
+      throw new Error('ID пользователя не найден в ответе сервера');
+    }
+    
     const user: User = {
-      id: userInfo.id.toString(),
+      id: typeof userId === 'string' ? userId : userId.toString(),
       email: credentials.email,
-      name: userInfo.first_name,
-      surname: userInfo.last_name,
+      name: userInfo.first_name || '',
+      surname: userInfo.last_name || '',
       role,
     };
     
@@ -216,8 +186,6 @@ export const login = async (credentials: LoginRequest): Promise<ApiResponse> => 
     return { 
       success: true, 
       message: 'Вход выполнен успешно',
-      token: response.access_token,
-      refresh_token: response.refresh_token,
       user,
     };
   } catch (error) {

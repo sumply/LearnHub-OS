@@ -6,22 +6,17 @@ const Home: Component = () => {
     <>
       <Header />
       <div class="main-shell" style={{
-        'max-width': '1300px', // не менять
-        margin: '8.5rem auto 0 auto', // не менять
         background: 'var(--bg-secondary, #f8f9fa)',
-        'border-radius': '24px',
-        'box-shadow': '0 4px 24px 0 rgba(0,0,0,0.07)',
-        padding: '2.5rem 2rem',
         'text-align': 'center',
         'min-height': '60vh',
         'display': 'flex',
         'flex-direction': 'column',
         'align-items': 'center',
-        'gap': '2.5rem'
+        'gap': 'var(--spacing-xl)'
       }}>
         <h1 style={{
           'font-family': 'TT Hoves Pro Trial, a_futuricanord, Segoe UI, Arial, sans-serif',
-          'font-size': '2.7rem',
+          'font-size': 'var(--font-size-3xl)',
           'font-weight': 700,
           color: '#2563eb',
           margin: 0,
@@ -31,7 +26,7 @@ const Home: Component = () => {
           Learn Hub — образовательная платформа нового поколения
         </h1>
         <h2 style={{
-          'font-size': '1.35rem',
+          'font-size': 'var(--font-size-lg)',
           color: 'var(--text-secondary)',
           'font-weight': 400,
           margin: 0,
@@ -41,16 +36,16 @@ const Home: Component = () => {
           Для учеников, учителей, родителей и администраторов
         </h2>
         <div style={{
-          'font-size': '1.1rem',
+          'font-size': 'var(--font-size-base)',
           color: 'var(--text-primary)',
-          'max-width': '700px',
+          'max-width': 'var(--container-md)',
           'margin': '0 auto',
           'line-height': 1.7
         }}>
           <p>
             <b>Learn Hub</b> — это современная образовательная платформа, объединяющая всех участников учебного процесса. Здесь вы можете:
           </p>
-          <ul style={{'text-align': 'left', 'margin': '1.5rem auto', 'max-width': '500px', 'font-size': '1.05rem', color: 'var(--text-primary)', 'line-height': 1.6}}>
+          <ul style={{'text-align': 'left', 'margin': 'var(--spacing-lg) auto', 'max-width': '500px', 'font-size': 'var(--font-size-base)', color: 'var(--text-primary)', 'line-height': 1.6}}>
             <li>Загружать, просматривать и скачивать учебные материалы любого формата (PDF, видео, презентации, аудио, документы и др.)</li>
             <li>Выполнять интерактивные задания и тесты</li>
             <li>Следить за своей успеваемостью и прогрессом</li>
@@ -63,33 +58,30 @@ const Home: Component = () => {
             Платформа создана для того, чтобы сделать обучение удобным, доступным и интересным для всех!
           </p>
         </div>
-        <div style={{
-          display: 'grid',
-          'grid-template-columns': 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '1.5rem',
+        <div class="grid-responsive" style={{
           width: '100%',
-          'max-width': '700px',
+          'max-width': 'var(--container-md)',
           'margin': '0 auto'
         }}>
-          <div style={{'background': 'var(--bg-secondary)', 'border-radius': '16px', padding: '1.2rem', color: 'var(--text-primary)'}}>
-            <div style={{'font-size': '2.2rem'}}>📚</div>
-            <div style={{'font-weight': 600, 'margin-top': '0.5rem'}}>Все материалы в одном месте</div>
+          <div class="card" style={{color: 'var(--text-primary)'}}>
+            <div style={{'font-size': 'var(--font-size-2xl)'}}>📚</div>
+            <div style={{'font-weight': 600, 'margin-top': 'var(--spacing-xs)'}}>Все материалы в одном месте</div>
           </div>
-          <div style={{'background': 'var(--bg-secondary)', 'border-radius': '16px', padding: '1.2rem', color: 'var(--text-primary)'}}>
-            <div style={{'font-size': '2.2rem'}}>🧑‍🏫</div>
-            <div style={{'font-weight': 600, 'margin-top': '0.5rem'}}>Интерактивные задания</div>
+          <div class="card" style={{color: 'var(--text-primary)'}}>
+            <div style={{'font-size': 'var(--font-size-2xl)'}}>🧑‍🏫</div>
+            <div style={{'font-weight': 600, 'margin-top': 'var(--spacing-xs)'}}>Интерактивные задания</div>
           </div>
-          <div style={{'background': 'var(--bg-secondary)', 'border-radius': '16px', padding: '1.2rem', color: 'var(--text-primary)'}}>
-            <div style={{'font-size': '2.2rem'}}>📈</div>
-            <div style={{'font-weight': 600, 'margin-top': '0.5rem'}}>Статистика и прогресс</div>
+          <div class="card" style={{color: 'var(--text-primary)'}}>
+            <div style={{'font-size': 'var(--font-size-2xl)'}}>📈</div>
+            <div style={{'font-weight': 600, 'margin-top': 'var(--spacing-xs)'}}>Статистика и прогресс</div>
           </div>
-          <div style={{'background': 'var(--bg-secondary)', 'border-radius': '16px', padding: '1.2rem', color: 'var(--text-primary)'}}>
-            <div style={{'font-size': '2.2rem'}}>🔍</div>
-            <div style={{'font-weight': 600, 'margin-top': '0.5rem'}}>Умный поиск и фильтры</div>
+          <div class="card" style={{color: 'var(--text-primary)'}}>
+            <div style={{'font-size': 'var(--font-size-2xl)'}}>🔍</div>
+            <div style={{'font-weight': 600, 'margin-top': 'var(--spacing-xs)'}}>Умный поиск и фильтры</div>
           </div>
-          <div style={{'background': 'var(--bg-secondary)', 'border-radius': '16px', padding: '1.2rem', color: 'var(--text-primary)'}}>
-            <div style={{'font-size': '2.2rem'}}>💻</div>
-            <div style={{'font-weight': 600, 'margin-top': '0.5rem'}}>Доступ с любого устройства</div>
+          <div class="card" style={{color: 'var(--text-primary)'}}>
+            <div style={{'font-size': 'var(--font-size-2xl)'}}>💻</div>
+            <div style={{'font-weight': 600, 'margin-top': 'var(--spacing-xs)'}}>Доступ с любого устройства</div>
           </div>
         </div>
       </div>
