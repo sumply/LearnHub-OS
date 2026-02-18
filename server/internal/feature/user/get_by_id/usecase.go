@@ -1,4 +1,4 @@
-package get_users
+package get_by_id
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 )
 
 type Repository interface {
-	FindUserLastAttempt(context.Context, uuid.UUID) ([]dto.UserLastAttempt, error)
+	User(context.Context, uuid.UUID) (dto.User, error)
 }
 
 type UseCase struct {
@@ -21,13 +21,12 @@ func New(repository Repository) *UseCase {
 	}
 }
 
-func (u *UseCase) GetUsers(ctx context.Context, quizID uuid.UUID) (Output, error) {
-	users, err := u.repository.FindUserLastAttempt(ctx, quizID)
+func (u *UseCase) GetByID(ctx context.Context, userID uuid.UUID) (Output, error) {
+	user, err := u.repository.User(ctx, userID)
 	if err != nil {
 		return Output{}, err
 	}
-
 	return Output{
-		Users: users,
+		User: user,
 	}, nil
 }

@@ -67,13 +67,11 @@ VALUES (
 -- name: InsertTeacher :exec
 INSERT INTO account.teacher (
     account_id,
-    group_id,
-    subject_id
+    group_id
 )
 VALUES (
     $1,
-    $2,
-    $3
+    $2
 );
 
 -- ========================================
@@ -167,8 +165,7 @@ SELECT
 	p.role, 
 	p.created_at,
 	s.group_id AS s_group_id,
-	array_remove(array_agg(t.group_id), NULL)::UUID[] AS t_group_ids,
-	array_remove(array_agg(t.subject_id), NULL)::UUID[] AS t_subject_ids
+	array_remove(array_agg(t.group_id), NULL)::UUID[] AS t_group_ids
 FROM account.profile AS p
 LEFT JOIN account.student AS s
 	ON s.account_id = p.account_id

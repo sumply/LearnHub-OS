@@ -1,12 +1,7 @@
 package get_group
 
-import "github.com/google/uuid"
-
-type OutputGroup struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
+import "server/internal/dto"
 
 type Output struct {
-	Groups []OutputGroup
+	Groups []dto.Group `json:"groups"`
 }

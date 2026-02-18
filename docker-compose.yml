@@ -2,31 +2,45 @@ version: "3.9"
 
 services:
   server:
+    image: sumply/learnhub-server:latest
     build:
       context: ./server
       dockerfile: Dockerfile
+    depends_on:
+      - database
     container_name: server
     ports:
       - "8000:8000"
     environment:
-      JWT_SECRET_KEY: "secret"
-      JWT_ACCESS_DURATION: "60"
-      JWT_REFRESH_DURATION: "3600"
-      JWT_ISSUER: "learnHUB-OS"
-      SMTP_FROM: "<email>"
-      SMTP_PASSWORD: "<pwd>"
-      SMTP_HOST: "smtp.mail.ru"
-      SMTP_PORT: "587"
-      LOG_LEVEL: "DEBUG"
+      POSTGRES_DATABASE: learnHUB
+      POSTGRES_USER: server
+      POSTGRES_PASSWORD: secret
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432
+      POSTGRES_SSLMODE: disable
+
+      SERVE_HOST: 0.0.0.0
+      SERVE_PORT: 8000
     restart: unless-stopped
+    
   database:
-    build:
-      context: ./database
-      dockerfile: Dockerfile
+    image: postgres:18
     container_name: database
     environment:
       POSTGRES_DB: learnHUB
       POSTGRES_USER: server
       POSTGRES_PASSWORD: secret
+    volumes:
+      - ./server/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+  
+  pgadmin:
+    image: dpage/pgadmin4:9.12.0
+    container_name: pgadmin
+    depends_on:
+      - database
+    environment:
+      PGADMIN_DEFAULT_EMAIL: yanushkevichvladislav@mail.ru
+      PGADMIN_DEFAULT_PASSWORD: HbC#KtI3e%qe
     ports:
-      - "8001:5432"
+      - "8001:80"
+      - "8443:443"

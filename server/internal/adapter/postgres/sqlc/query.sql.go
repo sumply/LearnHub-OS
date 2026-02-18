@@ -23,8 +23,7 @@ SELECT
 	p.role, 
 	p.created_at,
 	s.group_id AS s_group_id,
-	array_remove(array_agg(t.group_id), NULL)::UUID[] AS t_group_ids,
-	array_remove(array_agg(t.subject_id), NULL)::UUID[] AS t_subject_ids
+	array_remove(array_agg(t.group_id), NULL)::UUID[] AS t_group_ids
 FROM account.profile AS p
 LEFT JOIN account.student AS s
 	ON s.account_id = p.account_id
@@ -40,14 +39,13 @@ GROUP BY
 `
 
 type GetDetailedUsersRow struct {
-	AccountID   uuid.UUID       `db:"account_id" json:"account_id"`
-	FirstName   string          `db:"first_name" json:"first_name"`
-	LastName    string          `db:"last_name" json:"last_name"`
-	Role        AccountUserRole `db:"role" json:"role"`
-	CreatedAt   time.Time       `db:"created_at" json:"created_at"`
-	SGroupID    uuid.NullUUID   `db:"s_group_id" json:"s_group_id"`
-	TGroupIds   []uuid.UUID     `db:"t_group_ids" json:"t_group_ids"`
-	TSubjectIds []uuid.UUID     `db:"t_subject_ids" json:"t_subject_ids"`
+	AccountID uuid.UUID       `db:"account_id" json:"account_id"`
+	FirstName string          `db:"first_name" json:"first_name"`
+	LastName  string          `db:"last_name" json:"last_name"`
+	Role      AccountUserRole `db:"role" json:"role"`
+	CreatedAt time.Time       `db:"created_at" json:"created_at"`
+	SGroupID  uuid.NullUUID   `db:"s_group_id" json:"s_group_id"`
+	TGroupIds []uuid.UUID     `db:"t_group_ids" json:"t_group_ids"`
 }
 
 func (q *Queries) GetDetailedUsers(ctx context.Context) ([]GetDetailedUsersRow, error) {
@@ -67,7 +65,6 @@ func (q *Queries) GetDetailedUsers(ctx context.Context) ([]GetDetailedUsersRow, 
 			&i.CreatedAt,
 			&i.SGroupID,
 			pq.Array(&i.TGroupIds),
-			pq.Array(&i.TSubjectIds),
 		); err != nil {
 			return nil, err
 		}
@@ -777,24 +774,21 @@ func (q *Queries) InsertStudent(ctx context.Context, arg InsertStudentParams) er
 const insertTeacher = `-- name: InsertTeacher :exec
 INSERT INTO account.teacher (
     account_id,
-    group_id,
-    subject_id
+    group_id
 )
 VALUES (
     $1,
-    $2,
-    $3
+    $2
 )
 `
 
 type InsertTeacherParams struct {
 	AccountID uuid.UUID `db:"account_id" json:"account_id"`
 	GroupID   uuid.UUID `db:"group_id" json:"group_id"`
-	SubjectID uuid.UUID `db:"subject_id" json:"subject_id"`
 }
 
 func (q *Queries) InsertTeacher(ctx context.Context, arg InsertTeacherParams) error {
-	_, err := q.db.ExecContext(ctx, insertTeacher, arg.AccountID, arg.GroupID, arg.SubjectID)
+	_, err := q.db.ExecContext(ctx, insertTeacher, arg.AccountID, arg.GroupID)
 	return err
 }
 

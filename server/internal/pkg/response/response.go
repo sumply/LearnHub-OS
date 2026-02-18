@@ -8,6 +8,8 @@ import (
 	"server/internal/domain"
 	"server/internal/pkg/param"
 	"server/internal/usecase"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type ErrorMessage struct {
@@ -34,6 +36,25 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 	)
 }
 
+func SendDTOValidateError(w http.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	var target validator.ValidationErrors
+	var msg ErrorMessage
+	if errors.As(err, &target) {
+		msg.Error = "Validation"
+		details := make(map[string]string)
+		for _, e := range target {
+			details[e.Field()] = e.ActualTag()
+		}
+		msg.Details = details
+	} else {
+		msg = ErrorMessage{
+			Error: err.Error(),
+		}
+	}
+	w.Write(msg.Bytes())
+}
+
 func SendParamError(w http.ResponseWriter, err error) {
 	var queryErr *param.QueryError
 	var msg ErrorMessage
@@ -52,7 +73,7 @@ func SendUseCaseError(w http.ResponseWriter, err error) {
 
 	var e *usecase.ValidationError
 	if errors.As(err, &e) {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		msg = handleValidationError(e)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -72,7 +93,7 @@ func handleValidationError(err *usecase.ValidationError) ErrorMessage {
 	if errors.As(err, &domainErr) {
 		msg.Details = domainErr.ToMap()
 	} else {
-		msg.Details = err.Error()
+		msg.Details = errors.Unwrap(err).Error()
 	}
 	return msg
 }

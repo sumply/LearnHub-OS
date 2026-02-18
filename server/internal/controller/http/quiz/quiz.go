@@ -2,6 +2,7 @@ package quiz
 
 import (
 	"server/internal/adapter/postgres"
+	"server/internal/feature/attempt/start_attempt"
 	"server/internal/feature/quiz/create_quiz"
 	"server/internal/feature/quiz/delete_quiz"
 	"server/internal/feature/quiz/get_by_id"
@@ -18,6 +19,7 @@ func Route(r chi.Router, p *postgres.Postgres) {
 	getByIDUC := get_by_id.New(p)
 	deleteUC := delete_quiz.New(p)
 	getUsersUC := get_users.New(p)
+	startAttemptUC := start_attempt.New(p)
 
 	r.Route("/quizzes", func(r chi.Router) {
 		r.Post("/", create_quiz.HTTP(createUC))
@@ -26,6 +28,7 @@ func Route(r chi.Router, p *postgres.Postgres) {
 			r.Get("/", get_by_id.HTTP(getByIDUC))
 			r.Delete("/", delete_quiz.HTTP(deleteUC))
 			r.Get("/users", get_users.HTTP(getUsersUC))
+			r.Post("/attempt", start_attempt.HTTP(startAttemptUC))
 		})
 	})
 }

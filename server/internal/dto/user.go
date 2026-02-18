@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type User struct {
 	ID        uuid.UUID `json:"id"`
@@ -11,5 +13,5 @@ type User struct {
 
 type UserLastAttempt struct {
 	User
-	LastAttempt *AttemptItem `json:"last_attempt,omitempty"`
+	LastAttempt *AttemptItem `json:"last_attempt"`
 }

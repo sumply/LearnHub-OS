@@ -122,7 +122,6 @@ type AccountStudent struct {
 type AccountTeacher struct {
 	AccountID uuid.UUID `db:"account_id" json:"account_id"`
 	GroupID   uuid.UUID `db:"group_id" json:"group_id"`
-	SubjectID uuid.UUID `db:"subject_id" json:"subject_id"`
 }
 
 type QuizAnswer struct {

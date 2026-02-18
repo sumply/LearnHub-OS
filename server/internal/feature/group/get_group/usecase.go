@@ -2,38 +2,30 @@ package get_group
 
 import (
 	"context"
-	"server/internal/domain"
+	"server/internal/dto"
 )
 
-type Postgres interface {
-	Groups(context.Context) ([]domain.Group, error)
+type QueryRepository interface {
+	ListGroup(context.Context) ([]dto.Group, error)
 }
 
 type UseCase struct {
-	postgres Postgres
+	qRepository QueryRepository
 }
 
-func New(postgres Postgres) *UseCase {
+func New(qRepository QueryRepository) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		qRepository: qRepository,
 	}
 }
 
 func (u *UseCase) GetGroup(ctx context.Context) (Output, error) {
-	groups, err := u.postgres.Groups(ctx)
+	groups, err := u.qRepository.ListGroup(ctx)
 	if err != nil {
 		return Output{}, err
 	}
 
-	output := Output{
-		Groups: make([]OutputGroup, len(groups)),
-	}
-	for i := range groups {
-		output.Groups[i] = OutputGroup{
-			ID:   groups[i].ID,
-			Name: groups[i].Name,
-		}
-	}
-
-	return output, nil
+	return Output{
+		Groups: groups,
+	}, nil
 }

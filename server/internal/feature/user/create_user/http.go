@@ -14,7 +14,7 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		output, err := usecase.CreateUser(r.Context(), &input)
+		output, err := usecase.CreateUser(r.Context(), input)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return

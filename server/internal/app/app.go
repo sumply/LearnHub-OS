@@ -2,9 +2,15 @@ package app
 
 import (
 	"net/http"
-	myhttp "server/internal/controller/http"
+	"server/internal/config"
+
+	controller "server/internal/controller/http"
 )
 
 func Run() error {
-	return http.ListenAndServe("0.0.0.0:8000", myhttp.Router())
+	env := &config.Env{}
+
+	addr := env.CreateServeAddress()
+
+	return http.ListenAndServe(addr.String(), controller.Router(env))
 }

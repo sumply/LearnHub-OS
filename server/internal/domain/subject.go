@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -12,18 +13,30 @@ type Subject struct {
 }
 
 func NewSubject(name string) (Subject, error) {
+	subject := Subject{
+		ID:   uuid.New(),
+		Name: name,
+	}
+
+	if err := subject.Validate(); err != nil {
+		return Subject{}, err
+	}
+
+	return subject, nil
+}
+
+func (s *Subject) Validate() error {
 	domainErr := NewError("subject")
 
-	if name == "" {
+	s.Name = strings.TrimSpace(s.Name)
+
+	if s.Name == "" {
 		domainErr.add("name", errors.New("name is empty"))
 	}
 
 	if !domainErr.Empty() {
-		return Subject{}, domainErr
+		return domainErr
 	}
 
-	return Subject{
-		ID:   uuid.New(),
-		Name: name,
-	}, nil
+	return nil
 }

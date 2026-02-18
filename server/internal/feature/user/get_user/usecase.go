@@ -52,7 +52,6 @@ func (u *UseCase) GetUser(ctx context.Context) (Output, error) {
 				LastName:  u.LastName,
 				Role:      string(u.Role),
 				Groups:    u.Groups,
-				Subjects:  u.Subjects,
 			}
 		}
 	}

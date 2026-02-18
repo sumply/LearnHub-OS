@@ -3,7 +3,9 @@ package http
 import (
 	"net/http"
 	"server/internal/adapter/postgres"
+	"server/internal/config"
 	"server/internal/controller/http/attempt"
+	"server/internal/controller/http/auth"
 	"server/internal/controller/http/group"
 	"server/internal/controller/http/middleware"
 	"server/internal/controller/http/quiz"
@@ -13,21 +15,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Router() http.Handler {
+func Router(creator config.Creator) http.Handler {
 	r := chi.NewMux()
 
 	r.Use(
 		middleware.CORS(),
 		middleware.Logger(),
+		middleware.BodyLogger(),
 		middleware.Recoverer(),
 	)
 
-	p, err := postgres.New(postgres.Options{
-		User:     "postgres",
-		Password: "2121",
-		DB:       "test",
-		SSLMode:  "disable",
-	})
+	cfgPostgres := creator.CreatePostgresConnection()
+
+	p, err := postgres.New(cfgPostgres.CreateOptions())
 	if err != nil {
 		panic(err)
 	}
@@ -37,6 +37,7 @@ func Router() http.Handler {
 	subject.Route(r, p)
 	quiz.Route(r, p)
 	attempt.Route(r, p)
+	auth.Route(r, p)
 
 	return r
 }

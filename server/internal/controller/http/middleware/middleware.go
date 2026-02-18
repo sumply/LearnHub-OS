@@ -1,7 +1,11 @@
 package middleware
 
 import (
+	"bytes"
+	"log"
 	"net/http"
+
+	"io"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -22,8 +26,39 @@ func CORS() Middleware {
 	})
 }
 
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
+	lrw.body.Write(b) // сохраняем тело
+	return lrw.ResponseWriter.Write(b)
+}
+
 func Logger() Middleware {
 	return middleware.Logger
+}
+
+func BodyLogger() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var requestBody []byte
+			if r.Body != nil {
+				requestBody, _ = io.ReadAll(r.Body)
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+			log.Printf("Request: %s %s\nBody: %s\n", r.Method, r.URL.Path, string(requestBody))
+			// Оборачиваем ResponseWriter
+			lrw := &loggingResponseWriter{ResponseWriter: w, body: &bytes.Buffer{}}
+
+			// Вызываем следующий обработчик
+			next.ServeHTTP(lrw, r)
+
+			// Логируем тело ответа
+			log.Printf("Response: %s\nBody: %s\n", lrw.Header().Get("Status"), lrw.body.String())
+		})
+	}
 }
 
 func Recoverer() Middleware {

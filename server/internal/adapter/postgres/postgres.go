@@ -18,15 +18,43 @@ type Postgres struct {
 	tables goquTableNames
 }
 
+func (p *Postgres) MakeGroup() *Group {
+	return &Group{
+		goqu:   p.goqu,
+		tables: p.tables,
+	}
+}
+
+func (p *Postgres) MakeQuizItem() *QuizItem {
+	return &QuizItem{
+		goqu:   p.goqu,
+		tables: p.tables,
+	}
+}
+
+func (p *Postgres) MakeDomain() *Domain {
+	return &Domain{
+		Postgres: p,
+	}
+}
+
+func (p *Postgres) MakeQuery() *Query {
+	return &Query{
+		Postgres: p,
+	}
+}
+
 type Options struct {
 	User     string
 	Password string
 	DB       string
 	SSLMode  string
+	Port     int
+	Host     string
 }
 
 func (o *Options) String() string {
-	return fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", o.User, o.Password, o.DB, o.SSLMode)
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", o.Host, o.Port, o.User, o.Password, o.DB, o.SSLMode)
 }
 
 func New(opt Options) (*Postgres, error) {
@@ -65,12 +93,15 @@ type executer interface {
 }
 
 type goquTableNames struct {
-	SchoolGroup    exp.IdentifierExpression
-	SchoolSubject  exp.IdentifierExpression
-	AccountProfile exp.IdentifierExpression
-	AccountStudent exp.IdentifierExpression
-	QuizInfo       exp.IdentifierExpression
-	QuizAttempt    exp.IdentifierExpression
+	SchoolGroup       exp.IdentifierExpression
+	SchoolSubject     exp.IdentifierExpression
+	AccountProfile    exp.IdentifierExpression
+	AccountStudent    exp.IdentifierExpression
+	AccountCredential exp.IdentifierExpression
+	AccountTeacher    exp.IdentifierExpression
+	QuizInfo          exp.IdentifierExpression
+	QuizAttempt       exp.IdentifierExpression
+	QuizAssignment    exp.IdentifierExpression
 }
 
 func newGoquTables() goquTableNames {
@@ -78,11 +109,14 @@ func newGoquTables() goquTableNames {
 	account := goqu.S("account")
 	quiz := goqu.S("quiz")
 	return goquTableNames{
-		SchoolGroup:    school.Table("group"),
-		SchoolSubject:  school.Table("subject"),
-		AccountProfile: account.Table("profile"),
-		AccountStudent: account.Table("student"),
-		QuizInfo:       quiz.Table("info"),
-		QuizAttempt:    quiz.Table("attempt"),
+		SchoolGroup:       school.Table("group"),
+		SchoolSubject:     school.Table("subject"),
+		AccountProfile:    account.Table("profile"),
+		AccountStudent:    account.Table("student"),
+		AccountTeacher:    account.Table("teacher"),
+		AccountCredential: account.Table("credential"),
+		QuizInfo:          quiz.Table("info"),
+		QuizAttempt:       quiz.Table("attempt"),
+		QuizAssignment:    quiz.Table("assignment"),
 	}
 }

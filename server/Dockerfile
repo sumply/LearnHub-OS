@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o app ./cmd/server/main.go
+RUN go build -o app ./cmd/server/server.go
 
 
 FROM alpine:3.21
@@ -19,4 +19,4 @@ COPY --from=builder /data/app/app .
 
 EXPOSE 8000
 
-CMD ["./app"]
+CMD ["./app", "serve"]

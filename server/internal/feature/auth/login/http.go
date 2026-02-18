@@ -1,9 +1,10 @@
-package create_group
+package login
 
 import (
 	"encoding/json"
 	"net/http"
 	"server/internal/pkg/response"
+	"server/internal/pkg/validator"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {
@@ -14,7 +15,12 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		output, err := usecase.CreateGroup(r.Context(), &input)
+		if err := validator.V.StructCtx(r.Context(), input); err != nil {
+			response.SendDTOValidateError(w, err)
+			return
+		}
+
+		output, err := usecase.Login(r.Context(), input)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return
@@ -24,7 +30,5 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			response.SendJSONEncodeError(w, err)
 			return
 		}
-
-		w.WriteHeader(http.StatusCreated)
 	}
 }
