@@ -20,6 +20,11 @@ services:
 
       SERVE_HOST: 0.0.0.0
       SERVE_PORT: 8000
+
+      JWT_PAYLOAD_ISSUER: learnHub-OS
+      JWT_SECRET_KEY: secret
+      JWT_ACCESS_DURATION_HOUR: 1
+      JWT_REFRESH_DURATION_HOUR: 24
     restart: unless-stopped
     
   database:

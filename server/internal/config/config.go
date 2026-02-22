@@ -84,12 +84,12 @@ func (e Env) CreateServeAddress() ServeAddress {
 func (e Env) CreateJWT() JWT {
 	issuer := os.Getenv("JWT_PAYLOAD_ISSUER")
 	secret := os.Getenv("JWT_SECRET_KEY")
-	aDurStr := os.Getenv("JWT_ACCESS_DURATION")
+	aDurStr := os.Getenv("JWT_ACCESS_DURATION_HOUR")
 	aDur, err := strconv.Atoi(aDurStr)
 	if err != nil {
 		panic(err)
 	}
-	rDurStr := os.Getenv("JWT_REFRESH_DURATION")
+	rDurStr := os.Getenv("JWT_REFRESH_DURATION_HOUR")
 	rDur, err := strconv.Atoi(rDurStr)
 	if err != nil {
 		panic(err)
@@ -97,8 +97,8 @@ func (e Env) CreateJWT() JWT {
 	return JWT{
 		Issuer:     issuer,
 		Secret:     []byte(secret),
-		AccessDur:  time.Duration(aDur),
-		RefreshDur: time.Duration(rDur),
+		AccessDur:  time.Duration(aDur) * time.Hour,
+		RefreshDur: time.Duration(rDur) * time.Hour,
 	}
 }
 
