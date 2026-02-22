@@ -11,6 +11,7 @@ import (
 	"server/internal/controller/http/quiz"
 	"server/internal/controller/http/subject"
 	"server/internal/controller/http/user"
+	"server/internal/pkg/jwt"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -32,12 +33,16 @@ func Router(creator config.Creator) http.Handler {
 		panic(err)
 	}
 
-	user.Route(r, p)
+	jwtCfg := creator.CreateJWT()
+	jwtParser := jwt.NewParser(jwtCfg.Secret)
+	jwtGenerator := jwt.NewGenerator(jwtCfg.Issuer, jwtCfg.Secret, jwtCfg.AccessDur, jwtCfg.RefreshDur)
+
+	user.Route(r, jwtParser, p)
 	group.Route(r, p)
 	subject.Route(r, p)
 	quiz.Route(r, p)
 	attempt.Route(r, p)
-	auth.Route(r, p)
+	auth.Route(r, jwtGenerator, p)
 
 	return r
 }

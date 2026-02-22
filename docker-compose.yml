@@ -2,7 +2,6 @@ version: "3.9"
 
 services:
   server:
-    image: sumply/learnhub-server:latest
     build:
       context: ./server
       dockerfile: Dockerfile

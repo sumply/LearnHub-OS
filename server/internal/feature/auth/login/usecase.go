@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"server/internal/domain"
+	"server/internal/pkg/jwt"
 	"server/internal/pkg/repository/filter"
 )
 
@@ -11,11 +12,13 @@ type Repository interface {
 }
 
 type UseCase struct {
+	generator  *jwt.Generator
 	repository Repository
 }
 
-func New(repository Repository) *UseCase {
+func New(generator *jwt.Generator, repository Repository) *UseCase {
 	return &UseCase{
+		generator:  generator,
 		repository: repository,
 	}
 }
@@ -30,8 +33,19 @@ func (u *UseCase) Login(ctx context.Context, input Input) (Output, error) {
 		return Output{}, err
 	}
 
+	accessToken, err := u.generator.GenerateAccess(user.ID, user.Role)
+	if err != nil {
+		return Output{}, err
+	}
+	refreshToken, err := u.generator.GenerateRefresh(user.ID, user.Role)
+	if err != nil {
+		return Output{}, err
+	}
+
 	return Output{
-		ID:   user.ID,
-		Role: user.Role,
+		JWT: OutputJWT{
+			Access:  accessToken,
+			Refresh: refreshToken,
+		},
 	}, nil
 }

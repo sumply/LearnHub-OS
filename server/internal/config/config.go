@@ -5,6 +5,7 @@ import (
 	"os"
 	"server/internal/adapter/postgres"
 	"strconv"
+	"time"
 )
 
 type ServeAddress struct {
@@ -34,6 +35,13 @@ func (p *PostgresConnection) CreateOptions() postgres.Options {
 		Port:     p.Port,
 		Host:     p.Host,
 	}
+}
+
+type JWT struct {
+	Secret     []byte
+	Issuer     string
+	AccessDur  time.Duration
+	RefreshDur time.Duration
 }
 
 type Env struct{}
@@ -73,7 +81,29 @@ func (e Env) CreateServeAddress() ServeAddress {
 	}
 }
 
+func (e Env) CreateJWT() JWT {
+	issuer := os.Getenv("JWT_PAYLOAD_ISSUER")
+	secret := os.Getenv("JWT_SECRET_KEY")
+	aDurStr := os.Getenv("JWT_ACCESS_DURATION")
+	aDur, err := strconv.Atoi(aDurStr)
+	if err != nil {
+		panic(err)
+	}
+	rDurStr := os.Getenv("JWT_REFRESH_DURATION")
+	rDur, err := strconv.Atoi(rDurStr)
+	if err != nil {
+		panic(err)
+	}
+	return JWT{
+		Issuer:     issuer,
+		Secret:     []byte(secret),
+		AccessDur:  time.Duration(aDur),
+		RefreshDur: time.Duration(rDur),
+	}
+}
+
 type Creator interface {
 	CreatePostgresConnection() PostgresConnection
 	CreateServeAddress() ServeAddress
+	CreateJWT() JWT
 }

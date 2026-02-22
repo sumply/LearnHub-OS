@@ -2,8 +2,13 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"server/internal/pkg/http/response"
+	"server/internal/pkg/jwt"
+	"server/internal/pkg/usecase"
 
 	"io"
 
@@ -65,15 +70,23 @@ func Recoverer() Middleware {
 	return middleware.Recoverer
 }
 
-/*
-func Auth() Middleware {
+func Auth(parser *jwt.Parser) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, err := getAuthorizationToken(r)
+			token, err := getAuthorizationToken(r)
 			if err != nil {
 				response.SendAuthTokenError(w, err)
 				return
 			}
+
+			claims, err := parser.Parse(token)
+			if err != nil {
+				response.SendAuthTokenError(w, err)
+				return
+			}
+
+			ctx := usecase.IdentityWithContext(r.Context(), claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -82,11 +95,9 @@ var jwtRegex = regexp.MustCompile(`^Bearer\s+(.+)$`)
 
 func getAuthorizationToken(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
-	token := jwtRegex.FindString(header)
-	if token == "" {
-		return "", fmt.Errorf("token is empty")
+	token := jwtRegex.FindStringSubmatch(header)
+	if len(token) != 2 {
+		return "", fmt.Errorf("token is invalid")
 	}
-	return token, nil
+	return token[1], nil
 }
-
-*/
