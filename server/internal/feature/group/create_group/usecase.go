@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
-	"server/internal/usecase"
+	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )

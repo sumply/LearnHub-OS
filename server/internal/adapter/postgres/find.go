@@ -8,7 +8,7 @@ import (
 	"server/internal/adapter/postgres/utils"
 	"server/internal/domain"
 	"server/internal/dto"
-	"server/internal/repository"
+	"server/internal/pkg/repository"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"

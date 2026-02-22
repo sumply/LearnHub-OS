@@ -7,8 +7,8 @@ import (
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 	"server/internal/dto"
-	"server/internal/repository"
-	"server/internal/repository/filter"
+	"server/internal/pkg/repository"
+	"server/internal/pkg/repository/filter"
 	"time"
 
 	"github.com/doug-martin/goqu/v9"

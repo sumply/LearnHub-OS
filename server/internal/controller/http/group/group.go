@@ -7,7 +7,7 @@ import (
 	"server/internal/feature/group/get_group"
 	"server/internal/feature/group/get_students"
 	"server/internal/feature/group/update_group"
-	"server/internal/pkg/param"
+	"server/internal/pkg/http/param"
 
 	"github.com/go-chi/chi/v5"
 )

@@ -64,3 +64,29 @@ func BodyLogger() Middleware {
 func Recoverer() Middleware {
 	return middleware.Recoverer
 }
+
+/*
+func Auth() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := getAuthorizationToken(r)
+			if err != nil {
+				response.SendAuthTokenError(w, err)
+				return
+			}
+		})
+	}
+}
+
+var jwtRegex = regexp.MustCompile(`^Bearer\s+(.+)$`)
+
+func getAuthorizationToken(r *http.Request) (string, error) {
+	header := r.Header.Get("Authorization")
+	token := jwtRegex.FindString(header)
+	if token == "" {
+		return "", fmt.Errorf("token is empty")
+	}
+	return token, nil
+}
+
+*/

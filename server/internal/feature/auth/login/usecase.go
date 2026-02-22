@@ -3,7 +3,7 @@ package login
 import (
 	"context"
 	"server/internal/domain"
-	"server/internal/repository/filter"
+	"server/internal/pkg/repository/filter"
 )
 
 type Repository interface {

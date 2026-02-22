@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
-	"server/internal/pkg/param"
-	"server/internal/usecase"
+	"server/internal/pkg/http/param"
+	"server/internal/pkg/usecase"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -101,4 +101,12 @@ func handleValidationError(err *usecase.ValidationError) errorMessage {
 		msg.Details = errors.Unwrap(err).Error()
 	}
 	return msg
+}
+
+func SendAuthTokenError(w http.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Write(errorMessage{
+		Error:   "Unauthorized",
+		Details: err.Error(),
+	}.Bytes())
 }

@@ -3,7 +3,7 @@ package create_user
 import (
 	"context"
 	"server/internal/domain"
-	"server/internal/usecase"
+	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )

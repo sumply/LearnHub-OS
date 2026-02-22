@@ -4,7 +4,7 @@ import (
 	"server/internal/adapter/postgres"
 	"server/internal/feature/attempt/finish_attempt"
 	"server/internal/feature/attempt/get_by_id"
-	"server/internal/pkg/param"
+	"server/internal/pkg/http/param"
 
 	"github.com/go-chi/chi/v5"
 )

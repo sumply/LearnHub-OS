@@ -6,7 +6,7 @@ import (
 	"server/internal/feature/subject/delete_subject"
 	"server/internal/feature/subject/get_subject"
 	"server/internal/feature/subject/update_subject"
-	"server/internal/pkg/param"
+	"server/internal/pkg/http/param"
 
 	"github.com/go-chi/chi/v5"
 )

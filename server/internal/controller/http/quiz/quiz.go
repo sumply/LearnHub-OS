@@ -8,7 +8,7 @@ import (
 	"server/internal/feature/quiz/get_by_id"
 	"server/internal/feature/quiz/get_quizzes"
 	"server/internal/feature/quiz/get_users"
-	"server/internal/pkg/param"
+	"server/internal/pkg/http/param"
 
 	"github.com/go-chi/chi/v5"
 )

@@ -3,8 +3,8 @@ package start_attempt
 import (
 	"encoding/json"
 	"net/http"
-	"server/internal/pkg/param"
-	"server/internal/pkg/response"
+	"server/internal/pkg/http/param"
+	"server/internal/pkg/http/response"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {

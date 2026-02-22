@@ -2,6 +2,7 @@ package delete_user
 
 import (
 	"context"
+	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )
@@ -20,6 +21,6 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) DeleteUser(ctx context.Context, id uuid.UUID) error {
+func (u *UseCase) DeleteUser(ctx context.Context, identity usecase.Identity, id uuid.UUID) error {
 	return u.postgres.DeleteUser(ctx, id)
 }

@@ -3,7 +3,7 @@ package login
 import (
 	"encoding/json"
 	"net/http"
-	"server/internal/pkg/response"
+	"server/internal/pkg/http/response"
 	"server/internal/pkg/validator"
 )
 

@@ -3,7 +3,7 @@ package create_quiz
 import (
 	"encoding/json"
 	"net/http"
-	"server/internal/pkg/response"
+	"server/internal/pkg/http/response"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {

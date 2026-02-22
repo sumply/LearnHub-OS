@@ -7,7 +7,7 @@ import (
 	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
-	"server/internal/repository"
+	"server/internal/pkg/repository"
 	"time"
 
 	"github.com/google/uuid"
