@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"errors"
+	"fmt"
 	"server/internal/domain"
 	"testing"
 
@@ -31,4 +32,12 @@ func getDomainError(t *testing.T) *domain.Error {
 	assert.ErrorAs(t, err, &target)
 
 	return target
+}
+
+func TestNewAuthError(t *testing.T) {
+	detail := fmt.Errorf("user is not admin")
+	auth := NewAuthError(detail)
+
+	assert.Equal(t, "permission denied", auth.Error())
+	assert.EqualError(t, auth.Unwrap(), detail.Error())
 }

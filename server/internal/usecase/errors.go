@@ -32,3 +32,23 @@ func (e *ValidationError) Error() string {
 func (e *ValidationError) Unwrap() error {
 	return e.err
 }
+
+type AuthError struct {
+	event string
+	err   error
+}
+
+func NewAuthError(err error) *AuthError {
+	return &AuthError{
+		event: "permission denied",
+		err:   err,
+	}
+}
+
+func (a *AuthError) Error() string {
+	return a.event
+}
+
+func (a *AuthError) Unwrap() error {
+	return a.err
+}
