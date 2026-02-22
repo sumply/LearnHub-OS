@@ -12,12 +12,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type ErrorMessage struct {
+type errorMessage struct {
 	Error   string `json:"error"`
 	Details any    `json:"details,omitempty"`
 }
 
-func (e ErrorMessage) Bytes() []byte {
+func (e errorMessage) Bytes() []byte {
 	data, _ := json.Marshal(e)
 	return data
 }
@@ -30,7 +30,7 @@ func SendJSONEncodeError(w http.ResponseWriter, err error) {
 func SendJSONDecodeError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write(
-		ErrorMessage{
+		errorMessage{
 			Error: err.Error(),
 		}.Bytes(),
 	)
@@ -39,7 +39,7 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 func SendDTOValidateError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	var target validator.ValidationErrors
-	var msg ErrorMessage
+	var msg errorMessage
 	if errors.As(err, &target) {
 		msg.Error = "Validation"
 		details := make(map[string]string)
@@ -48,7 +48,7 @@ func SendDTOValidateError(w http.ResponseWriter, err error) {
 		}
 		msg.Details = details
 	} else {
-		msg = ErrorMessage{
+		msg = errorMessage{
 			Error: err.Error(),
 		}
 	}
@@ -57,7 +57,7 @@ func SendDTOValidateError(w http.ResponseWriter, err error) {
 
 func SendParamError(w http.ResponseWriter, err error) {
 	var queryErr *param.QueryError
-	var msg ErrorMessage
+	var msg errorMessage
 	if errors.As(err, &queryErr) {
 		msg.Error = queryErr.Error()
 		msg.Details = queryErr.ToMap()
@@ -69,15 +69,20 @@ func SendParamError(w http.ResponseWriter, err error) {
 }
 
 func SendUseCaseError(w http.ResponseWriter, err error) {
-	var msg ErrorMessage
+	var msg errorMessage
 
-	var e *usecase.ValidationError
-	if errors.As(err, &e) {
+	if target, ok := errors.AsType[*usecase.ValidationError](err); ok {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		msg = handleValidationError(e)
+		msg = handleValidationError(target)
+	} else if target, ok := errors.AsType[*usecase.AuthError](err); ok {
+		w.WriteHeader(http.StatusForbidden)
+		msg = errorMessage{
+			Error:   target.Error(),
+			Details: target.Unwrap().Error(),
+		}
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		msg = ErrorMessage{
+		msg = errorMessage{
 			Error: err.Error(),
 		}
 	}
@@ -85,8 +90,8 @@ func SendUseCaseError(w http.ResponseWriter, err error) {
 	w.Write(msg.Bytes())
 }
 
-func handleValidationError(err *usecase.ValidationError) ErrorMessage {
-	msg := ErrorMessage{
+func handleValidationError(err *usecase.ValidationError) errorMessage {
+	msg := errorMessage{
 		Error: err.Error(),
 	}
 	var domainErr *domain.Error
