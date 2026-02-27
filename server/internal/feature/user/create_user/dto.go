@@ -20,7 +20,7 @@ type Input struct {
 }
 
 func InputFromRequest(r *http.Request) (Input, error) {
-	input, err := decoder.JSON[*Input](r.Body)
+	input, err := decoder.JSON[Input](r.Body)
 	if err != nil {
 		return Input{}, err
 	}
@@ -29,7 +29,7 @@ func InputFromRequest(r *http.Request) (Input, error) {
 		return Input{}, err
 	}
 
-	return *input, nil
+	return input, nil
 }
 
 type Output struct {
