@@ -2,6 +2,7 @@ package create_user
 
 import (
 	"context"
+	"fmt"
 	"server/internal/domain"
 	"server/internal/pkg/usecase"
 
@@ -24,7 +25,13 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) CreateUser(ctx context.Context, input Input) (Output, error) {
+func (uc *UseCase) CreateUser(ctx context.Context, identity usecase.Identity, input Input) (Output, error) {
+	if identity.Role() != domain.RoleAdmin {
+		return Output{}, usecase.NewAuthError(
+			fmt.Errorf("user is not admin"),
+		)
+	}
+
 	user, err := domain.NewUser(
 		input.FirstName,
 		input.LastName,
@@ -36,30 +43,39 @@ func (u *UseCase) CreateUser(ctx context.Context, input Input) (Output, error) {
 		return Output{}, usecase.NewValidationError(err)
 	}
 
-	switch domain.UserRole(input.Role) {
-
-	case domain.RoleAdmin:
-		err := u.postgres.CreateUser(ctx, &user)
-		if err != nil {
-			return Output{}, err
-		}
-
-	case domain.RoleStudent:
-		if err := u.createStudent(ctx, input, user); err != nil {
-			return Output{}, err
-		}
-	case domain.RoleTeacher:
-		if err := u.createTeacher(ctx, input, user); err != nil {
-			return Output{}, err
-		}
+	err = uc.saveUserByRole(ctx, input, user)
+	if err != nil {
+		return Output{}, err
 	}
 
 	return Output{ID: user.ID}, nil
 }
 
-func (u *UseCase) createStudent(ctx context.Context, input Input, user domain.User) error {
+func (uc *UseCase) saveUserByRole(ctx context.Context, input Input, user domain.User) error {
+	switch domain.UserRole(input.Role) {
+
+	case domain.RoleAdmin:
+		err := uc.postgres.CreateUser(ctx, &user)
+		if err != nil {
+			return err
+		}
+
+	case domain.RoleStudent:
+		if err := uc.createStudent(ctx, input, user); err != nil {
+			return err
+		}
+	case domain.RoleTeacher:
+		if err := uc.createTeacher(ctx, input, user); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (uc *UseCase) createStudent(ctx context.Context, input Input, user domain.User) error {
 	if input.GroupID == uuid.Nil {
-		err := u.postgres.CreateUser(ctx, &user)
+		err := uc.postgres.CreateUser(ctx, &user)
 		if err != nil {
 			return err
 		}
@@ -69,7 +85,7 @@ func (u *UseCase) createStudent(ctx context.Context, input Input, user domain.Us
 			return err
 		}
 
-		err = u.postgres.CreateStudent(ctx, &student)
+		err = uc.postgres.CreateStudent(ctx, &student)
 		if err != nil {
 			return err
 		}
@@ -78,9 +94,9 @@ func (u *UseCase) createStudent(ctx context.Context, input Input, user domain.Us
 	return nil
 }
 
-func (u *UseCase) createTeacher(ctx context.Context, input Input, user domain.User) error {
+func (uc *UseCase) createTeacher(ctx context.Context, input Input, user domain.User) error {
 	if len(input.GroupIDs) == 0 && len(input.SubjectIDs) == 0 {
-		err := u.postgres.CreateUser(ctx, &user)
+		err := uc.postgres.CreateUser(ctx, &user)
 		if err != nil {
 			return err
 		}
@@ -90,7 +106,7 @@ func (u *UseCase) createTeacher(ctx context.Context, input Input, user domain.Us
 			return err
 		}
 
-		err = u.postgres.CreateTeacher(ctx, &teacher)
+		err = uc.postgres.CreateTeacher(ctx, &teacher)
 		if err != nil {
 			return err
 		}
