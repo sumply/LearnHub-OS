@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"server/internal/domain"
+	"server/internal/dto"
 	"server/internal/pkg/jwt"
 	"server/internal/pkg/repository/filter"
 )
@@ -46,6 +47,12 @@ func (u *UseCase) Login(ctx context.Context, input Input) (Output, error) {
 		JWT: OutputJWT{
 			Access:  accessToken,
 			Refresh: refreshToken,
+		},
+		User: dto.User{
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Role:      string(user.Role),
 		},
 	}, nil
 }

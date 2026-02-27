@@ -1,12 +1,15 @@
 package login
 
+import "server/internal/dto"
+
 type Input struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,password"`
 }
 
 type Output struct {
-	JWT OutputJWT `json:"jwt"`
+	JWT  OutputJWT `json:"jwt"`
+	User dto.User  `json:"user"`
 }
 
 type OutputJWT struct {
