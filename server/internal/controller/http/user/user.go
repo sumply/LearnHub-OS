@@ -2,7 +2,6 @@ package user
 
 import (
 	"server/internal/adapter/postgres"
-	"server/internal/controller/http/middleware"
 	"server/internal/feature/user/create_user"
 	"server/internal/feature/user/delete_user"
 	"server/internal/feature/user/get_by_id"
@@ -10,12 +9,11 @@ import (
 	"server/internal/feature/user/get_user"
 	"server/internal/feature/user/update_user"
 	"server/internal/pkg/http/param"
-	"server/internal/pkg/jwt"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func Route(r chi.Router, parser *jwt.Parser, p *postgres.Postgres) {
+func Route(r chi.Router, p *postgres.Postgres) {
 	createUC := create_user.New(p)
 	getUC := get_user.New(p)
 	deleteUC := delete_user.New(p)
@@ -26,18 +24,14 @@ func Route(r chi.Router, parser *jwt.Parser, p *postgres.Postgres) {
 	})
 	getByIDUC := get_by_id.New(p)
 
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(parser))
-
-		r.Route("/users", func(r chi.Router) {
-			r.Post("/", create_user.HTTP(createUC))
-			r.Get("/", get_user.HTTP(getUC))
-			r.Route("/"+param.UserID.Path(), func(r chi.Router) {
-				r.Delete("/", delete_user.HTTP(deleteUC))
-				r.Patch("/", update_user.HTTP(updateUC))
-				r.Get("/", get_by_id.HTTP(getByIDUC))
-				r.Get("/quizzes", get_quizzes.HTTP(getQuizzesUC))
-			})
+	r.Route("/users", func(r chi.Router) {
+		r.Post("/", create_user.HTTP(createUC))
+		r.Get("/", get_user.HTTP(getUC))
+		r.Route("/"+param.UserID.Path(), func(r chi.Router) {
+			r.Delete("/", delete_user.HTTP(deleteUC))
+			r.Patch("/", update_user.HTTP(updateUC))
+			r.Get("/", get_by_id.HTTP(getByIDUC))
+			r.Get("/quizzes", get_quizzes.HTTP(getQuizzesUC))
 		})
 	})
 }

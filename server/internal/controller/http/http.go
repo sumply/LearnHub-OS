@@ -19,30 +19,48 @@ import (
 func Router(creator config.Creator) http.Handler {
 	r := chi.NewMux()
 
+	prepareCommonMiddleware(r)
+
+	postgresCfg := creator.CreatePostgresConnection()
+
+	p, err := postgres.New(postgresCfg.CreateOptions())
+	if err != nil {
+		panic(err)
+	}
+
+	jwtCfg := creator.CreateJWT()
+
+	registerPublicRoutes(r, jwtCfg, p)
+	registerPrivateRoutes(r, jwtCfg, p)
+
+	return r
+}
+
+func prepareCommonMiddleware(r chi.Router) {
 	r.Use(
 		middleware.CORS(),
 		middleware.Logger(),
 		middleware.BodyLogger(),
 		middleware.Recoverer(),
 	)
+}
 
-	cfgPostgres := creator.CreatePostgresConnection()
+func registerPublicRoutes(r chi.Router, cfg config.JWT, postgres *postgres.Postgres) {
+	jwtGenerator := jwt.NewGenerator(cfg.Issuer, cfg.Secret, cfg.AccessDur, cfg.RefreshDur)
 
-	p, err := postgres.New(cfgPostgres.CreateOptions())
-	if err != nil {
-		panic(err)
-	}
+	auth.Route(r, jwtGenerator, postgres)
+}
 
-	jwtCfg := creator.CreateJWT()
-	jwtParser := jwt.NewParser(jwtCfg.Secret)
-	jwtGenerator := jwt.NewGenerator(jwtCfg.Issuer, jwtCfg.Secret, jwtCfg.AccessDur, jwtCfg.RefreshDur)
+func registerPrivateRoutes(r chi.Router, cfg config.JWT, postgres *postgres.Postgres) {
+	jwtParser := jwt.NewParser(cfg.Secret)
 
-	user.Route(r, jwtParser, p)
-	group.Route(r, p)
-	subject.Route(r, p)
-	quiz.Route(r, p)
-	attempt.Route(r, p)
-	auth.Route(r, jwtGenerator, p)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Auth(jwtParser))
 
-	return r
+		user.Route(r, postgres)
+		group.Route(r, postgres)
+		subject.Route(r, postgres)
+		quiz.Route(r, postgres)
+		attempt.Route(r, postgres)
+	})
 }
