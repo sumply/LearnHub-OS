@@ -21,11 +21,10 @@ func HTTP(uc *UseCase) http.HandlerFunc {
 		}
 
 		if err := uc.UpdateUser(r.Context(), token, input); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendUseCaseError(w, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		response.SendNoContent(w)
 	}
 }
