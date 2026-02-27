@@ -1,11 +1,21 @@
 package validator
 
-import "github.com/go-playground/validator/v10"
+import (
+	"context"
 
-var V *validator.Validate
+	"github.com/go-playground/validator/v10"
+)
+
+var v *validator.Validate
+
+func V(ctx context.Context, s any) error {
+	return v.StructCtx(ctx, s)
+}
 
 func init() {
-	V = validator.New()
-	V.RegisterAlias("password", "min=8,max=16")
-	V.RegisterAlias("user-name", "min=2,max=32,alphanumunicode")
+	v = validator.New()
+	v.RegisterAlias("password", "min=8,max=16")
+	v.RegisterAlias("user-name", "min=2,max=32,alphanumunicode")
+	v.RegisterAlias("subject-name", "min=2,max=100")
+	v.RegisterAlias("group-name", "min=2,max=30")
 }

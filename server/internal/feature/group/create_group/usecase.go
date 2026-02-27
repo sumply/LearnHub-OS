@@ -27,7 +27,13 @@ func New(repostiory DomainRepository) *UseCase {
 	}
 }
 
-func (u *UseCase) CreateGroup(ctx context.Context, input *Input) (Output, error) {
+func (u *UseCase) CreateGroup(ctx context.Context, identity usecase.Identity, input *Input) (Output, error) {
+	if identity.Role() != domain.RoleAdmin {
+		return Output{}, usecase.NewAuthError(
+			fmt.Errorf("user is not admin"),
+		)
+	}
+
 	group := domain.Group{
 		ID:   uuid.New(),
 		Name: input.Name,
@@ -47,8 +53,8 @@ func (u *UseCase) CreateGroup(ctx context.Context, input *Input) (Output, error)
 }
 
 func (u *UseCase) handleOptionFields(ctx context.Context, group *domain.Group, input *Input) error {
-	if input.CuratorID != nil {
-		user, err := u.dRepository.GetUser(ctx, *input.CuratorID)
+	if input.CuratorID != uuid.Nil {
+		user, err := u.dRepository.GetUser(ctx, input.CuratorID)
 		if err != nil {
 			return err
 		}

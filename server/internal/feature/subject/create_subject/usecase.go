@@ -2,9 +2,9 @@ package create_subject
 
 import (
 	"context"
+	"fmt"
 	"server/internal/domain"
-
-	"github.com/google/uuid"
+	"server/internal/pkg/usecase"
 )
 
 type Postgres interface {
@@ -21,10 +21,16 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) CreateSubject(ctx context.Context, input *Input) (Output, error) {
-	subject := domain.Subject{
-		ID:   uuid.New(),
-		Name: input.Name,
+func (u *UseCase) CreateSubject(ctx context.Context, identity usecase.Identity, input Input) (Output, error) {
+	if identity.Role() != domain.RoleAdmin {
+		return Output{}, usecase.NewAuthError(
+			fmt.Errorf("user is not admin"),
+		)
+	}
+
+	subject, err := domain.NewSubject(input.Name)
+	if err != nil {
+		return Output{}, err
 	}
 
 	if err := u.postgres.CreateSubject(ctx, &subject); err != nil {

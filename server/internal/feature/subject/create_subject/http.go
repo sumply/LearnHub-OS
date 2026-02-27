@@ -3,27 +3,32 @@ package create_subject
 import (
 	"encoding/json"
 	"net/http"
+	"server/internal/pkg/http/response"
+	"server/internal/pkg/usecase"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var input Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+		input, err := InputFromRequest(r)
+		if err != nil {
+			response.SendDTOValidateError(w, err)
 			return
 		}
 
-		output, err := usecase.CreateSubject(r.Context(), &input)
+		token, ok := usecase.IdentityFromContext(r.Context())
+		if !ok {
+			response.SendAuthTokenError(w, nil)
+			return
+		}
+
+		output, err := uc.CreateSubject(r.Context(), token, input)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendUseCaseError(w, err)
 			return
 		}
 
 		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendJSONEncodeError(w, err)
 			return
 		}
 

@@ -2,25 +2,28 @@ package delete_subject
 
 import (
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"server/internal/pkg/http/param"
+	"server/internal/pkg/http/response"
+	"server/internal/pkg/usecase"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		param := chi.URLParam(r, "subject_id")
-		subjectID, err := uuid.Parse(param)
+		subjectID, err := param.ID(r, param.SubjectID)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			response.SendParamError(w, err)
 			return
 		}
 
-		err = usecase.DeleteSubject(r.Context(), subjectID)
+		token, ok := usecase.IdentityFromContext(r.Context())
+		if !ok {
+			response.SendAuthTokenError(w, nil)
+			return
+		}
+
+		err = uc.DeleteSubject(r.Context(), token, subjectID)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendUseCaseError(w, err)
 			return
 		}
 

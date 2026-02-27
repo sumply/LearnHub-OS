@@ -28,7 +28,7 @@ func InputFromRequest(r *http.Request) (Input, error) {
 		return Input{}, err
 	}
 
-	if err := validator.V.StructCtx(r.Context(), input); err != nil {
+	if err := validator.V(r.Context(), input); err != nil {
 		return Input{}, err
 	}
 

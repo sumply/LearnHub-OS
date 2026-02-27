@@ -15,7 +15,7 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		if err := validator.V.StructCtx(r.Context(), input); err != nil {
+		if err := validator.V(r.Context(), input); err != nil {
 			response.SendDTOValidateError(w, err)
 			return
 		}

@@ -2,25 +2,28 @@ package delete_group
 
 import (
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"server/internal/pkg/http/param"
+	"server/internal/pkg/http/response"
+	"server/internal/pkg/usecase"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		param := chi.URLParam(r, "group_id")
-		groupID, err := uuid.Parse(param)
+		groupID, err := param.ID(r, param.GroupID)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			response.SendParamError(w, err)
 			return
 		}
 
-		err = usecase.DeleteGroup(r.Context(), groupID)
+		identity, ok := usecase.IdentityFromContext(r.Context())
+		if !ok {
+			response.SendAuthTokenError(w, nil)
+			return
+		}
+
+		err = uc.DeleteGroup(r.Context(), identity, groupID)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			response.SendUseCaseError(w, err)
 			return
 		}
 
