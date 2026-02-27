@@ -1,7 +1,6 @@
 package create_user
 
 import (
-	"encoding/json"
 	"net/http"
 	"server/internal/pkg/http/response"
 	"server/internal/pkg/usecase"
@@ -9,9 +8,9 @@ import (
 
 func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var input Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			response.SendJSONDecodeError(w, err)
+		input, err := InputFromRequest(r)
+		if err != nil {
+			response.SendDTOValidateError(w, err)
 			return
 		}
 
