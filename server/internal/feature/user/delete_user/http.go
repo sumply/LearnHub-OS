@@ -2,30 +2,31 @@ package delete_user
 
 import (
 	"net/http"
-	"server/internal/pkg/http/auth"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"server/internal/pkg/http/param"
+	"server/internal/pkg/http/response"
+	"server/internal/pkg/usecase"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		param := chi.URLParam(r, "user_id")
-		userID, err := uuid.Parse(param)
+		userID, err := param.ID(r, param.UserID)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			response.SendParamError(w, err)
 			return
 		}
 
-		token := auth.NewToken(uuid.New(), "admin")
-
-		if err := usecase.DeleteUser(r.Context(), token, userID); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+		token, ok := usecase.IdentityFromContext(r.Context())
+		if !ok {
+			response.SendAuthTokenError(w, nil)
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		err = uc.DeleteUser(r.Context(), token, userID)
+		if err != nil {
+			response.SendUseCaseError(w, err)
+			return
+		}
+
+		response.SendNoContent(w)
 	}
 }

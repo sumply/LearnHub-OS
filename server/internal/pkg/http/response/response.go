@@ -110,3 +110,7 @@ func SendAuthTokenError(w http.ResponseWriter, err error) {
 		Details: err.Error(),
 	}.Bytes())
 }
+
+func SendNoContent(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+}
