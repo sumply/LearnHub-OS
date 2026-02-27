@@ -2,6 +2,8 @@ package delete_user
 
 import (
 	"context"
+	"fmt"
+	"server/internal/domain"
 	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
@@ -22,5 +24,11 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) DeleteUser(ctx context.Context, identity usecase.Identity, id uuid.UUID) error {
+	if identity.Role() != domain.RoleAdmin {
+		return usecase.NewAuthError(
+			fmt.Errorf("user is not admin"),
+		)
+	}
+
 	return u.postgres.DeleteUser(ctx, id)
 }
