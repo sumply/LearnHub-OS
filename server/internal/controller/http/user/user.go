@@ -29,7 +29,7 @@ func Route(r chi.Router, p *postgres.Postgres) {
 		r.Get("/", get_user.HTTP(getUC))
 		r.Route("/"+param.UserID.Path(), func(r chi.Router) {
 			r.Delete("/", delete_user.HTTP(deleteUC))
-			r.Patch("/", update_user.HTTP(updateUC))
+			r.Put("/", update_user.HTTP(updateUC))
 			r.Get("/", get_by_id.HTTP(getByIDUC))
 			r.Get("/quizzes", get_quizzes.HTTP(getQuizzesUC))
 		})

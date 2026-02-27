@@ -7,4 +7,5 @@ var V *validator.Validate
 func init() {
 	V = validator.New()
 	V.RegisterAlias("password", "min=8,max=16")
+	V.RegisterAlias("user-name", "min=2,max=32,alphanumunicode")
 }

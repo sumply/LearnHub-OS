@@ -38,9 +38,8 @@ func SendJSONDecodeError(w http.ResponseWriter, err error) {
 
 func SendDTOValidateError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	var target validator.ValidationErrors
 	var msg errorMessage
-	if errors.As(err, &target) {
+	if target, ok := errors.AsType[validator.ValidationErrors](err); !ok {
 		msg.Error = "Validation"
 		details := make(map[string]string)
 		for _, e := range target {

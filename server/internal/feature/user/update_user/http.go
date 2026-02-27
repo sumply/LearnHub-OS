@@ -1,31 +1,26 @@
 package update_user
 
 import (
-	"encoding/json"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"server/internal/pkg/http/response"
+	"server/internal/pkg/usecase"
 )
 
-func HTTP(usecase *Usecase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		param := chi.URLParam(r, "user_id")
-		userID, err := uuid.Parse(param)
+		input, err := InputFromRequest(r)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			response.SendDTOValidateError(w, err)
 			return
 		}
 
-		var input Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+		token, ok := usecase.IdentityFromContext(r.Context())
+		if !ok {
+			response.SendAuthTokenError(w, nil)
 			return
 		}
 
-		if err := usecase.UpdateUser(r.Context(), userID, &input); err != nil {
+		if err := uc.UpdateUser(r.Context(), token, input); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
