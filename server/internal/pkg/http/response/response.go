@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/domain"
+	"server/internal/pkg/encoder"
 	"server/internal/pkg/http/param"
 	"server/internal/pkg/usecase"
 
@@ -112,4 +113,14 @@ func SendAuthTokenError(w http.ResponseWriter, err error) {
 
 func SendNoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func SendCreated(w http.ResponseWriter, body any) {
+	w.WriteHeader(http.StatusCreated)
+	encoder.JSON(w, body)
+}
+
+func SendOK(w http.ResponseWriter, body any) {
+	w.WriteHeader(http.StatusOK)
+	encoder.JSON(w, body)
 }

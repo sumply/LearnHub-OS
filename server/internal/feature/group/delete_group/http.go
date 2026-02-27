@@ -27,6 +27,6 @@ func HTTP(uc *UseCase) http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		response.SendNoContent(w)
 	}
 }

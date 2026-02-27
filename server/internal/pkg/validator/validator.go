@@ -18,4 +18,7 @@ func init() {
 	v.RegisterAlias("user-name", "min=2,max=32,alphanumunicode")
 	v.RegisterAlias("subject-name", "min=2,max=100")
 	v.RegisterAlias("group-name", "min=2,max=30")
+	v.RegisterAlias("quiz-title", "min=2,max=100")
+	v.RegisterAlias("quiz-summary", "min=0,max=150")
+	v.RegisterAlias("quiz-max-attempts", "min=0,max=100")
 }

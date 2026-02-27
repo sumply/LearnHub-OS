@@ -1,8 +1,8 @@
 package create_subject
 
 import (
-	"encoding/json"
 	"net/http"
+	"server/internal/pkg/decoder"
 	"server/internal/pkg/validator"
 
 	"github.com/google/uuid"
@@ -13,9 +13,8 @@ type Input struct {
 }
 
 func InputFromRequest(r *http.Request) (Input, error) {
-	var input Input
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	input, err := decoder.JSON[*Input](r.Body)
+	if err != nil {
 		return Input{}, err
 	}
 
@@ -23,7 +22,7 @@ func InputFromRequest(r *http.Request) (Input, error) {
 		return Input{}, err
 	}
 
-	return input, nil
+	return *input, nil
 }
 
 type Output struct {

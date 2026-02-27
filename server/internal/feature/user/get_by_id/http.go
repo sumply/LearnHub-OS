@@ -1,7 +1,6 @@
 package get_by_id
 
 import (
-	"encoding/json"
 	"net/http"
 	"server/internal/pkg/http/param"
 	"server/internal/pkg/http/response"
@@ -21,9 +20,6 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(output); err != nil {
-			response.SendJSONEncodeError(w, err)
-			return
-		}
+		response.SendOK(w, output)
 	}
 }

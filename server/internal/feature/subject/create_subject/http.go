@@ -1,7 +1,6 @@
 package create_subject
 
 import (
-	"encoding/json"
 	"net/http"
 	"server/internal/pkg/http/response"
 	"server/internal/pkg/usecase"
@@ -27,11 +26,6 @@ func HTTP(uc *UseCase) http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			response.SendJSONEncodeError(w, err)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
+		response.SendCreated(w, output)
 	}
 }

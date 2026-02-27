@@ -27,9 +27,6 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			response.SendJSONEncodeError(w, err)
-			return
-		}
+		response.SendOK(w, output)
 	}
 }

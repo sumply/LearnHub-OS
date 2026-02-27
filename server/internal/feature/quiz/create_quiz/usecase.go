@@ -2,8 +2,10 @@ package create_quiz
 
 import (
 	"context"
+	"fmt"
 	"server/internal/domain"
 	"server/internal/dto"
+	"server/internal/pkg/usecase"
 )
 
 type Postgres interface {
@@ -20,7 +22,13 @@ func New(postgres Postgres) *UseCase {
 	}
 }
 
-func (u *UseCase) CreateQuiz(ctx context.Context, input *Input) (Output, error) {
+func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, input *Input) (Output, error) {
+	if identity.Role() != domain.RoleAdmin || identity.Role() != domain.RoleTeacher {
+		return Output{}, usecase.NewAuthError(
+			fmt.Errorf("user is not admin or teacher"),
+		)
+	}
+
 	quiz, err := u.createQuiz(input)
 	if err != nil {
 		return Output{}, err
