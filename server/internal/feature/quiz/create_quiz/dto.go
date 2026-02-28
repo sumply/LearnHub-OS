@@ -1,9 +1,9 @@
 package create_quiz
 
 import (
-	"encoding/json"
 	"net/http"
 	"server/internal/dto"
+	"server/internal/pkg/decoder"
 	"server/internal/pkg/validator"
 	"time"
 
@@ -22,9 +22,8 @@ type Input struct {
 }
 
 func InputFromRequest(r *http.Request) (Input, error) {
-	var input Input
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	input, err := decoder.JSON[Input](r.Body)
+	if err != nil {
 		return Input{}, err
 	}
 
