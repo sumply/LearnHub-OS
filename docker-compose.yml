@@ -43,7 +43,7 @@ services:
     depends_on:
       - database
     environment:
-      PGADMIN_DEFAULT_EMAIL: yanushkevichvladislav@mail.ru
+      PGADMIN_DEFAULT_EMAIL: root@mail.ru
       PGADMIN_DEFAULT_PASSWORD: HbC#KtI3e%qe
     ports:
       - "8001:80"
