@@ -7,12 +7,13 @@ import (
 )
 
 func (p *Postgres) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	const query = `
-DELETE FROM account.credential
-WHERE id = $1
-	`
+	user := p.tables.AccountCredential
 
-	_, err := p.conn.ExecContext(ctx, query, id)
+	ds := p.goqu.From(user).
+		Delete().
+		Where(user.Col("account_id").Eq(id))
+
+	_, err := ds.Executor().ExecContext(ctx)
 	if err != nil {
 		return err
 	}

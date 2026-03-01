@@ -10,6 +10,9 @@ import (
 type Group struct {
 	ID   uuid.UUID
 	Name string
+
+	CuratorID  uuid.UUID
+	StudentIDs []uuid.UUID
 }
 
 func NewGroup(name string) (Group, error) {

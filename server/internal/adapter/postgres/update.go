@@ -8,28 +8,24 @@ import (
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 
+	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
 )
 
 func (p *Postgres) UpdateProfile(ctx context.Context, id uuid.UUID, firstName, lastName string) error {
-	const query = `
-	UPDATE account.profile
-	SET first_name = :first_name, last_name = :last_name
-	WHERE id = :id
-	`
-	arg := struct {
-		ID        uuid.UUID `db:"id"`
-		FirstName string    `db:"first_name"`
-		LastName  string    `db:"last_name"`
-	}{
-		ID:        id,
-		FirstName: firstName,
-		LastName:  lastName,
-	}
+	user := p.tables.AccountProfile
 
-	ext := p.selectExecuter(ctx)
+	ds := p.goqu.From(user).
+		Update().
+		Set(goqu.Record{
+			"first_name": firstName,
+			"last_name":  lastName,
+		}).
+		Where(
+			user.Col("account_id").Eq(id),
+		)
 
-	_, err := ext.NamedExecContext(ctx, query, arg)
+	_, err := ds.Executor().ExecContext(ctx)
 	if err != nil {
 		return err
 	}

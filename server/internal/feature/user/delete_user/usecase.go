@@ -9,17 +9,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type Postgres interface {
+type DomainRepository interface {
 	DeleteUser(context.Context, uuid.UUID) error
 }
 
 type UseCase struct {
-	postgres Postgres
+	dRepository DomainRepository
 }
 
-func New(postgres Postgres) *UseCase {
+func New(dRepository DomainRepository) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		dRepository: dRepository,
 	}
 }
 
@@ -30,5 +30,5 @@ func (u *UseCase) DeleteUser(ctx context.Context, identity usecase.Identity, id 
 		)
 	}
 
-	return u.postgres.DeleteUser(ctx, id)
+	return u.dRepository.DeleteUser(ctx, id)
 }
