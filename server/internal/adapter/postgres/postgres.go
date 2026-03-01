@@ -44,6 +44,10 @@ func (p *Postgres) MakeQuery() *Query {
 	}
 }
 
+func (p *Postgres) DB() *sqlx.DB {
+	return p.conn
+}
+
 type Options struct {
 	User     string
 	Password string

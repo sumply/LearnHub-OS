@@ -1,16 +1,7 @@
 package app
 
-import (
-	"net/http"
-	"server/internal/config"
+import "server/internal/app/cmd"
 
-	controller "server/internal/controller/http"
-)
-
-func Run() error {
-	env := &config.Env{}
-
-	addr := env.CreateServeAddress()
-
-	return http.ListenAndServe(addr.String(), controller.Router(env))
+func Run() {
+	cmd.Execute()
 }
