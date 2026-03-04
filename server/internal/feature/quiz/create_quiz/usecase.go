@@ -42,6 +42,19 @@ func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, inp
 	return Output{ID: quiz.ID}, nil
 }
 
+func (u *UseCase) validateAccess(_ context.Context, identity usecase.Identity, _ *Input) error {
+	switch identity.Role() {
+	case domain.RoleAdmin:
+		return nil
+	case domain.RoleTeacher:
+		return nil
+	default:
+		return usecase.NewAuthError(
+			fmt.Errorf("user has not access to creating quiz"),
+		)
+	}
+}
+
 func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
 	questions := make([]domain.Question, len(input.Questions))
 	for i := range questions {
