@@ -15,7 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/app .
 
-COPY /migrations ./migrations
+COPY /db/migrations ./migrations
 
 EXPOSE 8000
 
