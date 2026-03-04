@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"server/internal/adapter/postgres/sqlc"
 
@@ -77,23 +76,29 @@ func New(opt Options) (*Postgres, error) {
 	}, nil
 }
 
-func (p *Postgres) Transaction() Transaction {
-	return Transaction{
-		conn: p.conn,
-	}
-}
+func (p *Postgres) withQueries(ctx context.Context, f func(*sqlc.Queries) error) (err error) {
+	tx := txFromCtx(ctx)
+	needBegin := (tx == nil)
 
-func (p *Postgres) selectExecuter(ctx context.Context) executer {
-	tx, ok := txFromContext(ctx)
-	if !ok {
-		return p.conn
+	if needBegin {
+		tx, err = p.conn.BeginTxx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 	}
-	return tx
-}
 
-type executer interface {
-	sqlx.ExtContext
-	NamedExecContext(context.Context, string, any) (sql.Result, error)
+	queries := p.sqlc.WithTx(tx.Tx)
+
+	if err = f(queries); err != nil {
+		return err
+	}
+
+	if needBegin {
+		return tx.Commit()
+	}
+
+	return nil
 }
 
 type goquTableNames struct {

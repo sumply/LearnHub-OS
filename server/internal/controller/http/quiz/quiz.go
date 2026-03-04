@@ -16,7 +16,7 @@ import (
 func Route(r chi.Router, p *postgres.Postgres) {
 	createUC := create_quiz.New(
 		postgres.NewTeacher(p),
-		nil,
+		postgres.NewQuiz(p),
 	)
 	getUC := get_quizzes.New(p)
 	getByIDUC := get_by_id.New(p)

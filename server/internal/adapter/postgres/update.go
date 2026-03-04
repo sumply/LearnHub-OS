@@ -47,9 +47,12 @@ func (p *Postgres) UpdateGroup(ctx context.Context, id uuid.UUID, name string) e
 		Name: name,
 	}
 
-	ext := p.selectExecuter(ctx)
+	ext, err := p.conn.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
 
-	_, err := ext.NamedExecContext(ctx, query, arg)
+	_, err = ext.NamedExecContext(ctx, query, arg)
 	if err != nil {
 		return err
 	}
@@ -71,9 +74,11 @@ func (p *Postgres) UpdateSubject(ctx context.Context, id uuid.UUID, name string)
 		Name: name,
 	}
 
-	ext := p.selectExecuter(ctx)
-
-	_, err := ext.NamedExecContext(ctx, query, arg)
+	ext, err := p.conn.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	_, err = ext.NamedExecContext(ctx, query, arg)
 	if err != nil {
 		return err
 	}

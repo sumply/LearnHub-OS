@@ -6,49 +6,36 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type ctxKey string
+
+const (
+	txKey ctxKey = "tx"
+)
+
 type Transaction struct {
-	conn *sqlx.DB
+	*Postgres
 }
 
-func (t *Transaction) Execute(ctx context.Context, fn func(context.Context) error) error {
+func (t *Transaction) With(ctx context.Context, f func(context.Context) error) error {
 	tx, err := t.conn.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	isComplete := false
+	defer tx.Rollback()
 
-	defer func() {
-		if !isComplete {
-			tx.Rollback()
-		}
-	}()
-
-	ctx = ctxWithTx(ctx, tx)
-
-	err = fn(ctx)
-	if err != nil {
+	ctx = context.WithValue(ctx, txKey, tx)
+	if err := f(ctx); err != nil {
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-	isComplete = true
-
-	return nil
+	return tx.Commit()
 }
 
-type ctxKey string
-
-const txKey ctxKey = "tx"
-
-func txFromContext(ctx context.Context) (*sqlx.Tx, bool) {
+func txFromCtx(ctx context.Context) *sqlx.Tx {
 	tx, ok := ctx.Value(txKey).(*sqlx.Tx)
-	return tx, ok
-}
-
-func ctxWithTx(ctx context.Context, tx *sqlx.Tx) context.Context {
-	return context.WithValue(ctx, txKey, tx)
+	if !ok {
+		return nil
+	}
+	return tx
 }
