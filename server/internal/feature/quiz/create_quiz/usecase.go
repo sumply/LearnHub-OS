@@ -26,11 +26,10 @@ func New() *UseCase {
 	return &UseCase{}
 }
 
-func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, input *Input) (Output, error) {
-	if identity.Role() != domain.RoleAdmin || identity.Role() != domain.RoleTeacher {
-		return Output{}, usecase.NewAuthError(
-			fmt.Errorf("user is not admin or teacher"),
-		)
+func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, input Input) (Output, error) {
+	err := u.validateAccess(ctx, identity, input)
+	if err != nil {
+		return Output{}, err
 	}
 
 	quiz, err := u.createQuiz(input)
@@ -46,11 +45,15 @@ func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, inp
 	return Output{ID: quiz.ID}, nil
 }
 
-func (u *UseCase) validateAccess(_ context.Context, identity usecase.Identity, _ *Input) error {
+func (u *UseCase) validateAccess(ctx context.Context, identity usecase.Identity, _ Input) error {
 	switch identity.Role() {
 	case domain.RoleAdmin:
 		return nil
 	case domain.RoleTeacher:
+		_, err := u.teacher.Get(ctx, identity.ID())
+		if err != nil {
+			return err
+		}
 		return nil
 	default:
 		return usecase.NewAuthError(
@@ -59,10 +62,10 @@ func (u *UseCase) validateAccess(_ context.Context, identity usecase.Identity, _
 	}
 }
 
-func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
+func (u *UseCase) createQuiz(input Input) (domain.Quiz, error) {
 	questions := make([]domain.Question, len(input.Questions))
 	for i := range questions {
-		question, err := u.createQuestion(&input.Questions[i])
+		question, err := u.createQuestion(input.Questions[i])
 		if err != nil {
 			return domain.Quiz{}, err
 		}
@@ -86,7 +89,7 @@ func (u *UseCase) createQuiz(input *Input) (domain.Quiz, error) {
 	return quiz, nil
 }
 
-func (u *UseCase) createQuestion(input *dto.Question) (domain.Question, error) {
+func (u *UseCase) createQuestion(input dto.Question) (domain.Question, error) {
 	question, err := domain.NewQuestion(
 		input.Text,
 		input.Details.Domain,

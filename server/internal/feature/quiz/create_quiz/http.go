@@ -20,7 +20,7 @@ func HTTP(uc *UseCase) http.HandlerFunc {
 			return
 		}
 
-		output, err := uc.CreateQuiz(r.Context(), token, &input)
+		output, err := uc.CreateQuiz(r.Context(), token, input)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return
