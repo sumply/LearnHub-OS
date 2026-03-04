@@ -161,7 +161,7 @@ func (t *Teacher) Validate() error {
 	return nil
 }
 
-func (t *Teacher) CheckGroupsAccess(groups uuid.UUIDs) error {
+func (t *Teacher) CheckGroupsAllowed(groups uuid.UUIDs) error {
 	m := make(map[uuid.UUID]bool)
 	for i := range t.Groups {
 		m[t.Groups[i]] = true
