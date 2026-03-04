@@ -24,14 +24,11 @@ type UseCase struct {
 	quiz    QuizRepository
 }
 
-type Option func(*UseCase)
-
-func New(opts ...Option) *UseCase {
-	uc := new(UseCase)
-	for i := range opts {
-		opts[i](uc)
+func New(t TeacherRepository, q QuizRepository) *UseCase {
+	return &UseCase{
+		teacher: t,
+		quiz:    q,
 	}
-	return uc
 }
 
 func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, input Input) (Output, error) {
