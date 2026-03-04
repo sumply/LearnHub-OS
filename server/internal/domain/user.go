@@ -161,6 +161,25 @@ func (t *Teacher) Validate() error {
 	return nil
 }
 
+func (t *Teacher) CheckGroupsAccess(groups uuid.UUIDs) error {
+	m := make(map[uuid.UUID]bool)
+	for i := range t.Groups {
+		m[t.Groups[i]] = true
+	}
+
+	domainErr := NewError("teacher")
+	for i := range groups {
+		if ok := m[groups[i]]; !ok {
+			domainErr.add(groups[i].String(), fmt.Errorf("is not allowed"))
+		}
+	}
+	if !domainErr.Empty() {
+		return domainErr
+	}
+
+	return nil
+}
+
 func NewTeacher(user User, groups uuid.UUIDs) (Teacher, error) {
 	t := Teacher{
 		User:   user,
