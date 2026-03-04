@@ -14,7 +14,7 @@ import (
 )
 
 func Route(r chi.Router, p *postgres.Postgres) {
-	createUC := create_quiz.New(p)
+	createUC := create_quiz.New()
 	getUC := get_quizzes.New(p)
 	getByIDUC := get_by_id.New(p)
 	deleteUC := delete_quiz.New(p)

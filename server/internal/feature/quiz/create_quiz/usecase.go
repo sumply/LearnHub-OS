@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"server/internal/domain"
 	"server/internal/dto"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
 )
 
-type Postgres interface {
-	CreateQuiz(context.Context, *domain.Quiz) error
+type TeacherRepository interface {
+	repository.Geter[domain.Teacher]
+}
+
+type QuizRepository interface {
+	repository.Saver[domain.Quiz]
 }
 
 type UseCase struct {
-	postgres Postgres
+	teacher TeacherRepository
+	quiz    QuizRepository
 }
 
-func New(postgres Postgres) *UseCase {
-	return &UseCase{
-		postgres: postgres,
-	}
+func New() *UseCase {
+	return &UseCase{}
 }
 
 func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, input *Input) (Output, error) {
@@ -34,7 +38,7 @@ func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, inp
 		return Output{}, err
 	}
 
-	err = u.postgres.CreateQuiz(ctx, &quiz)
+	err = u.quiz.Save(ctx, quiz)
 	if err != nil {
 		return Output{}, err
 	}
