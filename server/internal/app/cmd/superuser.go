@@ -31,11 +31,15 @@ var superuserCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		creator := new(config.Env)
 		pOpt := creator.CreatePostgresConnection()
-		postgres, err := postgres.New(pOpt.CreateOptions())
+		p, err := postgres.New(pOpt.CreateOptions())
 		if err != nil {
 			return err
 		}
-		uc := create_user.New(postgres)
+		uc := create_user.New(
+			postgres.NewUser(p),
+			postgres.NewTeacher(p),
+			postgres.NewStudent(p),
+		)
 		input, err := makeCreateUserInput(cmd)
 		if err != nil {
 			return err

@@ -44,6 +44,16 @@ func (q *Quiz) Save(ctx context.Context, quiz domain.Quiz) error {
 			return err
 		}
 
+		for _, id := range quiz.GroupIDs {
+			err = q.InsertQuizAssigment(ctx, sqlc.InsertQuizAssigmentParams{
+				QuizID:  quiz.ID,
+				GroupID: id,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
 		for _, question := range quiz.Questions {
 			detailsHelper := jsonb.QuestionDetails{
 				Domain: question.Details,

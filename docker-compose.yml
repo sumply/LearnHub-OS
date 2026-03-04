@@ -1,6 +1,8 @@
 services:
   server:
-    image: sumply/learnhub-server
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     depends_on:
       - database
     container_name: server
