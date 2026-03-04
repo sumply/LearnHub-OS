@@ -184,6 +184,49 @@ func (q *Queries) GetDomainQuiz(ctx context.Context, quizID uuid.UUID) (GetDomai
 	return i, err
 }
 
+const getDomainTeacher = `-- name: GetDomainTeacher :one
+SELECT
+    p.account_id,
+    p.first_name,
+    p.last_name,
+    p.role,
+    p.created_at,
+    array_agg(t.group_id)::UUID[] AS group_ids
+FROM account.profile AS p
+LEFT JOIN account.teacher AS t
+    ON t.account_id = p.account_id
+WHERE p.account_id = $1
+GROUP BY
+    p.account_id,
+    p.first_name,
+    p.last_name,
+    p.role,
+    p.created_at
+`
+
+type GetDomainTeacherRow struct {
+	AccountID uuid.UUID       `db:"account_id" json:"account_id"`
+	FirstName string          `db:"first_name" json:"first_name"`
+	LastName  string          `db:"last_name" json:"last_name"`
+	Role      AccountUserRole `db:"role" json:"role"`
+	CreatedAt time.Time       `db:"created_at" json:"created_at"`
+	GroupIds  []uuid.UUID     `db:"group_ids" json:"group_ids"`
+}
+
+func (q *Queries) GetDomainTeacher(ctx context.Context, accountID uuid.UUID) (GetDomainTeacherRow, error) {
+	row := q.db.QueryRowContext(ctx, getDomainTeacher, accountID)
+	var i GetDomainTeacherRow
+	err := row.Scan(
+		&i.AccountID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.CreatedAt,
+		pq.Array(&i.GroupIds),
+	)
+	return i, err
+}
+
 const getFinishedAttempt = `-- name: GetFinishedAttempt :one
 SELECT 
     attempt.id AS attempt_id,

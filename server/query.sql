@@ -345,6 +345,25 @@ JOIN school.subject AS q_subject
 
 WHERE attempt.id = $1;
 
+-- name: GetDomainTeacher :one 
+SELECT
+    p.account_id,
+    p.first_name,
+    p.last_name,
+    p.role,
+    p.created_at,
+    array_agg(t.group_id)::UUID[] AS group_ids
+FROM account.profile AS p
+LEFT JOIN account.teacher AS t
+    ON t.account_id = p.account_id
+WHERE p.account_id = $1
+GROUP BY
+    p.account_id,
+    p.first_name,
+    p.last_name,
+    p.role,
+    p.created_at;
+
 -- name: UpdateQuizAttempt :exec
 UPDATE quiz.attempt 
 SET 
