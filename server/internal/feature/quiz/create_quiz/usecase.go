@@ -45,14 +45,18 @@ func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, inp
 	return Output{ID: quiz.ID}, nil
 }
 
-func (u *UseCase) validateAccess(ctx context.Context, identity usecase.Identity, _ Input) error {
+func (u *UseCase) validateAccess(ctx context.Context, identity usecase.Identity, input Input) error {
 	switch identity.Role() {
 	case domain.RoleAdmin:
 		return nil
 	case domain.RoleTeacher:
-		_, err := u.teacher.Get(ctx, identity.ID())
+		teacher, err := u.teacher.Get(ctx, identity.ID())
 		if err != nil {
 			return err
+		}
+		err = teacher.CheckGroupsAllowed(input.GroupIDs)
+		if err != nil {
+			return usecase.NewAuthError(err)
 		}
 		return nil
 	default:
