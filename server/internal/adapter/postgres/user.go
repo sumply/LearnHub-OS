@@ -43,7 +43,7 @@ func (t *Teacher) Save(ctx context.Context, teacher domain.Teacher) error {
 			return err
 		}
 		for _, id := range teacher.Groups {
-			err = q.InsertTeacher(ctx, sqlc.InsertTeacherParams{
+			err = q.InsertAccountTeacher(ctx, sqlc.InsertAccountTeacherParams{
 				AccountID: teacher.ID,
 				GroupID:   id,
 			})
@@ -91,7 +91,7 @@ func (t *Student) Save(ctx context.Context, student domain.Student) error {
 		if err != nil {
 			return err
 		}
-		err = q.InsertStudent(ctx, sqlc.InsertStudentParams{
+		err = q.InsertAccountStudent(ctx, sqlc.InsertAccountStudentParams{
 			AccountID: student.ID,
 			GroupID:   student.Group,
 		})

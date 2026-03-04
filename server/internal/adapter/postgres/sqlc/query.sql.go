@@ -570,6 +570,48 @@ func (q *Queries) InsertAccountProfile(ctx context.Context, arg InsertAccountPro
 	return err
 }
 
+const insertAccountStudent = `-- name: InsertAccountStudent :exec
+INSERT INTO account.student (
+    account_id,
+    group_id
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertAccountStudentParams struct {
+	AccountID uuid.UUID `db:"account_id" json:"account_id"`
+	GroupID   uuid.UUID `db:"group_id" json:"group_id"`
+}
+
+func (q *Queries) InsertAccountStudent(ctx context.Context, arg InsertAccountStudentParams) error {
+	_, err := q.db.ExecContext(ctx, insertAccountStudent, arg.AccountID, arg.GroupID)
+	return err
+}
+
+const insertAccountTeacher = `-- name: InsertAccountTeacher :exec
+INSERT INTO account.teacher (
+    account_id,
+    group_id
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertAccountTeacherParams struct {
+	AccountID uuid.UUID `db:"account_id" json:"account_id"`
+	GroupID   uuid.UUID `db:"group_id" json:"group_id"`
+}
+
+func (q *Queries) InsertAccountTeacher(ctx context.Context, arg InsertAccountTeacherParams) error {
+	_, err := q.db.ExecContext(ctx, insertAccountTeacher, arg.AccountID, arg.GroupID)
+	return err
+}
+
 const insertQuizAnswer = `-- name: InsertQuizAnswer :exec
 INSERT INTO quiz.answer (
     id,
@@ -790,48 +832,6 @@ type InsertSchoolSubjectParams struct {
 // ========================================
 func (q *Queries) InsertSchoolSubject(ctx context.Context, arg InsertSchoolSubjectParams) error {
 	_, err := q.db.ExecContext(ctx, insertSchoolSubject, arg.ID, arg.Name)
-	return err
-}
-
-const insertStudent = `-- name: InsertStudent :exec
-INSERT INTO account.student (
-    account_id,
-    group_id
-)
-VALUES (
-    $1,
-    $2
-)
-`
-
-type InsertStudentParams struct {
-	AccountID uuid.UUID `db:"account_id" json:"account_id"`
-	GroupID   uuid.UUID `db:"group_id" json:"group_id"`
-}
-
-func (q *Queries) InsertStudent(ctx context.Context, arg InsertStudentParams) error {
-	_, err := q.db.ExecContext(ctx, insertStudent, arg.AccountID, arg.GroupID)
-	return err
-}
-
-const insertTeacher = `-- name: InsertTeacher :exec
-INSERT INTO account.teacher (
-    account_id,
-    group_id
-)
-VALUES (
-    $1,
-    $2
-)
-`
-
-type InsertTeacherParams struct {
-	AccountID uuid.UUID `db:"account_id" json:"account_id"`
-	GroupID   uuid.UUID `db:"group_id" json:"group_id"`
-}
-
-func (q *Queries) InsertTeacher(ctx context.Context, arg InsertTeacherParams) error {
-	_, err := q.db.ExecContext(ctx, insertTeacher, arg.AccountID, arg.GroupID)
 	return err
 }
 

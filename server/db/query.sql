@@ -54,7 +54,7 @@ VALUES (
     $5
 );
 
--- name: InsertStudent :exec
+-- name: InsertAccountStudent :exec
 INSERT INTO account.student (
     account_id,
     group_id
@@ -64,7 +64,7 @@ VALUES (
     $2
 );
 
--- name: InsertTeacher :exec
+-- name: InsertAccountTeacher :exec
 INSERT INTO account.teacher (
     account_id,
     group_id
