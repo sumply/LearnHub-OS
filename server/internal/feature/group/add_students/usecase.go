@@ -10,7 +10,7 @@ import (
 )
 
 type DomainRepository interface {
-	AddStudentsToGroup(ctx context.Context, groupID uuid.UUID, studentIDs uuid.UUIDs) error
+	AddStudents(ctx context.Context, groupID uuid.UUID, studentIDs uuid.UUIDs) error
 }
 
 type UseCase struct {
@@ -30,5 +30,5 @@ func (uc *UseCase) AddStudents(ctx context.Context, identity usecase.Identity, i
 		)
 	}
 
-	return uc.dRepository.AddStudentsToGroup(ctx, input.GroupID, input.StudentIDs)
+	return uc.dRepository.AddStudents(ctx, input.GroupID, input.StudentIDs)
 }

@@ -20,9 +20,15 @@ func Route(r chi.Router, p *postgres.Postgres) {
 	)
 	getUC := get_quizzes.New(p)
 	getByIDUC := get_by_id.New(p)
-	deleteUC := delete_quiz.New(p)
+	deleteUC := delete_quiz.New(
+		postgres.NewQuiz(p),
+	)
 	getUsersUC := get_users.New(p)
-	startAttemptUC := start_attempt.New(p)
+	startAttemptUC := start_attempt.New(
+		p,
+		postgres.NewQuiz(p),
+		postgres.NewAttemt(p),
+	)
 
 	r.Route("/quizzes", func(r chi.Router) {
 		r.Post("/", create_quiz.HTTP(createUC))

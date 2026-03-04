@@ -20,13 +20,19 @@ func Route(r chi.Router, p *postgres.Postgres) {
 		postgres.NewStudent(p),
 	)
 	getUC := get_user.New(p)
-	deleteUC := delete_user.New(p)
-	updateUC := update_user.New(p)
+	deleteUC := delete_user.New(
+		postgres.NewUser(p),
+	)
+	updateUC := update_user.New(
+		postgres.NewUser(p),
+	)
 	getQuizzesUC := get_quizzes.New(get_quizzes.Repository{
 		Group:    p.MakeGroup(),
 		QuizItem: p.MakeQuizItem(),
 	})
-	getByIDUC := get_by_id.New(p)
+	getByIDUC := get_by_id.New(
+		postgres.NewUser(p),
+	)
 
 	r.Route("/users", func(r chi.Router) {
 		r.Post("/", create_user.HTTP(createUC))

@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"server/internal/adapter/postgres/row"
-	"server/internal/adapter/postgres/sqlc"
 	"server/internal/adapter/postgres/utils"
-	"server/internal/domain"
 	"server/internal/dto"
-	"server/internal/pkg/repository"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
@@ -63,40 +60,6 @@ func (p *QuizItem) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]dto.Qu
 	}
 
 	return utils.ScanDTO(scanner, new(row.QuizItem))
-}
-
-type Group struct {
-	goqu   *goqu.Database
-	tables goquTableNames
-}
-
-func (p *Group) GetByStudent(ctx context.Context, studentID uuid.UUID) (domain.Group, error) {
-	group := p.tables.SchoolGroup
-	student := p.tables.AccountStudent
-
-	ds := p.goqu.From(group).
-		Select(group.All()).
-		InnerJoin(student, goqu.On(
-			student.Col("group_id").Eq(group.Col("id")),
-		)).
-		Where(
-			student.Col("account_id").Eq(studentID),
-		)
-
-	var row sqlc.SchoolGroup
-	ok, err := ds.Executor().ScanStructContext(ctx, &row)
-	if err != nil {
-		return domain.Group{}, err
-	}
-
-	if !ok {
-		return domain.Group{}, repository.NewNotFoundError()
-	}
-
-	return domain.Group{
-		ID:   row.ID,
-		Name: row.Name,
-	}, nil
 }
 
 func (p *Postgres) FindUserLastAttempt(ctx context.Context, quizID uuid.UUID) ([]dto.UserLastAttempt, error) {

@@ -16,8 +16,20 @@ func (q *QuizMock) Save(context.Context, domain.Quiz) error {
 	return nil
 }
 
+func (t *QuizMock) Get(_ context.Context, id uuid.UUID) (domain.Quiz, error) {
+	return domain.Quiz{}, nil
+}
+
+func (q *QuizMock) Remove(context.Context, uuid.UUID) error {
+	return nil
+}
+
 type TeacherMock struct {
 	groups []uuid.UUID
+}
+
+func (q *TeacherMock) Save(context.Context, domain.Teacher) error {
+	return nil
 }
 
 func (t *TeacherMock) Get(_ context.Context, id uuid.UUID) (domain.Teacher, error) {

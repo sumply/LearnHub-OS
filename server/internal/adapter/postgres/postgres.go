@@ -31,12 +31,6 @@ func (p *Postgres) MakeQuizItem() *QuizItem {
 	}
 }
 
-func (p *Postgres) MakeDomain() *Domain {
-	return &Domain{
-		Postgres: p,
-	}
-}
-
 func (p *Postgres) MakeQuery() *Query {
 	return &Query{
 		Postgres: p,

@@ -14,12 +14,21 @@ import (
 )
 
 func Route(r chi.Router, p *postgres.Postgres) {
-	createUC := create_group.New(p.MakeDomain())
+	createUC := create_group.New(
+		postgres.NewGroup(p),
+		postgres.NewUser(p),
+	)
 	getUC := get_group.New(p.MakeQuery())
-	updateUC := update_group.New(p)
-	deleteUC := delete_group.New(p)
+	updateUC := update_group.New(
+		postgres.NewGroup(p),
+	)
+	deleteUC := delete_group.New(
+		postgres.NewGroup(p),
+	)
 	getStudentsUC := get_students.New(p)
-	addStudentsUC := add_students.New(p.MakeDomain())
+	addStudentsUC := add_students.New(
+		postgres.NewGroup(p),
+	)
 
 	r.Route("/groups", func(r chi.Router) {
 		r.Post("/", create_group.HTTP(createUC))

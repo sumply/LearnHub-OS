@@ -4,20 +4,21 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
 )
 
-type Postgres interface {
-	CreateSubject(context.Context, *domain.Subject) error
+type Subject interface {
+	repository.Saver[domain.Subject]
 }
 
 type UseCase struct {
-	postgres Postgres
+	subject Subject
 }
 
-func New(postgres Postgres) *UseCase {
+func New(subject Subject) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		subject: subject,
 	}
 }
 
@@ -33,7 +34,7 @@ func (u *UseCase) CreateSubject(ctx context.Context, identity usecase.Identity, 
 		return Output{}, err
 	}
 
-	if err := u.postgres.CreateSubject(ctx, &subject); err != nil {
+	if err := u.subject.Save(ctx, subject); err != nil {
 		return Output{}, err
 	}
 

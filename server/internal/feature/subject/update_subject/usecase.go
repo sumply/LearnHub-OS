@@ -2,24 +2,34 @@ package update_subject
 
 import (
 	"context"
+	"server/internal/domain"
+	"server/internal/pkg/repository"
 
 	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	UpdateSubject(context.Context, uuid.UUID, string) error
+type Subject interface {
+	repository.Geter[domain.Subject]
+	repository.Updater[domain.Subject]
 }
 
 type UseCase struct {
-	postgres Postgres
+	subject Subject
 }
 
-func New(postgres Postgres) *UseCase {
+func New(subject Subject) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		subject: subject,
 	}
 }
 
 func (u *UseCase) UpdateSubject(ctx context.Context, id uuid.UUID, input *Input) error {
-	return u.postgres.UpdateSubject(ctx, id, input.Name)
+	subject, err := u.subject.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if err := u.subject.Update(ctx, subject); err != nil {
+		return err
+	}
+	return nil
 }

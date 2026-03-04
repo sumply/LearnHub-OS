@@ -2,26 +2,28 @@ package delete_quiz
 
 import (
 	"context"
+	"server/internal/domain"
+	"server/internal/pkg/repository"
 
 	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	DeleteQuiz(context.Context, uuid.UUID) error
+type Quiz interface {
+	repository.Remover[domain.Quiz]
 }
 
 type UseCase struct {
-	postgres Postgres
+	quiz Quiz
 }
 
-func New(postgres Postgres) *UseCase {
+func New(quiz Quiz) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		quiz: quiz,
 	}
 }
 
 func (u *UseCase) DeleteQuiz(ctx context.Context, id uuid.UUID) error {
-	err := u.postgres.DeleteQuiz(ctx, id)
+	err := u.quiz.Remove(ctx, id)
 	if err != nil {
 		return err
 	}

@@ -40,26 +40,6 @@ func (p *Postgres) User(ctx context.Context, userID uuid.UUID) (dto.User, error)
 	}, nil
 }
 
-func (p *Postgres) UserByCredential(ctx context.Context, filter filter.Credential) (domain.User, error) {
-	ds, row := p.buildUserByEmailQuery(filter)
-
-	ok, err := ds.Executor().ScanStructContext(ctx, row)
-	if err != nil {
-		return domain.User{}, err
-	}
-	if !ok {
-		return domain.User{}, repository.NewNotFoundError()
-	}
-
-	return domain.User{
-		ID:        row.AccountID,
-		FirstName: row.FirstName,
-		LastName:  row.LastName,
-		Role:      domain.UserRole(row.Role),
-		CreatedAt: row.CreatedAt,
-	}, nil
-}
-
 func (p *Postgres) buildUserByEmailQuery(filter filter.Credential) (*goqu.SelectDataset, *sqlc.AccountProfile) {
 	credential := p.tables.AccountCredential
 	profile := p.tables.AccountProfile

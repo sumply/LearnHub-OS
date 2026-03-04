@@ -7,6 +7,8 @@ import (
 	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type Quiz struct {
@@ -75,4 +77,12 @@ func (q *Quiz) Save(ctx context.Context, quiz domain.Quiz) error {
 		}
 		return nil
 	})
+}
+
+func (q *Quiz) Get(context.Context, uuid.UUID) (domain.Quiz, error) {
+	return domain.Quiz{}, nil
+}
+
+func (q *Quiz) Remove(ctx context.Context, id uuid.UUID) error {
+	return q.sqlc.DeleteQuizInfo(ctx, id)
 }

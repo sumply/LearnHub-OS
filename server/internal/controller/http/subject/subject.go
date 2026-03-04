@@ -12,9 +12,15 @@ import (
 )
 
 func Route(r chi.Router, p *postgres.Postgres) {
-	createUC := create_subject.New(p)
-	updateUC := update_subject.New(p)
-	deleteUC := delete_subject.New(p)
+	createUC := create_subject.New(
+		postgres.NewSubject(p),
+	)
+	updateUC := update_subject.New(
+		postgres.NewSubject(p),
+	)
+	deleteUC := delete_subject.New(
+		postgres.NewGroup(p),
+	)
 	getUC := get_subject.New(p)
 
 	r.Route("/subjects", func(r chi.Router) {

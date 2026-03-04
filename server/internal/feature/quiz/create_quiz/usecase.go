@@ -11,20 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
-type TeacherRepository interface {
+type Teacher interface {
 	repository.Geter[domain.Teacher]
 }
 
-type QuizRepository interface {
+type Quiz interface {
 	repository.Saver[domain.Quiz]
 }
 
 type UseCase struct {
-	teacher TeacherRepository
-	quiz    QuizRepository
+	teacher Teacher
+	quiz    Quiz
 }
 
-func New(t TeacherRepository, q QuizRepository) *UseCase {
+func New(t Teacher, q Quiz) *UseCase {
 	return &UseCase{
 		teacher: t,
 		quiz:    q,

@@ -2,31 +2,38 @@ package get_by_id
 
 import (
 	"context"
+	"server/internal/domain"
 	"server/internal/dto"
+	"server/internal/pkg/repository"
 
 	"github.com/google/uuid"
 )
 
-type Repository interface {
-	User(context.Context, uuid.UUID) (dto.User, error)
+type User interface {
+	repository.Geter[domain.User]
 }
 
 type UseCase struct {
-	repository Repository
+	User User
 }
 
-func New(repository Repository) *UseCase {
+func New(user User) *UseCase {
 	return &UseCase{
-		repository: repository,
+		User: user,
 	}
 }
 
-func (u *UseCase) GetByID(ctx context.Context, userID uuid.UUID) (Output, error) {
-	user, err := u.repository.User(ctx, userID)
+func (u *UseCase) GetByID(ctx context.Context, id uuid.UUID) (Output, error) {
+	user, err := u.User.Get(ctx, id)
 	if err != nil {
 		return Output{}, err
 	}
 	return Output{
-		User: user,
+		User: dto.User{
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Role:      string(user.Role),
+		},
 	}, nil
 }

@@ -4,26 +4,32 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )
 
-type DomainRepository interface {
-	AddGroup(context.Context, *domain.Group) error
-	GetUser(context.Context, uuid.UUID) (domain.User, error)
-	ListUserByIDs(context.Context, uuid.UUIDs) ([]domain.User, error)
-	AddTeacherToGroup(ctx context.Context, groupID uuid.UUID, teacherID uuid.UUID) error
-	AddStudentsToGroup(ctx context.Context, groupID uuid.UUID, studentIDs uuid.UUIDs) error
+type Group interface {
+	repository.Saver[domain.Group]
+	AddTeacher(ctx context.Context, groupID uuid.UUID, teacherID uuid.UUID) error
+	AddStudents(ctx context.Context, groupID uuid.UUID, studentIDs uuid.UUIDs) error
+}
+
+type User interface {
+	repository.Geter[domain.User]
+	repository.Lister[domain.User]
 }
 
 type UseCase struct {
-	dRepository DomainRepository
+	group Group
+	user  User
 }
 
-func New(repostiory DomainRepository) *UseCase {
+func New(group Group, user User) *UseCase {
 	return &UseCase{
-		dRepository: repostiory,
+		group: group,
+		user:  user,
 	}
 }
 
@@ -39,7 +45,7 @@ func (u *UseCase) CreateGroup(ctx context.Context, identity usecase.Identity, in
 		Name: input.Name,
 	}
 
-	err := u.dRepository.AddGroup(ctx, &group)
+	err := u.group.Save(ctx, group)
 	if err != nil {
 		return Output{}, err
 	}
@@ -54,21 +60,21 @@ func (u *UseCase) CreateGroup(ctx context.Context, identity usecase.Identity, in
 
 func (u *UseCase) handleOptionFields(ctx context.Context, group *domain.Group, input *Input) error {
 	if input.CuratorID != uuid.Nil {
-		user, err := u.dRepository.GetUser(ctx, input.CuratorID)
+		user, err := u.user.Get(ctx, input.CuratorID)
 		if err != nil {
 			return err
 		}
 		if user.Role != domain.RoleTeacher {
 			return usecase.NewValidationError(fmt.Errorf("curator is not teacher"))
 		}
-		err = u.dRepository.AddTeacherToGroup(ctx, group.ID, user.ID)
+		err = u.group.AddTeacher(ctx, group.ID, user.ID)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(input.StudentIDs) != 0 {
-		users, err := u.dRepository.ListUserByIDs(ctx, input.StudentIDs)
+		users, err := u.user.List(ctx, input.StudentIDs)
 		if err != nil {
 			return err
 		}
@@ -81,7 +87,7 @@ func (u *UseCase) handleOptionFields(ctx context.Context, group *domain.Group, i
 			studentIDs = append(studentIDs, user.ID)
 		}
 
-		err = u.dRepository.AddStudentsToGroup(ctx, group.ID, studentIDs)
+		err = u.group.AddStudents(ctx, group.ID, studentIDs)
 		if err != nil {
 			return err
 		}

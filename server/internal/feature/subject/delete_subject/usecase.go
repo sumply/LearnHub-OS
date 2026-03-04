@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	DeleteSubject(context.Context, uuid.UUID) error
+type Subject interface {
+	repository.Remover[domain.Subject]
 }
 
 type UseCase struct {
-	postgres Postgres
+	subject Subject
 }
 
-func New(postgres Postgres) *UseCase {
+func New(subject Subject) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		subject: subject,
 	}
 }
 
@@ -30,5 +31,5 @@ func (u *UseCase) DeleteSubject(ctx context.Context, identity usecase.Identity, 
 		)
 	}
 
-	return u.postgres.DeleteSubject(ctx, id)
+	return u.subject.Remove(ctx, id)
 }

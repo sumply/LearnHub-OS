@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	DeleteGroup(context.Context, uuid.UUID) error
+type Group interface {
+	repository.Remover[domain.Group]
 }
 
 type UseCase struct {
-	postgres Postgres
+	group Group
 }
 
-func New(postgres Postgres) *UseCase {
+func New(group Group) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		group: group,
 	}
 }
 
@@ -30,5 +31,5 @@ func (u *UseCase) DeleteGroup(ctx context.Context, identity usecase.Identity, id
 		)
 	}
 
-	return u.postgres.DeleteGroup(ctx, id)
+	return u.group.Remove(ctx, id)
 }

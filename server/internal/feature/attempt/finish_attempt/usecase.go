@@ -5,19 +5,28 @@ import (
 	"fmt"
 	"server/internal/domain"
 	"server/internal/dto"
+	"server/internal/pkg/repository"
 
 	"github.com/google/uuid"
 )
 
 type Postgres interface {
-	DomainQuiz(context.Context, uuid.UUID) (domain.Quiz, error)
-	DomainAttempt(context.Context, uuid.UUID) (domain.Attempt, error)
-	UpdateAttempt(context.Context, *domain.Attempt) error
 	FinishedAttempt(context.Context, uuid.UUID) (dto.FinishedAttempt, error)
+}
+
+type Quiz interface {
+	repository.Geter[domain.Quiz]
+}
+
+type Attempt interface {
+	repository.Geter[domain.Attempt]
+	repository.Updater[domain.Attempt]
 }
 
 type UseCase struct {
 	postgres Postgres
+	attempt  Attempt
+	quiz     Quiz
 }
 
 func New(postgres Postgres) *UseCase {
@@ -27,12 +36,12 @@ func New(postgres Postgres) *UseCase {
 }
 
 func (u *UseCase) FinishAttempt(ctx context.Context, attemptID uuid.UUID, input *Input) (Output, error) {
-	attempt, err := u.postgres.DomainAttempt(ctx, attemptID)
+	attempt, err := u.attempt.Get(ctx, attemptID)
 	if err != nil {
 		return Output{}, err
 	}
 
-	quiz, err := u.postgres.DomainQuiz(ctx, attempt.QuizID)
+	quiz, err := u.quiz.Get(ctx, attempt.QuizID)
 	if err != nil {
 		return Output{}, err
 	}
@@ -49,7 +58,7 @@ func (u *UseCase) FinishAttempt(ctx context.Context, attemptID uuid.UUID, input 
 
 	attempt.Finish()
 
-	err = u.postgres.UpdateAttempt(ctx, &attempt)
+	err = u.attempt.Update(ctx, attempt)
 	if err != nil {
 		return Output{}, err
 	}

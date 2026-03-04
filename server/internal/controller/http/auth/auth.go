@@ -9,7 +9,7 @@ import (
 )
 
 func Route(r chi.Router, g *jwt.Generator, p *postgres.Postgres) {
-	loginUC := login.New(g, p)
+	loginUC := login.New(g, postgres.NewUser(p))
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", login.HTTP(loginUC))

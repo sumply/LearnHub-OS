@@ -104,3 +104,42 @@ CREATE TABLE quiz.answer(
 	is_correct BOOLEAN NOT NULL DEFAULT FALSE,
 	UNIQUE(attempt_id, question_id)
 );
+
+CREATE SCHEMA domain;
+
+CREATE VIEW domain.quiz AS (
+	SELECT 
+		i.quiz_id,
+		i.title,
+		i.summary,
+		i.subject_id,
+		i.owner_id,
+		i.max_attempts,
+		i.total_score,
+		i.deadline,
+		i.created_at,
+		array_agg(
+		(
+			SELECT group_id
+			FROM quiz.assignment AS a
+			WHERE a.quiz_id = i.quiz_id
+		)
+		) AS group_ids,
+		COALESCE(
+			json_agg(q) FILTER (WHERE q.id IS NOT NULL),
+			'[]'
+		) AS questions
+	FROM quiz.info AS i
+	LEFT JOIN quiz.question AS q
+		ON i.quiz_id = q.quiz_id
+	GROUP BY 
+		i.quiz_id,
+		i.title,
+		i.summary,
+		i.subject_id,
+		i.owner_id,
+		i.max_attempts,
+		i.total_score,
+		i.deadline,
+		i.created_at	
+);

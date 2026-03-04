@@ -4,22 +4,22 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
-
-	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	UpdateProfile(context.Context, uuid.UUID, string, string) error
+type User interface {
+	repository.Geter[domain.User]
+	repository.Updater[domain.User]
 }
 
 type UseCase struct {
-	postgres Postgres
+	user User
 }
 
-func New(postgres Postgres) *UseCase {
+func New(user User) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		user: user,
 	}
 }
 
@@ -28,7 +28,15 @@ func (uc *UseCase) UpdateUser(ctx context.Context, identity usecase.Identity, in
 		return err
 	}
 
-	if err := uc.postgres.UpdateProfile(ctx, input.ID, input.FirstName, input.LastName); err != nil {
+	user, err := uc.user.Get(ctx, input.ID)
+	if err != nil {
+		return err
+	}
+
+	user.FirstName = input.FirstName
+	user.LastName = input.LastName
+
+	if err := uc.user.Update(ctx, user); err != nil {
 		return err
 	}
 

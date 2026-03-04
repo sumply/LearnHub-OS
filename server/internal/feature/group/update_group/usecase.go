@@ -2,24 +2,38 @@ package update_group
 
 import (
 	"context"
+	"server/internal/domain"
+	"server/internal/pkg/repository"
 
 	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	UpdateGroup(context.Context, uuid.UUID, string) error
+type Group interface {
+	repository.Geter[domain.Group]
+	repository.Updater[domain.Group]
 }
 
 type UseCase struct {
-	postgres Postgres
+	group Group
 }
 
-func New(postgres Postgres) *UseCase {
+func New(group Group) *UseCase {
 	return &UseCase{
-		postgres: postgres,
+		group: group,
 	}
 }
 
 func (u *UseCase) UpdateGroup(ctx context.Context, id uuid.UUID, input *Input) error {
-	return u.postgres.UpdateGroup(ctx, id, input.Name)
+	group, err := u.group.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	group.Name = input.Name
+
+	if err := u.group.Update(ctx, group); err != nil {
+		return err
+	}
+
+	return nil
 }

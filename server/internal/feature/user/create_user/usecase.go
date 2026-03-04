@@ -28,7 +28,10 @@ type UseCase struct {
 	student Student
 }
 
-func New(user User, teacher Teacher, student Student) *UseCase {
+func New(
+	user User,
+	teacher Teacher,
+	student Student) *UseCase {
 	return &UseCase{
 		user:    user,
 		teacher: teacher,

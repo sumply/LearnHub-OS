@@ -8,24 +8,24 @@ import (
 	"server/internal/pkg/repository/filter"
 )
 
-type Repository interface {
-	UserByCredential(context.Context, filter.Credential) (domain.User, error)
+type User interface {
+	GetByCredential(context.Context, filter.Credential) (domain.User, error)
 }
 
 type UseCase struct {
-	generator  *jwt.Generator
-	repository Repository
+	generator *jwt.Generator
+	user      User
 }
 
-func New(generator *jwt.Generator, repository Repository) *UseCase {
+func New(generator *jwt.Generator, user User) *UseCase {
 	return &UseCase{
-		generator:  generator,
-		repository: repository,
+		generator: generator,
+		user:      user,
 	}
 }
 
 func (u *UseCase) Login(ctx context.Context, input Input) (Output, error) {
-	user, err := u.repository.UserByCredential(ctx, filter.Credential{
+	user, err := u.user.GetByCredential(ctx, filter.Credential{
 		Email:   input.Email,
 		PwdHash: "hash",
 	})

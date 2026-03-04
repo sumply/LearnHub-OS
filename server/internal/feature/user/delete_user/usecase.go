@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 	"server/internal/domain"
+	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
 
 	"github.com/google/uuid"
 )
 
-type DomainRepository interface {
-	DeleteUser(context.Context, uuid.UUID) error
+type User interface {
+	repository.Remover[domain.User]
 }
 
 type UseCase struct {
-	dRepository DomainRepository
+	user User
 }
 
-func New(dRepository DomainRepository) *UseCase {
+func New(user User) *UseCase {
 	return &UseCase{
-		dRepository: dRepository,
+		user: user,
 	}
 }
 
@@ -30,5 +31,5 @@ func (u *UseCase) DeleteUser(ctx context.Context, identity usecase.Identity, id 
 		)
 	}
 
-	return u.dRepository.DeleteUser(ctx, id)
+	return u.user.Remove(ctx, id)
 }
