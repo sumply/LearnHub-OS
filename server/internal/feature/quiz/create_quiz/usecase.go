@@ -7,6 +7,8 @@ import (
 	"server/internal/dto"
 	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
+
+	"github.com/google/uuid"
 )
 
 type TeacherRepository interface {
@@ -32,7 +34,7 @@ func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, inp
 		return Output{}, err
 	}
 
-	quiz, err := u.createQuiz(input)
+	quiz, err := u.createQuiz(identity.ID(), input)
 	if err != nil {
 		return Output{}, err
 	}
@@ -66,7 +68,7 @@ func (u *UseCase) validateAccess(ctx context.Context, identity usecase.Identity,
 	}
 }
 
-func (u *UseCase) createQuiz(input Input) (domain.Quiz, error) {
+func (u *UseCase) createQuiz(ownerID uuid.UUID, input Input) (domain.Quiz, error) {
 	questions := make([]domain.Question, len(input.Questions))
 	for i := range questions {
 		question, err := u.createQuestion(input.Questions[i])
@@ -77,7 +79,7 @@ func (u *UseCase) createQuiz(input Input) (domain.Quiz, error) {
 		questions[i] = question
 	}
 	quiz, err := domain.NewQuiz(
-		input.OwnerID,
+		ownerID,
 		input.SubjectID,
 		input.Title,
 		input.Summary,

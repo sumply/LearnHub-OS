@@ -12,7 +12,6 @@ import (
 
 type Input struct {
 	Title       string         `json:"title" validate:"required,quiz-title"`
-	OwnerID     uuid.UUID      `json:"owner_id"`
 	Summary     string         `json:"summary" validate:"required,quiz-summary"`
 	SubjectID   uuid.UUID      `json:"subject_id"`
 	GroupIDs    uuid.UUIDs     `json:"group_ids"`
