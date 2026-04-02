@@ -15,7 +15,7 @@ type Quiz struct {
 	Summary     string
 	OwnerID     uuid.UUID
 	SubjectID   uuid.UUID
-	Questions   []Question
+	Questions   []IQuestion
 	GroupIDs    uuid.UUIDs
 	Deadline    *time.Time
 	MaxAttempts int
@@ -26,7 +26,7 @@ type Quiz struct {
 func NewQuiz(
 	ownerID, subjectID uuid.UUID,
 	title, summary string,
-	questions []Question,
+	questions []IQuestion,
 	groupIDs uuid.UUIDs,
 	maxAttempts int,
 	deadline *time.Time,
@@ -35,8 +35,8 @@ func NewQuiz(
 
 	totalCount := 0
 	for i := range questions {
-		totalCount += questions[i].Score
-		questions[i].QuizID = quizID
+		totalCount += questions[i].Score()
+		questions[i].setQuizID(quizID)
 	}
 
 	quiz := Quiz{
@@ -113,71 +113,73 @@ func (q *Quiz) CheckAttempt(attempt *Attempt) error {
 
 	attempt.Score = 0
 
-	questionMap := make(map[uuid.UUID]*Question)
-	for i := range q.Questions {
-		questionMap[q.Questions[i].ID] = &q.Questions[i]
-	}
+	/*
+		questionMap := make(map[uuid.UUID]*Question)
+		for i := range q.Questions {
+			questionMap[q.Questions[i].ID] = &q.Questions[i]
+		}
 
-	for i := range attempt.Answers {
-		question, ok := questionMap[attempt.Answers[i].QuestionID]
-		if !ok {
-			return fmt.Errorf("unknow questionID (id=%d)", attempt.Answers[i].QuestionID)
+		for i := range attempt.Answers {
+			question, ok := questionMap[attempt.Answers[i].QuestionID]
+			if !ok {
+				return fmt.Errorf("unknow questionID (id=%d)", attempt.Answers[i].QuestionID)
+			}
+			ok, err := question.Details.ReviewAnswer(attempt.Answers[i].Answer)
+			if err != nil {
+				return err
+			}
+			attempt.Answers[i].IsCorrect = ok
+			if ok {
+				attempt.Answers[i].Score = question.Score
+			}
+			attempt.Score += attempt.Answers[i].Score
 		}
-		ok, err := question.Details.ReviewAnswer(attempt.Answers[i].Answer)
-		if err != nil {
-			return err
-		}
-		attempt.Answers[i].IsCorrect = ok
-		if ok {
-			attempt.Answers[i].Score = question.Score
-		}
-		attempt.Score += attempt.Answers[i].Score
-	}
+	*/
 
 	return nil
 }
 
-type Question struct {
+type IQuestion interface {
+	Validate() error
+	ReviewAnswer(any) (bool, error)
+	Score() int
+	setQuizID(uuid.UUID)
+}
+
+type CommonQuestion[T any] struct {
 	ID      uuid.UUID
 	QuizID  uuid.UUID
-	Text    string
-	Details QuestionDetails
-	Score   int
+	Title   string
+	score   int
+	Correct T
 }
 
-func NewQuestion(text string, details QuestionDetails, score int) (Question, error) {
-	question := Question{
-		ID:      uuid.New(),
-		Text:    text,
-		Details: details,
-		Score:   score,
-	}
-
-	if err := question.Validate(); err != nil {
-		return Question{}, err
-	}
-
-	return question, nil
+type SingleQuestion struct {
+	CommonQuestion[string]
+	Options []string
 }
 
-func (q *Question) Validate() error {
-	domainErr := NewError("question")
+func (s *SingleQuestion) setQuizID(quizID uuid.UUID) {
+	s.QuizID = quizID
+}
 
-	q.Text = strings.TrimSpace(q.Text)
-	if q.Text == "" {
-		domainErr.add("text", fmt.Errorf("text is empty"))
+func (s *SingleQuestion) Score() int {
+	return s.score
+}
+
+func (s *SingleQuestion) Validate() error {
+	domainErr := NewError("single_question")
+	if len(s.Options) == 0 {
+		domainErr.add("options", fmt.Errorf("options is nil"))
 	}
 
-	if q.Score <= 0 {
-		domainErr.add("score", fmt.Errorf("score less 0"))
+	uniqueOptions := make(map[string]interface{})
+	for i := range s.Options {
+		uniqueOptions[s.Options[i]] = struct{}{}
 	}
 
-	if q.Details == nil {
-		domainErr.add("details", fmt.Errorf("details is nil"))
-	} else {
-		if err := q.Details.Validate(); err != nil {
-			domainErr.add("details", err)
-		}
+	if len(uniqueOptions) != len(s.Options) {
+		domainErr.add("options", fmt.Errorf("options are not unique"))
 	}
 
 	if !domainErr.Empty() {
@@ -187,45 +189,7 @@ func (q *Question) Validate() error {
 	return nil
 }
 
-type QuestionDetails interface {
-	Validate() error
-	Variant() QuestionType
-	ReviewAnswer(answer any) (bool, error)
-}
-
-type SingleChoiceQuestion struct {
-	Options []string
-	Correct string
-}
-
-func NewSingleChoiceQuestion(options []string, correct string) (SingleChoiceQuestion, error) {
-	single := SingleChoiceQuestion{
-		Options: slices.Clone(options),
-		Correct: correct,
-	}
-	if err := single.Validate(); err != nil {
-		return SingleChoiceQuestion{}, err
-	}
-	return single, nil
-}
-
-func (s *SingleChoiceQuestion) Validate() error {
-	if len(s.Options) == 0 {
-		return fmt.Errorf("options is nil")
-	}
-
-	for i := range s.Options {
-		s.Options[i] = strings.TrimSpace(s.Options[i])
-	}
-
-	s.Correct = strings.TrimSpace(s.Correct)
-	if !slices.Contains(s.Options, s.Correct) {
-		return fmt.Errorf("options do not contain the correct")
-	}
-	return nil
-}
-
-func (s *SingleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
+func (s *SingleQuestion) ReviewAnswer(answer any) (bool, error) {
 	_answer, ok := answer.(string)
 	if !ok {
 		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
@@ -236,95 +200,75 @@ func (s *SingleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
 	return true, nil
 }
 
-func (s *SingleChoiceQuestion) Variant() QuestionType {
-	return TypeSingleChoice
+type MultipleQuestion struct {
+	CommonQuestion[[]string]
+	Options []string
 }
 
-type MultipleChoiceQuestion struct {
-	Options []string `json:"options"`
-	Correct []string `json:"correct"`
+func (m *MultipleQuestion) setQuizID(quizID uuid.UUID) {
+	m.QuizID = quizID
 }
 
-func NewMultipleChoiceQuestion(options, correct []string) (MultipleChoiceQuestion, error) {
-	multiple := MultipleChoiceQuestion{
-		Options: slices.Clone(options),
-		Correct: slices.Clone(correct),
-	}
-	if err := multiple.Validate(); err != nil {
-		return MultipleChoiceQuestion{}, err
-	}
-	return multiple, nil
+func (m *MultipleQuestion) Score() int {
+	return m.score
 }
 
-func (m *MultipleChoiceQuestion) Validate() error {
+func (m *MultipleQuestion) Validate() error {
+	domainErr := NewError("multiple_question")
+
 	if len(m.Options) == 0 {
-		return fmt.Errorf("options is empty")
+		return fmt.Errorf("options is nil")
 	}
 
+	uniqueOptions := make(map[string]interface{})
 	for i := range m.Options {
-		m.Options[i] = strings.TrimSpace(m.Options[i])
+		uniqueOptions[m.Options[i]] = struct{}{}
 	}
 
-	if len(m.Correct) == 0 {
-		return fmt.Errorf("correct is empty")
+	if len(uniqueOptions) != len(m.Options) {
+		domainErr.add("options", fmt.Errorf("options are not unique"))
 	}
 
-	if len(m.Correct) > len(m.Options) {
-		return fmt.Errorf("more correct answers than options")
-	}
-
-	for i := range m.Correct {
-		m.Correct[i] = strings.TrimSpace(m.Correct[i])
-		if !slices.Contains(m.Options, m.Correct[i]) {
-			return fmt.Errorf("options do not contain the correct")
-		}
+	if !domainErr.Empty() {
+		return domainErr
 	}
 
 	return nil
 }
 
-func (m *MultipleChoiceQuestion) ReviewAnswer(answer any) (bool, error) {
+func (m *MultipleQuestion) ReviewAnswer(answer any) (bool, error) {
 	var _answer []string
-
 	if a, ok := answer.([]string); ok {
 		_answer = a
 	} else if a, ok := answer.([]any); ok {
 		_answer = make([]string, len(a))
-		for i := range _answer {
-			s, ok := a[i].(string)
-			if !ok {
-				return false, fmt.Errorf("answer is incorrect type (%T)", answer)
+		for i := 0; i < len(a); i++ {
+			if s, ok := a[i].(string); ok {
+				_answer[i] = s
 			}
-			_answer[i] = s
 		}
-	} else {
-		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
 	}
-
+	if len(m.Correct) != len(_answer) {
+		return false, nil
+	}
 	for i := range m.Correct {
-		if m.Correct[i] != _answer[i] {
+		if !slices.Contains(m.Correct, _answer[i]) {
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-func (m *MultipleChoiceQuestion) Variant() QuestionType {
-	return TypeMultipleChoice
-}
-
 type NumericQuestion struct {
-	Correct float64 `json:"correct"`
+	CommonQuestion[float32]
 }
 
-func NewNumericQuestion(correct float64) (NumericQuestion, error) {
-	numeric := NumericQuestion{
-		Correct: correct,
-	}
-	if err := numeric.Validate(); err != nil {
-		return NumericQuestion{}, err
-	}
-	return numeric, nil
+func (n *NumericQuestion) setQuizID(quizID uuid.UUID) {
+	n.QuizID = quizID
+}
+
+func (n *NumericQuestion) Score() int {
+	return n.score
 }
 
 func (n *NumericQuestion) Validate() error {
@@ -332,7 +276,7 @@ func (n *NumericQuestion) Validate() error {
 }
 
 func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
-	_answer, ok := n.castAnyToFloat64(answer)
+	_answer, ok := answer.(float32)
 	if !ok {
 		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
 	}
@@ -341,31 +285,3 @@ func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
 	}
 	return true, nil
 }
-
-func (n *NumericQuestion) castAnyToFloat64(a any) (float64, bool) {
-	switch number := a.(type) {
-	case
-		int:
-		return float64(number), true
-	case int64:
-		return float64(number), true
-	case float32:
-		return float64(number), true
-	case float64:
-		return float64(number), true
-	default:
-		return 0, false
-	}
-}
-
-func (n *NumericQuestion) Variant() QuestionType {
-	return TypeNumeric
-}
-
-type QuestionType string
-
-const (
-	TypeSingleChoice   QuestionType = "single"
-	TypeMultipleChoice QuestionType = "multiple"
-	TypeNumeric        QuestionType = "numeric"
-)
