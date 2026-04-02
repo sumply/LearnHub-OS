@@ -59,7 +59,6 @@ CREATE TABLE quiz.info(
 	subject_id UUID REFERENCES school.subject(id) NOT NULL,
 	owner_id UUID REFERENCES account.profile(account_id) NOT NULL,
 	max_attempts INT NOT NULL DEFAULT 1,
-	total_score quiz.score NOT NULL,
 	deadline TIMESTAMPTZ DEFAULT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -77,9 +76,30 @@ CREATE TABLE quiz.question(
 	quiz_id UUID REFERENCES quiz.info(quiz_id) ON DELETE CASCADE NOT NULL,
 	title TEXT NOT NULL,
 	score quiz.score NOT NULL,
-	details JSONB NOT NULL,
-	position SMALLINT NOT NULL DEFAULT 0,
-	UNIQUE(quiz_id, position)
+	type question_type NOT NULL 
+);
+
+-- Хранение ответа на вопрос с одиночным ответом.
+CREATE TABLE quiz.question_single(
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	question_id UUID REFERENCES quiz.question(id) ON DELETE CASCADE NOT NULL,
+	correct TEXT NOT NULL,
+	options TEXT[] NOT NULL
+);
+
+-- Хранение ответа на вопрос с множественным ответом.
+CREATE TABLE quiz.question_multiple(
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	question_id UUID REFERENCES quiz.question(id) ON DELETE CASCADE NOT NULL,
+	correct TEXT[] NOT NULL,
+	options TEXT[] NOT NULL
+);
+
+-- Хранение ответа на вопрос с числовым ответом.
+CREATE TABLE quiz.question_numeric(
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	question_id UUID REFERENCES quiz.question(id) ON DELETE CASCADE NOT NULL,
+	correct FLOAT NOT NULL
 );
 
 -- Запись прохождения квиза пользователем.
