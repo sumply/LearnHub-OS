@@ -118,3 +118,37 @@ JOIN account.credential AS c
     ON c.account_id = p.account_id
 WHERE 
     c.email = $1 AND c.pwd_hash = $2;
+
+-- name: GetDomainQuiz :one
+SELECT 
+    i.quiz_id,
+    i.title,
+    i.summary,
+    i.owner_id,
+    i.subject_id,
+    i.max_attempts,
+    i.deadline,
+    i.total_score,
+    i.created_at,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'id', q.id,
+                'title', q.title,
+                'score', q.score,
+                'type', q.type,
+                'single_correct', s.correct,
+                'single_options', s.options,
+                'multiple_correct', m.correct,
+                'multiple_options', m.options,
+                'numeric_correct', n.correct
+            )
+        ) FILTER (WHERE q.id IS NOT NULL), '[]'
+    ) AS questions
+FROM quiz.info AS i
+LEFT JOIN quiz.question AS q ON q.quiz_id = i.quiz_id
+LEFT JOIN quiz.question_single AS s ON s.question_id = q.id
+LEFT JOIN quiz.question_multiple AS m ON m.question_id = q.id
+LEFT JOIN quiz.question_numeric AS n ON n.question_id = q.id
+WHERE i.quiz_id = $1
+GROUP BY i.quiz_id;

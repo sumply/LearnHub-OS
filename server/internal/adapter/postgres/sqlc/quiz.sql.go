@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const deleteQuizInfo = `-- name: DeleteQuizInfo :exec
@@ -167,7 +168,7 @@ INSERT INTO quiz.question (
     quiz_id,
     title,
     score,
-    details
+    type
 )
 VALUES (
     $1,
@@ -179,11 +180,11 @@ VALUES (
 `
 
 type InsertQuizQuestionParams struct {
-	ID      uuid.UUID       `db:"id" json:"id"`
-	QuizID  uuid.UUID       `db:"quiz_id" json:"quiz_id"`
-	Title   string          `db:"title" json:"title"`
-	Score   int             `db:"score" json:"score"`
-	Details json.RawMessage `db:"details" json:"details"`
+	ID     uuid.UUID   `db:"id" json:"id"`
+	QuizID uuid.UUID   `db:"quiz_id" json:"quiz_id"`
+	Title  string      `db:"title" json:"title"`
+	Score  int         `db:"score" json:"score"`
+	Type   interface{} `db:"type" json:"type"`
 }
 
 func (q *Queries) InsertQuizQuestion(ctx context.Context, arg InsertQuizQuestionParams) error {
@@ -192,8 +193,77 @@ func (q *Queries) InsertQuizQuestion(ctx context.Context, arg InsertQuizQuestion
 		arg.QuizID,
 		arg.Title,
 		arg.Score,
-		arg.Details,
+		arg.Type,
 	)
+	return err
+}
+
+const insertQuizQuestionMultiple = `-- name: InsertQuizQuestionMultiple :exec
+INSERT INTO quiz.question_multiple (
+    question_id,
+    correct,
+    options
+)
+VALUES (
+    $1,
+    $2,
+    $3
+)
+`
+
+type InsertQuizQuestionMultipleParams struct {
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Correct    []string  `db:"correct" json:"correct"`
+	Options    []string  `db:"options" json:"options"`
+}
+
+func (q *Queries) InsertQuizQuestionMultiple(ctx context.Context, arg InsertQuizQuestionMultipleParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizQuestionMultiple, arg.QuestionID, pq.Array(arg.Correct), pq.Array(arg.Options))
+	return err
+}
+
+const insertQuizQuestionNumeric = `-- name: InsertQuizQuestionNumeric :exec
+INSERT INTO quiz.question_numeric (
+    question_id,
+    correct
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertQuizQuestionNumericParams struct {
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Correct    float64   `db:"correct" json:"correct"`
+}
+
+func (q *Queries) InsertQuizQuestionNumeric(ctx context.Context, arg InsertQuizQuestionNumericParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizQuestionNumeric, arg.QuestionID, arg.Correct)
+	return err
+}
+
+const insertQuizQuestionSingle = `-- name: InsertQuizQuestionSingle :exec
+INSERT INTO quiz.question_single (
+    question_id,
+    correct,
+    options
+)
+VALUES (
+    $1,
+    $2,
+    $3
+)
+`
+
+type InsertQuizQuestionSingleParams struct {
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Correct    string    `db:"correct" json:"correct"`
+	Options    []string  `db:"options" json:"options"`
+}
+
+func (q *Queries) InsertQuizQuestionSingle(ctx context.Context, arg InsertQuizQuestionSingleParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizQuestionSingle, arg.QuestionID, arg.Correct, pq.Array(arg.Options))
 	return err
 }
 

@@ -144,6 +144,13 @@ type IQuestion interface {
 	ReviewAnswer(any) (bool, error)
 	Score() int
 	setQuizID(uuid.UUID)
+	Accept(QuestionVisitor) error
+}
+
+type QuestionVisitor interface {
+	VisitSingle(*SingleQuestion) error
+	VisitMultiple(*MultipleQuestion) error
+	VisitNumeric(*NumericQuestion) error
 }
 
 type CommonQuestion[T any] struct {
@@ -157,6 +164,18 @@ type CommonQuestion[T any] struct {
 type SingleQuestion struct {
 	CommonQuestion[string]
 	Options []string
+}
+
+func NewSingleQuestion(title, correct string, options []string, score int) (*SingleQuestion, error) {
+	return &SingleQuestion{
+		CommonQuestion: CommonQuestion[string]{
+			ID:      uuid.New(),
+			Title:   title,
+			Correct: correct,
+			score:   score,
+		},
+		Options: options,
+	}, nil
 }
 
 func (s *SingleQuestion) setQuizID(quizID uuid.UUID) {
@@ -200,9 +219,25 @@ func (s *SingleQuestion) ReviewAnswer(answer any) (bool, error) {
 	return true, nil
 }
 
+func (s *SingleQuestion) Accept(visitor QuestionVisitor) error {
+	return visitor.VisitSingle(s)
+}
+
 type MultipleQuestion struct {
 	CommonQuestion[[]string]
 	Options []string
+}
+
+func NewMultipleQuestion(title string, correct, options []string, score int) (*MultipleQuestion, error) {
+	return &MultipleQuestion{
+		CommonQuestion: CommonQuestion[[]string]{
+			ID:      uuid.New(),
+			Title:   title,
+			score:   score,
+			Correct: correct,
+		},
+		Options: options,
+	}, nil
 }
 
 func (m *MultipleQuestion) setQuizID(quizID uuid.UUID) {
@@ -259,8 +294,23 @@ func (m *MultipleQuestion) ReviewAnswer(answer any) (bool, error) {
 	return true, nil
 }
 
+func (m *MultipleQuestion) Accept(visitor QuestionVisitor) error {
+	return visitor.VisitMultiple(m)
+}
+
 type NumericQuestion struct {
 	CommonQuestion[float32]
+}
+
+func NewNumericQuestion(title string, correct float32, score int) (*NumericQuestion, error) {
+	return &NumericQuestion{
+		CommonQuestion: CommonQuestion[float32]{
+			ID:      uuid.New(),
+			Title:   title,
+			Correct: correct,
+			score:   score,
+		},
+	}, nil
 }
 
 func (n *NumericQuestion) setQuizID(quizID uuid.UUID) {
@@ -284,4 +334,8 @@ func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func (n *NumericQuestion) Accept(visitor QuestionVisitor) error {
+	return visitor.VisitNumeric(n)
 }

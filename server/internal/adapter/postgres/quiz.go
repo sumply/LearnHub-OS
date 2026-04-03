@@ -3,8 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"server/internal/adapter/postgres/jsonb"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 
@@ -57,21 +55,7 @@ func (q *Quiz) Save(ctx context.Context, quiz domain.Quiz) error {
 		}
 
 		for _, question := range quiz.Questions {
-			detailsHelper := jsonb.QuestionDetails{
-				Domain: question.Details,
-			}
-			detailsJSON, err := json.Marshal(detailsHelper)
-			if err != nil {
-				return err
-			}
-			err = q.InsertQuizQuestion(ctx, sqlc.InsertQuizQuestionParams{
-				ID:      question.ID,
-				QuizID:  question.QuizID,
-				Title:   question.Text,
-				Score:   question.Score,
-				Details: detailsJSON,
-			})
-			if err != nil {
+			if err := question.Save(ctx, q); err != nil {
 				return err
 			}
 		}
@@ -79,7 +63,8 @@ func (q *Quiz) Save(ctx context.Context, quiz domain.Quiz) error {
 	})
 }
 
-func (q *Quiz) Get(context.Context, uuid.UUID) (domain.Quiz, error) {
+func (q *Quiz) Get(ctx context.Context, id uuid.UUID) (domain.Quiz, error) {
+
 	return domain.Quiz{}, nil
 }
 

@@ -155,18 +155,34 @@ type QuizInfo struct {
 	SubjectID   uuid.UUID    `db:"subject_id" json:"subject_id"`
 	OwnerID     uuid.UUID    `db:"owner_id" json:"owner_id"`
 	MaxAttempts int32        `db:"max_attempts" json:"max_attempts"`
-	TotalScore  int          `db:"total_score" json:"total_score"`
 	Deadline    sql.NullTime `db:"deadline" json:"deadline"`
+	TotalScore  int          `db:"total_score" json:"total_score"`
 	CreatedAt   time.Time    `db:"created_at" json:"created_at"`
 }
 
 type QuizQuestion struct {
-	ID       uuid.UUID       `db:"id" json:"id"`
-	QuizID   uuid.UUID       `db:"quiz_id" json:"quiz_id"`
-	Title    string          `db:"title" json:"title"`
-	Score    int             `db:"score" json:"score"`
-	Details  json.RawMessage `db:"details" json:"details"`
-	Position int16           `db:"position" json:"position"`
+	ID     uuid.UUID   `db:"id" json:"id"`
+	QuizID uuid.UUID   `db:"quiz_id" json:"quiz_id"`
+	Title  string      `db:"title" json:"title"`
+	Score  int         `db:"score" json:"score"`
+	Type   interface{} `db:"type" json:"type"`
+}
+
+type QuizQuestionMultiple struct {
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Correct    []string  `db:"correct" json:"correct"`
+	Options    []string  `db:"options" json:"options"`
+}
+
+type QuizQuestionNumeric struct {
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Correct    float64   `db:"correct" json:"correct"`
+}
+
+type QuizQuestionSingle struct {
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Correct    string    `db:"correct" json:"correct"`
+	Options    []string  `db:"options" json:"options"`
 }
 
 type SchoolGroup struct {

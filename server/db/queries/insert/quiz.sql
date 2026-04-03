@@ -28,7 +28,7 @@ INSERT INTO quiz.question (
     quiz_id,
     title,
     score,
-    details
+    type
 )
 VALUES (
     $1,
@@ -37,6 +37,41 @@ VALUES (
     $4,
     $5
 );
+
+-- name: InsertQuizQuestionSingle :exec
+INSERT INTO quiz.question_single (
+    question_id,
+    correct,
+    options
+)
+VALUES (
+    $1,
+    $2,
+    $3
+);
+
+-- name: InsertQuizQuestionMultiple :exec
+INSERT INTO quiz.question_multiple (
+    question_id,
+    correct,
+    options
+)
+VALUES (
+    $1,
+    $2,
+    $3
+);
+
+-- name: InsertQuizQuestionNumeric :exec
+INSERT INTO quiz.question_numeric (
+    question_id,
+    correct
+)
+VALUES (
+    $1,
+    $2
+);
+
 
 -- name: InsertQuizAttempt :exec
 INSERT INTO quiz.attempt (
