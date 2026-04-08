@@ -1,50 +1,3 @@
--- name: GetDomainQuiz :one
-SELECT 
-	i.quiz_id AS quiz_id,
-	i.title AS quiz_title,
-	i.summary AS quiz_summary,
-	i.owner_id AS quiz_owner_id,
-	i.subject_id AS quiz_subject_id,
-	i.total_score::INT AS quiz_total_score,
-	i.deadline AS quiz_deadline,
-	i.max_attempts::INT AS quiz_max_attempts,
-	i.created_at AS quiz_created_at,
-	json_agg(q.*)::JSONB AS quiz_questions
-FROM quiz.info AS i
-JOIN quiz.question AS q
-	ON q.quiz_id = i.quiz_id
-WHERE i.quiz_id = $1
-GROUP BY 
-    i.quiz_id,
-    i.title,
-    i.summary,
-    i.owner_id,
-    i.subject_id,
-    i.total_score,
-    i.deadline,
-    i.max_attempts,
-    i.created_at;
-
-
--- name: GetDomainAttempt :one
-SELECT 
-    attempt.id AS attempt_id,
-    attempt.quiz_id AS attempt_quiz_id,
-    attempt.user_id AS attempt_user_id,
-    attempt.score::INT AS attempt_score_id,
-    attempt.started_at AS attempt_started_at,
-    attempt.ended_at AS attempt_endend_at,
-    json_agg(answer.*) AS attempt_answers
-FROM quiz.attempt AS attempt
-JOIN quiz.answer AS answer
-    ON answer.attempt_id = attempt.id
-GROUP BY 
-	attempt.id,
-	attempt.quiz_id,
-    attempt.user_id,
-    attempt.score,
-    attempt.started_at,
-    attempt.ended_at;
 
 -- name: GetDomainTeacher :one 
 SELECT
@@ -104,7 +57,7 @@ SELECT
     p.role,
     p.created_at
 FROM account.profile AS p
-WHERE p.account_id IN ($1::UUID[]);
+WHERE p.account_id = ANY($1::UUID[]);
 
 -- name: GetDomainUserByCredential :one
 SELECT
@@ -130,25 +83,96 @@ SELECT
     i.deadline,
     i.total_score,
     i.created_at,
-    COALESCE(
-        json_agg(
-            json_build_object(
-                'id', q.id,
-                'title', q.title,
-                'score', q.score,
-                'type', q.type,
-                'single_correct', s.correct,
-                'single_options', s.options,
-                'multiple_correct', m.correct,
-                'multiple_options', m.options,
-                'numeric_correct', n.correct
-            )
-        ) FILTER (WHERE q.id IS NOT NULL), '[]'
-    ) AS questions
+    COALESCE(q.questions, '[]')::JSONB AS questions,
+    COALESCE(a.group_ids, '{}')::UUID[] AS group_ids
 FROM quiz.info AS i
-LEFT JOIN quiz.question AS q ON q.quiz_id = i.quiz_id
-LEFT JOIN quiz.question_single AS s ON s.question_id = q.id
-LEFT JOIN quiz.question_multiple AS m ON m.question_id = q.id
-LEFT JOIN quiz.question_numeric AS n ON n.question_id = q.id
-WHERE i.quiz_id = $1
-GROUP BY i.quiz_id;
+LEFT JOIN LATERAL (
+    SELECT json_agg(
+        json_build_object(
+            'id', q.id,
+            'title', q.title,
+            'score', q.score,
+            'type', q.type,
+            'single_correct', COALESCE(s.correct, '')::TEXT,
+            'single_options', COALESCE(s.options, '{}')::TEXT[],
+            'multiple_correct', COALESCE(m.correct, '{}')::TEXT[],
+            'multiple_options', COALESCE(m.options, '{}')::TEXT[],
+            'numeric_correct', COALESCE(n.correct, 0)::FLOAT
+        )
+    ) AS questions
+    FROM quiz.question AS q
+    LEFT JOIN quiz.question_single AS s ON s.question_id = q.id
+    LEFT JOIN quiz.question_multiple AS m ON m.question_id = q.id
+    LEFT JOIN quiz.question_numeric AS n ON n.question_id = q.id
+    WHERE q.quiz_id = i.quiz_id
+) AS q ON true
+LEFT JOIN LATERAL (
+    SELECT array_agg(a.group_id)::UUID[] AS group_ids
+    FROM quiz.assignment AS a
+    WHERE a.quiz_id = i.quiz_id 
+) AS a ON true
+WHERE i.quiz_id = $1;
+
+-- name: GetDomainQuizzes :many
+SELECT 
+    i.quiz_id,
+    i.title,
+    i.summary,
+    i.owner_id,
+    i.subject_id,
+    i.max_attempts,
+    i.deadline,
+    i.total_score,
+    i.created_at,
+    COALESCE(a.group_ids, '{}')::UUID[] AS group_ids
+FROM quiz.info AS i
+LEFT JOIN LATERAL (
+    SELECT array_agg(a.group_id)::UUID[] AS group_ids
+    FROM quiz.assignment AS a
+    WHERE a.quiz_id = i.quiz_id 
+) AS a ON true;
+
+-- name: GetDomainAttempts :many
+SELECT 
+    a.id,
+    a.number_attempt,
+    a.quiz_id,
+    a.user_id,
+    a.score,
+    a.started_at,
+    a.ended_at
+FROM quiz.attempt AS a;
+
+-- name: GetDomainAttempt :one
+SELECT 
+    att.id,
+    att.number_attempt,
+    att.quiz_id,
+    att.user_id,
+    att.score,
+    att.started_at,
+    att.ended_at,
+    COALESCE(a.answers, '[]')::JSONB AS answers
+FROM quiz.attempt AS att
+LEFT JOIN LATERAL (
+    SELECT json_agg(
+        json_build_object(
+            'id', a.id,
+            'question_id', a.question_id,
+            'score', a.score,
+            'is_correct', a.is_correct,
+            'type', q.type,
+            'single_selected_answer', COALESCE(s.selected_answer, '')::TEXT,
+            'multiple_selected_answer', COALESCE(m.selected_answer, '{}')::TEXT[],
+            'numeric_selected_answer', COALESCE(n.selected_answer, 0)::FLOAT
+        )
+    ) AS answers
+    FROM quiz.answer AS a
+    INNER JOIN quiz.question AS q ON q.id = a.question_id
+    LEFT JOIN quiz.answer_single AS s ON s.answer_id = a.id
+    LEFT JOIN quiz.answer_multiple AS m ON m.answer_id = a.id
+    LEFT JOIN quiz.answer_numeric AS n ON n.answer_id = a.id
+    WHERE a.attempt_id = att.id
+) as a ON true
+WHERE att.id = $1;
+

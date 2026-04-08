@@ -2,7 +2,6 @@ package domain
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -30,7 +29,7 @@ func NewQuiz(
 	groupIDs uuid.UUIDs,
 	maxAttempts int,
 	deadline *time.Time,
-) (Quiz, error) {
+) (*Quiz, error) {
 	quizID := uuid.New()
 
 	totalCount := 0
@@ -39,10 +38,10 @@ func NewQuiz(
 		questions[i].setQuizID(quizID)
 	}
 
-	quiz := Quiz{
+	quiz := &Quiz{
 		ID:          quizID,
-		Title:       title,
-		Summary:     summary,
+		Title:       strings.TrimSpace(title),
+		Summary:     strings.TrimSpace(summary),
 		OwnerID:     ownerID,
 		SubjectID:   subjectID,
 		Questions:   questions,
@@ -54,7 +53,7 @@ func NewQuiz(
 	}
 
 	if err := quiz.Validate(); err != nil {
-		return Quiz{}, err
+		return nil, err
 	}
 
 	return quiz, nil
@@ -106,94 +105,103 @@ func (q *Quiz) Validate() error {
 	return nil
 }
 
-func (q *Quiz) CheckAttempt(attempt *Attempt) error {
-	if attempt == nil {
-		return fmt.Errorf("attempt is nil")
-	}
-
-	attempt.Score = 0
-
-	/*
-		questionMap := make(map[uuid.UUID]*Question)
-		for i := range q.Questions {
-			questionMap[q.Questions[i].ID] = &q.Questions[i]
-		}
-
-		for i := range attempt.Answers {
-			question, ok := questionMap[attempt.Answers[i].QuestionID]
-			if !ok {
-				return fmt.Errorf("unknow questionID (id=%d)", attempt.Answers[i].QuestionID)
-			}
-			ok, err := question.Details.ReviewAnswer(attempt.Answers[i].Answer)
-			if err != nil {
-				return err
-			}
-			attempt.Answers[i].IsCorrect = ok
-			if ok {
-				attempt.Answers[i].Score = question.Score
-			}
-			attempt.Score += attempt.Answers[i].Score
-		}
-	*/
-
-	return nil
-}
-
 type IQuestion interface {
+	ID() uuid.UUID
 	Validate() error
-	ReviewAnswer(any) (bool, error)
 	Score() int
 	setQuizID(uuid.UUID)
 	Accept(QuestionVisitor) error
 }
 
 type QuestionVisitor interface {
-	VisitSingle(*SingleQuestion) error
-	VisitMultiple(*MultipleQuestion) error
-	VisitNumeric(*NumericQuestion) error
+	VisitSingleQuestion(*SingleQuestion) error
+	VisitMultipleQuestion(*MultipleQuestion) error
+	VisitNumericQuestion(*NumericQuestion) error
 }
 
-type CommonQuestion[T any] struct {
-	ID      uuid.UUID
-	QuizID  uuid.UUID
-	Title   string
-	score   int
-	Correct T
+type CommonQuestion struct {
+	id     uuid.UUID
+	QuizID uuid.UUID
+	Title  string
+	score  int
+}
+
+func (q *CommonQuestion) ID() uuid.UUID {
+	return q.id
+}
+
+func (s *CommonQuestion) Score() int {
+	return s.score
+}
+
+func (s *CommonQuestion) setQuizID(quizID uuid.UUID) {
+	s.QuizID = quizID
 }
 
 type SingleQuestion struct {
-	CommonQuestion[string]
+	CommonQuestion
+	Correct string
 	Options []string
 }
 
 func NewSingleQuestion(title, correct string, options []string, score int) (*SingleQuestion, error) {
-	return &SingleQuestion{
-		CommonQuestion: CommonQuestion[string]{
-			ID:      uuid.New(),
-			Title:   title,
-			Correct: correct,
-			score:   score,
+	q := &SingleQuestion{
+		CommonQuestion: CommonQuestion{
+			id:    uuid.New(),
+			Title: strings.TrimSpace(title),
+			score: score,
 		},
+		Correct: strings.TrimSpace(correct),
+		Options: func() []string {
+			trimmed := make([]string, 0, len(options))
+			for _, opt := range options {
+				trimmed = append(trimmed, strings.TrimSpace(opt))
+			}
+			return trimmed
+		}(),
+	}
+
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
+
+	return q, nil
+}
+
+func RestoreSingleQuestion(id uuid.UUID, title, correct string, options []string, score int) (*SingleQuestion, error) {
+	q := &SingleQuestion{
+		CommonQuestion: CommonQuestion{
+			id:    id,
+			Title: title,
+			score: score,
+		},
+		Correct: correct,
 		Options: options,
-	}, nil
-}
+	}
 
-func (s *SingleQuestion) setQuizID(quizID uuid.UUID) {
-	s.QuizID = quizID
-}
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
 
-func (s *SingleQuestion) Score() int {
-	return s.score
+	return q, nil
 }
 
 func (s *SingleQuestion) Validate() error {
 	domainErr := NewError("single_question")
+
+	if s.Title == "" {
+		domainErr.add("title", fmt.Errorf("title is empty"))
+	}
+
 	if len(s.Options) == 0 {
 		domainErr.add("options", fmt.Errorf("options is nil"))
 	}
 
 	uniqueOptions := make(map[string]interface{})
 	for i := range s.Options {
+		if s.Options[i] == "" {
+			domainErr.add("option", fmt.Errorf("option is empty"))
+		}
 		uniqueOptions[s.Options[i]] = struct{}{}
 	}
 
@@ -201,6 +209,10 @@ func (s *SingleQuestion) Validate() error {
 		domainErr.add("options", fmt.Errorf("options are not unique"))
 	}
 
+	if _, ok := uniqueOptions[s.Correct]; !ok {
+		domainErr.add("correct", fmt.Errorf("correct is not contains in options"))
+	}
+
 	if !domainErr.Empty() {
 		return domainErr
 	}
@@ -208,62 +220,109 @@ func (s *SingleQuestion) Validate() error {
 	return nil
 }
 
-func (s *SingleQuestion) ReviewAnswer(answer any) (bool, error) {
-	_answer, ok := answer.(string)
-	if !ok {
-		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
-	}
-	if s.Correct != _answer {
-		return false, nil
-	}
-	return true, nil
-}
-
 func (s *SingleQuestion) Accept(visitor QuestionVisitor) error {
-	return visitor.VisitSingle(s)
+	return visitor.VisitSingleQuestion(s)
 }
 
 type MultipleQuestion struct {
-	CommonQuestion[[]string]
+	CommonQuestion
+	Correct []string
 	Options []string
 }
 
 func NewMultipleQuestion(title string, correct, options []string, score int) (*MultipleQuestion, error) {
-	return &MultipleQuestion{
-		CommonQuestion: CommonQuestion[[]string]{
-			ID:      uuid.New(),
-			Title:   title,
-			score:   score,
-			Correct: correct,
+	q := &MultipleQuestion{
+		CommonQuestion: CommonQuestion{
+			id:    uuid.New(),
+			Title: strings.TrimSpace(title),
+			score: score,
 		},
+		Correct: func() []string {
+			trimmed := make([]string, 0, len(correct))
+			for _, c := range correct {
+				trimmed = append(trimmed, strings.TrimSpace(c))
+			}
+			return trimmed
+		}(),
+		Options: func() []string {
+			trimmed := make([]string, 0, len(options))
+			for _, opt := range options {
+				trimmed = append(trimmed, strings.TrimSpace(opt))
+			}
+			return trimmed
+		}(),
+	}
+
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
+
+	return q, nil
+}
+
+func RestoreMultipleQuestion(id uuid.UUID, title string, correct, options []string, score int) (*MultipleQuestion, error) {
+	q := &MultipleQuestion{
+		CommonQuestion: CommonQuestion{
+			id:    id,
+			Title: title,
+			score: score,
+		},
+		Correct: correct,
 		Options: options,
-	}, nil
-}
+	}
 
-func (m *MultipleQuestion) setQuizID(quizID uuid.UUID) {
-	m.QuizID = quizID
-}
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
 
-func (m *MultipleQuestion) Score() int {
-	return m.score
+	return q, nil
 }
 
 func (m *MultipleQuestion) Validate() error {
 	domainErr := NewError("multiple_question")
 
-	if len(m.Options) == 0 {
-		return fmt.Errorf("options is nil")
+	if m.Title == "" {
+		domainErr.add("title", fmt.Errorf("title is empty"))
 	}
 
-	uniqueOptions := make(map[string]interface{})
+	if len(m.Correct) == 0 {
+		domainErr.add("correct", fmt.Errorf("correct length is 0"))
+	}
+
+	uniqueCorrect := make(map[string]any)
+	for i := range m.Correct {
+		uniqueCorrect[m.Correct[i]] = struct{}{}
+		if m.Correct[i] == "" {
+			domainErr.add("correct", fmt.Errorf("correct is empty"))
+		}
+	}
+
+	if len(uniqueCorrect) != len(m.Correct) {
+		domainErr.add("correct", fmt.Errorf("correct is not unique"))
+	}
+
+	if len(m.Options) == 0 {
+		return fmt.Errorf("options length is 0")
+	}
+
+	uniqueOptions := make(map[string]any)
 	for i := range m.Options {
 		uniqueOptions[m.Options[i]] = struct{}{}
+		if m.Options[i] == "" {
+			domainErr.add("option", fmt.Errorf("option is empty"))
+		}
 	}
 
 	if len(uniqueOptions) != len(m.Options) {
 		domainErr.add("options", fmt.Errorf("options are not unique"))
 	}
 
+	for i := range m.Correct {
+		if _, ok := uniqueOptions[m.Correct[i]]; !ok {
+			domainErr.add("correct", fmt.Errorf("correct is not contains in options"))
+		}
+	}
+
 	if !domainErr.Empty() {
 		return domainErr
 	}
@@ -271,71 +330,63 @@ func (m *MultipleQuestion) Validate() error {
 	return nil
 }
 
-func (m *MultipleQuestion) ReviewAnswer(answer any) (bool, error) {
-	var _answer []string
-	if a, ok := answer.([]string); ok {
-		_answer = a
-	} else if a, ok := answer.([]any); ok {
-		_answer = make([]string, len(a))
-		for i := 0; i < len(a); i++ {
-			if s, ok := a[i].(string); ok {
-				_answer[i] = s
-			}
-		}
-	}
-	if len(m.Correct) != len(_answer) {
-		return false, nil
-	}
-	for i := range m.Correct {
-		if !slices.Contains(m.Correct, _answer[i]) {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 func (m *MultipleQuestion) Accept(visitor QuestionVisitor) error {
-	return visitor.VisitMultiple(m)
+	return visitor.VisitMultipleQuestion(m)
 }
 
 type NumericQuestion struct {
-	CommonQuestion[float32]
+	CommonQuestion
+	Correct float32
 }
 
 func NewNumericQuestion(title string, correct float32, score int) (*NumericQuestion, error) {
-	return &NumericQuestion{
-		CommonQuestion: CommonQuestion[float32]{
-			ID:      uuid.New(),
-			Title:   title,
-			Correct: correct,
-			score:   score,
+	q := &NumericQuestion{
+		CommonQuestion: CommonQuestion{
+			id:    uuid.New(),
+			Title: title,
+			score: score,
 		},
-	}, nil
-}
+		Correct: correct,
+	}
 
-func (n *NumericQuestion) setQuizID(quizID uuid.UUID) {
-	n.QuizID = quizID
-}
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
 
-func (n *NumericQuestion) Score() int {
-	return n.score
+	return q, nil
 }
 
 func (n *NumericQuestion) Validate() error {
+	domainErr := NewError("numeric_question")
+
+	if n.Title == "" {
+		domainErr.add("title", fmt.Errorf("title is empty"))
+	}
+
+	if !domainErr.Empty() {
+		return domainErr
+	}
+
 	return nil
 }
 
-func (n *NumericQuestion) ReviewAnswer(answer any) (bool, error) {
-	_answer, ok := answer.(float32)
-	if !ok {
-		return false, fmt.Errorf("answer is incorrect type (%T)", answer)
-	}
-	if n.Correct != _answer {
-		return false, nil
-	}
-	return true, nil
+func (n *NumericQuestion) Accept(visitor QuestionVisitor) error {
+	return visitor.VisitNumericQuestion(n)
 }
 
-func (n *NumericQuestion) Accept(visitor QuestionVisitor) error {
-	return visitor.VisitNumeric(n)
+func RestoreNumericQuestion(id uuid.UUID, title string, correct float32, score int) (*NumericQuestion, error) {
+	q := &NumericQuestion{
+		CommonQuestion: CommonQuestion{
+			id:    id,
+			Title: title,
+			score: score,
+		},
+		Correct: correct,
+	}
+
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
+
+	return q, nil
 }

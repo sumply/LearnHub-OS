@@ -14,6 +14,10 @@ type Geter[T any] interface {
 	Get(context.Context, uuid.UUID) (T, error)
 }
 
+type AllGeter[T any] interface {
+	GetAll(context.Context) ([]T, error)
+}
+
 type Lister[T any] interface {
 	List(context.Context, []uuid.UUID) ([]T, error)
 }

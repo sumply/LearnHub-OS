@@ -1,4 +1,4 @@
-package get_by_id
+package get_attempt
 
 import (
 	"net/http"
@@ -6,20 +6,20 @@ import (
 	"server/internal/pkg/http/response"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		quizID, err := param.ID(r, param.QuizID)
+		attemptID, err := param.ID(r, param.AttemptID)
 		if err != nil {
 			response.SendParamError(w, err)
 			return
 		}
 
-		output, err := usecase.GetByID(r.Context(), quizID)
+		resp, err := uc.GetAttempt(r.Context(), attemptID)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return
 		}
 
-		response.SendOK(w, output)
+		response.SendOK(w, resp)
 	}
 }

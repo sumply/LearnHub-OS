@@ -7,7 +7,6 @@ package sqlc
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -125,12 +124,26 @@ type AccountTeacher struct {
 }
 
 type QuizAnswer struct {
-	ID         uuid.UUID       `db:"id" json:"id"`
-	AttemptID  uuid.UUID       `db:"attempt_id" json:"attempt_id"`
-	QuestionID uuid.UUID       `db:"question_id" json:"question_id"`
-	Details    json.RawMessage `db:"details" json:"details"`
-	Score      int             `db:"score" json:"score"`
-	IsCorrect  bool            `db:"is_correct" json:"is_correct"`
+	ID         uuid.UUID `db:"id" json:"id"`
+	AttemptID  uuid.UUID `db:"attempt_id" json:"attempt_id"`
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
+	Score      int       `db:"score" json:"score"`
+	IsCorrect  bool      `db:"is_correct" json:"is_correct"`
+}
+
+type QuizAnswerMultiple struct {
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+	SelectedAnswer []string  `db:"selected_answer" json:"selected_answer"`
+}
+
+type QuizAnswerNumeric struct {
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+	SelectedAnswer float64   `db:"selected_answer" json:"selected_answer"`
+}
+
+type QuizAnswerSingle struct {
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+	SelectedAnswer string    `db:"selected_answer" json:"selected_answer"`
 }
 
 type QuizAssignment struct {
@@ -161,11 +174,11 @@ type QuizInfo struct {
 }
 
 type QuizQuestion struct {
-	ID     uuid.UUID   `db:"id" json:"id"`
-	QuizID uuid.UUID   `db:"quiz_id" json:"quiz_id"`
-	Title  string      `db:"title" json:"title"`
-	Score  int         `db:"score" json:"score"`
-	Type   interface{} `db:"type" json:"type"`
+	ID     uuid.UUID        `db:"id" json:"id"`
+	QuizID uuid.UUID        `db:"quiz_id" json:"quiz_id"`
+	Title  string           `db:"title" json:"title"`
+	Score  int              `db:"score" json:"score"`
+	Type   QuizQuestionType `db:"type" json:"type"`
 }
 
 type QuizQuestionMultiple struct {

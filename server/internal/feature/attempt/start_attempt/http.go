@@ -1,32 +1,25 @@
 package start_attempt
 
 import (
-	"encoding/json"
 	"net/http"
-	"server/internal/pkg/http/param"
+	"server/internal/pkg/decoder"
 	"server/internal/pkg/http/response"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		quizID, err := param.ID(r, param.QuizID)
+		req, err := decoder.JSON[Request](r.Body)
 		if err != nil {
-			response.SendParamError(w, err)
-			return
-		}
-
-		var input Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			response.SendJSONDecodeError(w, err)
 			return
 		}
 
-		output, err := usecase.StartAttempt(r.Context(), quizID, &input)
+		resp, err := uc.StartAttempt(r.Context(), req)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return
 		}
 
-		response.SendOK(w, output)
+		response.SendCreated(w, resp)
 	}
 }

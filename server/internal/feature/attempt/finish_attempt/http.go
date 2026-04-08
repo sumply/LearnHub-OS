@@ -1,36 +1,32 @@
 package finish_attempt
 
 import (
-	"encoding/json"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"server/internal/pkg/decoder"
+	"server/internal/pkg/http/param"
+	"server/internal/pkg/http/response"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		param := chi.URLParam(r, "attempt_id")
-		attemptID, err := uuid.Parse(param)
+		attemptID, err := param.ID(r, param.AttemptID)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			response.SendParamError(w, err)
 			return
 		}
 
-		var input Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+		req, err := decoder.JSON[Request](r.Body)
+		if err != nil {
+			response.SendJSONDecodeError(w, err)
 			return
 		}
 
-		output, err := usecase.FinishAttempt(r.Context(), attemptID, &input)
-
-		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+		resp, err := uc.FinishAttempt(r.Context(), attemptID, req)
+		if err != nil {
+			response.SendUseCaseError(w, err)
 			return
 		}
+
+		response.SendOK(w, resp)
 	}
 }

@@ -91,14 +91,42 @@ VALUES (
 INSERT INTO quiz.answer (
     id,
     attempt_id,
-    question_id,
-    details
+    question_id
 )
 VALUES (
     $1,
     $2,
-    $3,
-    $4
+    $3
+);
+
+-- name: InsertQuizAnswerSingle :exec
+INSERT INTO quiz.answer_single (
+    answer_id,
+    selected_answer
+)
+VALUES (
+    $1,
+    $2
+);
+
+-- name: InsertQuizAnswerMultiple :exec
+INSERT INTO quiz.answer_multiple (
+    answer_id,
+    selected_answer
+)
+VALUES (
+    $1,
+    $2
+);
+
+-- name: InsertQuizAnswerNumeric :exec
+INSERT INTO quiz.answer_numeric (
+    answer_id,
+    selected_answer
+)
+VALUES (
+    $1,
+    $2
 );
 
 

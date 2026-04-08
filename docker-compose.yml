@@ -11,7 +11,7 @@ services:
     environment:
       POSTGRES_DATABASE: learnHUB
       POSTGRES_USER: server
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: server
       POSTGRES_HOST: database
       POSTGRES_PORT: 5432
       POSTGRES_SSLMODE: disable
@@ -31,7 +31,7 @@ services:
     environment:
       POSTGRES_DB: learnHUB
       POSTGRES_USER: server
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: server
   
   pgadmin:
     image: dpage/pgadmin4:9.12.0
@@ -40,7 +40,7 @@ services:
       - database
     environment:
       PGADMIN_DEFAULT_EMAIL: root@mail.ru
-      PGADMIN_DEFAULT_PASSWORD: HbC#KtI3e%qe
+      PGADMIN_DEFAULT_PASSWORD: secret
     ports:
       - "8001:80"
       - "8443:443"

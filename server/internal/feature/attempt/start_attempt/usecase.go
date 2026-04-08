@@ -3,64 +3,45 @@ package start_attempt
 import (
 	"context"
 	"server/internal/domain"
-	"server/internal/dto"
 	"server/internal/pkg/repository"
-
-	"github.com/google/uuid"
 )
 
-type Postgres interface {
-	Quiz(context.Context, uuid.UUID) (dto.Quiz, error)
+type QuizRepository interface {
+	repository.Geter[*domain.Quiz]
 }
 
-type Quiz interface {
-	repository.Geter[domain.Quiz]
-}
-
-type Attempt interface {
-	repository.Saver[domain.Attempt]
+type AttemptRepository interface {
+	repository.Saver[*domain.Attempt]
 }
 
 type UseCase struct {
-	postgres Postgres
-	quiz     Quiz
-	attempt  Attempt
+	quizRepo    QuizRepository
+	attemptRepo AttemptRepository
 }
 
-func New(postgres Postgres, quiz Quiz, attempt Attempt) *UseCase {
+func New(quiz QuizRepository, attempt AttemptRepository) *UseCase {
 	return &UseCase{
-		postgres: postgres,
-		quiz:     quiz,
-		attempt:  attempt,
+		quizRepo:    quiz,
+		attemptRepo: attempt,
 	}
 }
 
-func (u *UseCase) StartAttempt(ctx context.Context, quizID uuid.UUID, input *Input) (Output, error) {
-	quiz, err := u.quiz.Get(ctx, quizID)
+func (u *UseCase) StartAttempt(ctx context.Context, req Request) (Response, error) {
+	quiz, err := u.quizRepo.Get(ctx, req.QuizID)
 	if err != nil {
-		return Output{}, err
+		return Response{}, err
 	}
 
-	attempt, err := domain.NewAttempt(&quiz, input.UserID)
+	attempt, err := domain.NewAttempt(quiz, req.UserID)
 	if err != nil {
-		return Output{}, err
+		return Response{}, err
 	}
 
-	err = u.attempt.Save(ctx, attempt)
-	if err != nil {
-		return Output{}, err
+	if err := u.attemptRepo.Save(ctx, attempt); err != nil {
+		return Response{}, err
 	}
 
-	quizDTO, err := u.postgres.Quiz(ctx, quizID)
-	if err != nil {
-		return Output{}, err
-	}
-
-	return Output{
-		Attempt: OutputAttempt{
-			ID:        attempt.ID,
-			StartedAt: attempt.StartedAt,
-		},
-		Quiz: quizDTO,
+	return Response{
+		ID: attempt.ID,
 	}, nil
 }

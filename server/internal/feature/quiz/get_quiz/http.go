@@ -1,4 +1,4 @@
-package delete_quiz
+package get_quiz
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"server/internal/pkg/http/response"
 )
 
-func HTTP(usecase *UseCase) http.HandlerFunc {
+func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		quizID, err := param.ID(r, param.QuizID)
 		if err != nil {
@@ -14,12 +14,12 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		err = usecase.DeleteQuiz(r.Context(), quizID)
+		resp, err := uc.GetQuiz(r.Context(), quizID)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return
 		}
 
-		response.SendNoContent(w)
+		response.SendOK(w, resp)
 	}
 }

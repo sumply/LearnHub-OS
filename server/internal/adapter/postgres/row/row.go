@@ -2,7 +2,10 @@ package row
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"server/internal/adapter/postgres/sqlc"
+	"server/internal/domain"
 	"server/internal/dto"
 	"time"
 
@@ -65,39 +68,6 @@ type QuizItem struct {
 	Owner   sqlc.AccountProfile `db:"owner"`
 }
 
-func (q *QuizItem) DTO() dto.QuizItem {
-	owner := &q.Owner
-	subject := &q.Subject
-	quiz := &q.Quiz
-
-	var deadline *time.Time
-	if quiz.Deadline.Valid {
-		deadline = &q.Quiz.Deadline.Time
-	}
-
-	return dto.QuizItem{
-		ID:          quiz.QuizID,
-		Title:       quiz.Title,
-		Summary:     quiz.Summary,
-		TotalScore:  quiz.TotalScore,
-		Deadline:    deadline,
-		MaxAttempts: int(quiz.MaxAttempts),
-		CreatedAt:   quiz.CreatedAt,
-
-		Owner: dto.User{
-			ID:        owner.AccountID,
-			FirstName: owner.FirstName,
-			LastName:  owner.LastName,
-			Role:      owner.AccountID.String(),
-		},
-
-		Subject: dto.Subject{
-			ID:   subject.ID,
-			Name: subject.Name,
-		},
-	}
-}
-
 func (q *QuizItem) Clear() {
 	*q = QuizItem{}
 }
@@ -119,18 +89,60 @@ func (u *User) Clear() {
 	*u = User{}
 }
 
-type QuizLastAttempt struct {
-	QuizItem
-	Attempt NullAttemptItem `db:"attempt"`
+type Question struct {
+	domain domain.IQuestion
+	err    error
 }
 
-func (q *QuizLastAttempt) DTO() dto.QuizLastAttempt {
-	return dto.QuizLastAttempt{
-		Quiz:        q.QuizItem.DTO(),
-		LastAttempt: q.Attempt.DTO(),
+func (q *Question) UnmarshalJSON(data []byte) error {
+	aux := &struct {
+		ID              uuid.UUID             `json:"id"`
+		Title           string                `json:"title"`
+		Score           int                   `json:"score"`
+		Type            sqlc.QuizQuestionType `json:"type"`
+		SingleCorrect   string                `json:"single_correct"`
+		SingleOptions   []string              `json:"single_options"`
+		MultipleCorrect []string              `json:"multiple_correct"`
+		MultipleOptions []string              `json:"multiple_options"`
+		NumericCorrect  float32               `json:"numeric_correct"`
+	}{}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
 	}
-}
 
-func (q *QuizLastAttempt) Clear() {
-	*q = QuizLastAttempt{}
+	switch aux.Type {
+	case sqlc.QuizQuestionTypeSingle:
+		d, err := domain.RestoreSingleQuestion(
+			aux.ID,
+			aux.Title,
+			aux.SingleCorrect,
+			aux.SingleOptions,
+			aux.Score,
+		)
+		q.domain = d
+		q.err = err
+	case sqlc.QuizQuestionTypeMultiple:
+		d, err := domain.RestoreMultipleQuestion(
+			aux.ID,
+			aux.Title,
+			aux.MultipleCorrect,
+			aux.MultipleOptions,
+			aux.Score,
+		)
+		q.domain = d
+		q.err = err
+	case sqlc.QuizQuestionTypeNumeric:
+		d, err := domain.RestoreNumericQuestion(
+			aux.ID,
+			aux.Title,
+			aux.NumericCorrect,
+			aux.Score,
+		)
+		q.domain = d
+		q.err = err
+	default:
+		return fmt.Errorf("invalid type")
+	}
+	return nil
 }

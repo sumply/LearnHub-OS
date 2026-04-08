@@ -8,7 +8,6 @@ package sqlc
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,35 +24,179 @@ func (q *Queries) DeleteQuizInfo(ctx context.Context, quizID uuid.UUID) error {
 	return err
 }
 
+const finishAnswer = `-- name: FinishAnswer :exec
+UPDATE quiz.answer
+SET
+    score = $1,
+    is_correct = $2
+WHERE id = $3
+`
+
+type FinishAnswerParams struct {
+	Score     int       `db:"score" json:"score"`
+	IsCorrect bool      `db:"is_correct" json:"is_correct"`
+	ID        uuid.UUID `db:"id" json:"id"`
+}
+
+func (q *Queries) FinishAnswer(ctx context.Context, arg FinishAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, finishAnswer, arg.Score, arg.IsCorrect, arg.ID)
+	return err
+}
+
+const finishAttempt = `-- name: FinishAttempt :exec
+UPDATE quiz.attempt
+SET 
+    score = $1,
+    ended_at = $2
+WHERE id = $3
+`
+
+type FinishAttemptParams struct {
+	Score   int          `db:"score" json:"score"`
+	EndedAt sql.NullTime `db:"ended_at" json:"ended_at"`
+	ID      uuid.UUID    `db:"id" json:"id"`
+}
+
+func (q *Queries) FinishAttempt(ctx context.Context, arg FinishAttemptParams) error {
+	_, err := q.db.ExecContext(ctx, finishAttempt, arg.Score, arg.EndedAt, arg.ID)
+	return err
+}
+
+const finishMultipleAnswer = `-- name: FinishMultipleAnswer :exec
+UPDATE quiz.answer_multiple
+SET
+    selected_answer = $1
+WHERE answer_id = $2
+`
+
+type FinishMultipleAnswerParams struct {
+	SelectedAnswer []string  `db:"selected_answer" json:"selected_answer"`
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+}
+
+func (q *Queries) FinishMultipleAnswer(ctx context.Context, arg FinishMultipleAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, finishMultipleAnswer, pq.Array(arg.SelectedAnswer), arg.AnswerID)
+	return err
+}
+
+const finishNumericAnswer = `-- name: FinishNumericAnswer :exec
+UPDATE quiz.answer_numeric
+SET
+    selected_answer = $1
+WHERE answer_id = $2
+`
+
+type FinishNumericAnswerParams struct {
+	SelectedAnswer float64   `db:"selected_answer" json:"selected_answer"`
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+}
+
+func (q *Queries) FinishNumericAnswer(ctx context.Context, arg FinishNumericAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, finishNumericAnswer, arg.SelectedAnswer, arg.AnswerID)
+	return err
+}
+
+const finishSingleAnswer = `-- name: FinishSingleAnswer :exec
+UPDATE quiz.answer_single
+SET
+    selected_answer = $1
+WHERE answer_id = $2
+`
+
+type FinishSingleAnswerParams struct {
+	SelectedAnswer string    `db:"selected_answer" json:"selected_answer"`
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+}
+
+func (q *Queries) FinishSingleAnswer(ctx context.Context, arg FinishSingleAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, finishSingleAnswer, arg.SelectedAnswer, arg.AnswerID)
+	return err
+}
+
 const insertQuizAnswer = `-- name: InsertQuizAnswer :exec
 INSERT INTO quiz.answer (
     id,
     attempt_id,
-    question_id,
-    details
+    question_id
 )
 VALUES (
     $1,
     $2,
-    $3,
-    $4
+    $3
 )
 `
 
 type InsertQuizAnswerParams struct {
-	ID         uuid.UUID       `db:"id" json:"id"`
-	AttemptID  uuid.UUID       `db:"attempt_id" json:"attempt_id"`
-	QuestionID uuid.UUID       `db:"question_id" json:"question_id"`
-	Details    json.RawMessage `db:"details" json:"details"`
+	ID         uuid.UUID `db:"id" json:"id"`
+	AttemptID  uuid.UUID `db:"attempt_id" json:"attempt_id"`
+	QuestionID uuid.UUID `db:"question_id" json:"question_id"`
 }
 
 func (q *Queries) InsertQuizAnswer(ctx context.Context, arg InsertQuizAnswerParams) error {
-	_, err := q.db.ExecContext(ctx, insertQuizAnswer,
-		arg.ID,
-		arg.AttemptID,
-		arg.QuestionID,
-		arg.Details,
-	)
+	_, err := q.db.ExecContext(ctx, insertQuizAnswer, arg.ID, arg.AttemptID, arg.QuestionID)
+	return err
+}
+
+const insertQuizAnswerMultiple = `-- name: InsertQuizAnswerMultiple :exec
+INSERT INTO quiz.answer_multiple (
+    answer_id,
+    selected_answer
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertQuizAnswerMultipleParams struct {
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+	SelectedAnswer []string  `db:"selected_answer" json:"selected_answer"`
+}
+
+func (q *Queries) InsertQuizAnswerMultiple(ctx context.Context, arg InsertQuizAnswerMultipleParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizAnswerMultiple, arg.AnswerID, pq.Array(arg.SelectedAnswer))
+	return err
+}
+
+const insertQuizAnswerNumeric = `-- name: InsertQuizAnswerNumeric :exec
+INSERT INTO quiz.answer_numeric (
+    answer_id,
+    selected_answer
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertQuizAnswerNumericParams struct {
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+	SelectedAnswer float64   `db:"selected_answer" json:"selected_answer"`
+}
+
+func (q *Queries) InsertQuizAnswerNumeric(ctx context.Context, arg InsertQuizAnswerNumericParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizAnswerNumeric, arg.AnswerID, arg.SelectedAnswer)
+	return err
+}
+
+const insertQuizAnswerSingle = `-- name: InsertQuizAnswerSingle :exec
+INSERT INTO quiz.answer_single (
+    answer_id,
+    selected_answer
+)
+VALUES (
+    $1,
+    $2
+)
+`
+
+type InsertQuizAnswerSingleParams struct {
+	AnswerID       uuid.UUID `db:"answer_id" json:"answer_id"`
+	SelectedAnswer string    `db:"selected_answer" json:"selected_answer"`
+}
+
+func (q *Queries) InsertQuizAnswerSingle(ctx context.Context, arg InsertQuizAnswerSingleParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuizAnswerSingle, arg.AnswerID, arg.SelectedAnswer)
 	return err
 }
 
@@ -180,11 +323,11 @@ VALUES (
 `
 
 type InsertQuizQuestionParams struct {
-	ID     uuid.UUID   `db:"id" json:"id"`
-	QuizID uuid.UUID   `db:"quiz_id" json:"quiz_id"`
-	Title  string      `db:"title" json:"title"`
-	Score  int         `db:"score" json:"score"`
-	Type   interface{} `db:"type" json:"type"`
+	ID     uuid.UUID        `db:"id" json:"id"`
+	QuizID uuid.UUID        `db:"quiz_id" json:"quiz_id"`
+	Title  string           `db:"title" json:"title"`
+	Score  int              `db:"score" json:"score"`
+	Type   QuizQuestionType `db:"type" json:"type"`
 }
 
 func (q *Queries) InsertQuizQuestion(ctx context.Context, arg InsertQuizQuestionParams) error {
@@ -264,50 +407,5 @@ type InsertQuizQuestionSingleParams struct {
 
 func (q *Queries) InsertQuizQuestionSingle(ctx context.Context, arg InsertQuizQuestionSingleParams) error {
 	_, err := q.db.ExecContext(ctx, insertQuizQuestionSingle, arg.QuestionID, arg.Correct, pq.Array(arg.Options))
-	return err
-}
-
-const updateQuizAnswer = `-- name: UpdateQuizAnswer :exec
-UPDATE quiz.answer 
-SET 
-    details = $1,
-    score = $2,
-    is_correct = $3
-WHERE id = $4
-`
-
-type UpdateQuizAnswerParams struct {
-	Details   json.RawMessage `db:"details" json:"details"`
-	Score     int             `db:"score" json:"score"`
-	IsCorrect bool            `db:"is_correct" json:"is_correct"`
-	ID        uuid.UUID       `db:"id" json:"id"`
-}
-
-func (q *Queries) UpdateQuizAnswer(ctx context.Context, arg UpdateQuizAnswerParams) error {
-	_, err := q.db.ExecContext(ctx, updateQuizAnswer,
-		arg.Details,
-		arg.Score,
-		arg.IsCorrect,
-		arg.ID,
-	)
-	return err
-}
-
-const updateQuizAttempt = `-- name: UpdateQuizAttempt :exec
-UPDATE quiz.attempt 
-SET 
-    score = $1,
-    ended_at = $2
-WHERE id = $3
-`
-
-type UpdateQuizAttemptParams struct {
-	Score   int          `db:"score" json:"score"`
-	EndedAt sql.NullTime `db:"ended_at" json:"ended_at"`
-	ID      uuid.UUID    `db:"id" json:"id"`
-}
-
-func (q *Queries) UpdateQuizAttempt(ctx context.Context, arg UpdateQuizAttemptParams) error {
-	_, err := q.db.ExecContext(ctx, updateQuizAttempt, arg.Score, arg.EndedAt, arg.ID)
 	return err
 }

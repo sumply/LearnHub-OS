@@ -2,30 +2,24 @@ package create_quiz
 
 import (
 	"net/http"
+	"server/internal/pkg/decoder"
 	"server/internal/pkg/http/response"
-	"server/internal/pkg/usecase"
 )
 
 func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		input, err := InputFromRequest(r)
+		req, err := decoder.JSON[Request](r.Body)
 		if err != nil {
-			response.SendDTOValidateError(w, err)
+			response.SendJSONDecodeError(w, err)
 			return
 		}
 
-		token, ok := usecase.IdentityFromContext(r.Context())
-		if !ok {
-			response.SendAuthTokenError(w, nil)
-			return
-		}
-
-		output, err := uc.CreateQuiz(r.Context(), token, input)
+		resp, err := uc.CreateQuiz(r.Context(), req)
 		if err != nil {
 			response.SendUseCaseError(w, err)
 			return
 		}
 
-		response.SendCreated(w, output)
+		response.SendCreated(w, resp)
 	}
 }

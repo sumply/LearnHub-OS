@@ -19,6 +19,8 @@ type Group struct {
 func NewGroup(p *Postgres) *Group {
 	return &Group{
 		Postgres: p,
+		goqu:     p.goqu,
+		tables:   p.tables,
 	}
 }
 
@@ -64,38 +66,26 @@ func (g *Group) GetByStudent(ctx context.Context, studentID uuid.UUID) (domain.G
 }
 
 func (g *Group) AddTeacher(ctx context.Context, groupID uuid.UUID, teacherID uuid.UUID) error {
-	teacher := g.tables.AccountTeacher
-
-	row := sqlc.AccountTeacher{
-		GroupID:   groupID,
+	return g.sqlc.InsertAccountTeacher(ctx, sqlc.InsertAccountTeacherParams{
 		AccountID: teacherID,
-	}
-
-	ds := g.goqu.Insert(teacher).Rows(&row)
-	if _, err := ds.Executor().ExecContext(ctx); err != nil {
-		return err
-	}
-
-	return nil
+		GroupID:   groupID,
+	})
 }
 
 func (g *Group) AddStudents(ctx context.Context, groupID uuid.UUID, studentIDs uuid.UUIDs) error {
-	student := g.tables.AccountStudent
+	return g.withQueries(ctx, func(q *sqlc.Queries) error {
+		for _, id := range studentIDs {
+			err := g.sqlc.InsertAccountStudent(ctx, sqlc.InsertAccountStudentParams{
+				AccountID: id,
+				GroupID:   groupID,
+			})
+			if err != nil {
+				return err
+			}
+		}
 
-	rows := make([]sqlc.AccountStudent, 0, len(studentIDs))
-	for _, id := range studentIDs {
-		rows = append(rows, sqlc.AccountStudent{
-			GroupID:   groupID,
-			AccountID: id,
-		})
-	}
-
-	ds := g.goqu.Insert(student).Rows(rows)
-	if _, err := ds.Executor().ExecContext(ctx); err != nil {
-		return err
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (g *Group) Remove(ctx context.Context, id uuid.UUID) error {

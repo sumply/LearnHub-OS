@@ -77,7 +77,7 @@ CREATE TABLE quiz.question(
 	quiz_id UUID REFERENCES quiz.info(quiz_id) ON DELETE CASCADE NOT NULL,
 	title TEXT NOT NULL,
 	score quiz.score NOT NULL,
-	type question_type NOT NULL 
+	type quiz.question_type NOT NULL 
 );
 
 -- Хранение ответа на вопрос с одиночным ответом.
@@ -117,8 +117,25 @@ CREATE TABLE quiz.answer(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	attempt_id UUID REFERENCES quiz.attempt(id) ON DELETE CASCADE NOT NULL,
 	question_id UUID REFERENCES quiz.question(id) ON DELETE CASCADE NOT NULL,
-	details JSONB NOT NULL,
 	score quiz.score NOT NULL DEFAULT 0,
 	is_correct BOOLEAN NOT NULL DEFAULT FALSE,
 	UNIQUE(attempt_id, question_id)
+);
+
+-- Хранение ответа на вопрос с одиночным ответом.
+CREATE TABLE quiz.answer_single(
+	answer_id UUID REFERENCES quiz.answer(id) ON DELETE CASCADE NOT NULL,
+	selected_answer TEXT NOT NULL
+);
+
+-- Хранение ответа на вопрос с множественным ответом.
+CREATE TABLE quiz.answer_multiple(
+	answer_id UUID REFERENCES quiz.answer(id) ON DELETE CASCADE NOT NULL,
+	selected_answer TEXT[] NOT NULL
+);
+
+-- Хранение ответа на вопрос с числовым ответом.
+CREATE TABLE quiz.answer_numeric(
+	answer_id UUID REFERENCES quiz.answer(id) ON DELETE CASCADE NOT NULL,
+	selected_answer FLOAT NOT NULL
 );

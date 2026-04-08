@@ -2,111 +2,53 @@ package create_quiz
 
 import (
 	"context"
-	"fmt"
 	"server/internal/domain"
-	"server/internal/dto"
 	"server/internal/pkg/repository"
-	"server/internal/pkg/usecase"
-
-	"github.com/google/uuid"
 )
 
-type Teacher interface {
-	repository.Geter[domain.Teacher]
-}
-
-type Quiz interface {
-	repository.Saver[domain.Quiz]
+type QuizRepository interface {
+	repository.Saver[*domain.Quiz]
 }
 
 type UseCase struct {
-	teacher Teacher
-	quiz    Quiz
+	quizRepo QuizRepository
 }
 
-func New(t Teacher, q Quiz) *UseCase {
+func New(quiz QuizRepository) *UseCase {
 	return &UseCase{
-		teacher: t,
-		quiz:    q,
+		quizRepo: quiz,
 	}
 }
 
-func (u *UseCase) CreateQuiz(ctx context.Context, identity usecase.Identity, input Input) (Output, error) {
-	err := u.validateAccess(ctx, identity, input)
-	if err != nil {
-		return Output{}, err
-	}
-
-	quiz, err := u.createQuiz(identity.ID(), input)
-	if err != nil {
-		return Output{}, err
-	}
-
-	err = u.quiz.Save(ctx, quiz)
-	if err != nil {
-		return Output{}, err
-	}
-
-	return Output{ID: quiz.ID}, nil
-}
-
-func (u *UseCase) validateAccess(ctx context.Context, identity usecase.Identity, input Input) error {
-	switch identity.Role() {
-	case domain.RoleAdmin:
-		return nil
-	case domain.RoleTeacher:
-		teacher, err := u.teacher.Get(ctx, identity.ID())
+func (u *UseCase) CreateQuiz(ctx context.Context, req Request) (Response, error) {
+	questions := make([]domain.IQuestion, 0, len(req.Questions))
+	for _, q := range req.Questions {
+		d, err := q.Unpack()
 		if err != nil {
-			return err
+			return Response{}, err
 		}
-		err = teacher.CheckGroupsAllowed(input.GroupIDs)
-		if err != nil {
-			return usecase.NewAuthError(err)
-		}
-		return nil
-	default:
-		return usecase.NewAuthError(
-			fmt.Errorf("user has not access to creating quiz"),
-		)
+		questions = append(questions, d)
 	}
-}
 
-func (u *UseCase) createQuiz(ownerID uuid.UUID, input Input) (domain.Quiz, error) {
-	questions := make([]domain.Question, len(input.Questions))
-	for i := range questions {
-		question, err := u.createQuestion(input.Questions[i])
-		if err != nil {
-			return domain.Quiz{}, err
-		}
-
-		questions[i] = question
-	}
 	quiz, err := domain.NewQuiz(
-		ownerID,
-		input.SubjectID,
-		input.Title,
-		input.Summary,
+		req.OwnerID,
+		req.SubjectID,
+		req.Title,
+		req.Summary,
 		questions,
-		input.GroupIDs,
-		input.MaxAttempts,
-		input.Deadline,
+		req.GroupIDs,
+		req.MaxAttempts,
+		req.Deadline,
 	)
 	if err != nil {
-		return domain.Quiz{}, err
+		return Response{}, err
 	}
 
-	return quiz, nil
-}
-
-func (u *UseCase) createQuestion(input dto.Question) (domain.Question, error) {
-	question, err := domain.NewQuestion(
-		input.Text,
-		input.Details.Domain,
-		input.Score,
-	)
-	if err != nil {
-		return domain.Question{}, err
+	if err := u.quizRepo.Save(ctx, quiz); err != nil {
+		return Response{}, err
 	}
 
-	return question, nil
+	return Response{
+		ID: quiz.ID,
+	}, nil
 }

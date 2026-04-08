@@ -1,20 +1,63 @@
 package finish_attempt
 
 import (
-	"server/internal/dto"
+	"encoding/json"
+	"server/internal/domain"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-type Input struct {
-	Answers []InputAnswer `json:"answers"`
+type Request struct {
+	Answers []RequestAnswer `json:"answers"`
 }
 
-type InputAnswer struct {
-	QuestionID uuid.UUID `json:"question_id"`
-	Answer     any       `json:"answer"`
+type RequestAnswer struct {
+	QuestionID uuid.UUID       `json:"question_id"`
+	Answer     json.RawMessage `json:"answer"`
+	a          domain.IAnswer
 }
 
-type Output struct {
-	dto.FinishedAttempt
+func (r *RequestAnswer) WriteSelectedAnswer(a domain.IAnswer) error {
+	return a.Accept(r)
+}
+
+func (r *RequestAnswer) VisitSingleAnswer(a *domain.SingleAnswer) error {
+	var selected string
+	if err := json.Unmarshal(r.Answer, &selected); err != nil {
+		return err
+	}
+	a.Selected = selected
+	return nil
+}
+
+func (r *RequestAnswer) VisitMultipleAnswer(a *domain.MultipleAnswer) error {
+	var selected []string
+	if err := json.Unmarshal(r.Answer, &selected); err != nil {
+		return err
+	}
+	a.Selected = selected
+	return nil
+}
+
+func (r *RequestAnswer) VisitNumericAnswer(a *domain.NumericAnswer) error {
+	var selected float32
+	if err := json.Unmarshal(r.Answer, &selected); err != nil {
+		return err
+	}
+	a.Selected = selected
+	return nil
+}
+
+type Response struct {
+	Attempt ResponseAttempt `json:"attempt"`
+}
+
+type ResponseAttempt struct {
+	ID        uuid.UUID  `json:"id"`
+	QuizID    uuid.UUID  `json:"quiz_id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	Score     int        `json:"score"`
+	StartedAt time.Time  `json:"started_at"`
+	EndedAt   *time.Time `json:"ended_at"`
 }

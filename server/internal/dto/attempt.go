@@ -8,7 +8,6 @@ import (
 
 type FinishedAttempt struct {
 	Attempt Attempt `json:"attempt"`
-	Quiz    Quiz    `json:"quiz"`
 }
 
 type Attempt struct {

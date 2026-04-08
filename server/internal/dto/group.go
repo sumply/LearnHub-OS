@@ -8,3 +8,5 @@ type Group struct {
 	Curator  *User     `json:"curator"`
 	Students []User    `json:"students"`
 }
+
+type Quiz struct{}
