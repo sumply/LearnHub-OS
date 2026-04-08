@@ -4,16 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"server/internal/pkg/http/response"
 	"server/internal/pkg/jwt"
 	"server/internal/pkg/usecase"
+	"server/pkg/logger"
+	"time"
 
 	"io"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/google/uuid"
 )
 
 type Middleware func(next http.Handler) http.Handler
@@ -42,7 +46,21 @@ func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
 }
 
 func Logger() Middleware {
-	return middleware.Logger
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := logger.WithAttrs(r.Context(), slog.Group("request",
+				slog.String("id", uuid.New().String()),
+				slog.String("method", r.Method),
+				slog.String("uri", r.RequestURI),
+				slog.String("host", r.Host),
+				slog.String("remote_addr", r.RemoteAddr),
+				slog.Time("received_time", time.Now().UTC()),
+			))
+			logger.Info(ctx, "Received request")
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func BodyLogger() Middleware {
