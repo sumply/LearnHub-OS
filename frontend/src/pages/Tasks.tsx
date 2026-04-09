@@ -159,10 +159,10 @@ const Tasks: Component = () => {
         const authData = apiClient.getAuthData();
         if (!authData) {
           alert('Ошибка: пользователь не авторизован');
-          return;
-        }
+        return;
+      }
         const ownerId = authData.user_id;
-
+      
         // Преобразуем вопросы в формат API
         const apiQuestions: apiClient.QuizQuestion[] = formQuestions()
           .filter(q => q.question.trim() !== '') // Фильтруем пустые вопросы
@@ -907,11 +907,11 @@ const Tasks: Component = () => {
                 </div>
                 {formType() === 'quiz' && (
                   <>
-                    <div style={{ 'margin-bottom': '1em' }}>
-                      <label style={{ 'font-weight': 500 }}>Группы (необязательно):</label><br />
+                  <div style={{ 'margin-bottom': '1em' }}>
+                    <label style={{ 'font-weight': 500 }}>Группы (необязательно):</label><br />
                       <div style={{ border: '1px solid #e3eafc', borderRadius: '8px', padding: '0.5em', maxHeight: '200px', overflowY: 'auto' }}>
                         <Show when={groupsData()} fallback={<div style={{ color: '#888', padding: '0.5em' }}>Загрузка...</div>}>
-                          <For each={groupsData() || []}>
+                        <For each={groupsData() || []}>
                             {(group) => {
                               const groupId = typeof group.id === 'string' ? group.id : group.id.toString();
                               const isSelected = formGroupIds().includes(groupId);
@@ -934,14 +934,14 @@ const Tasks: Component = () => {
                                 </label>
                               );
                             }}
-                          </For>
-                        </Show>
+                        </For>
+                      </Show>
                         {(!groupsData() || groupsData()!.length === 0) && (
                           <div style={{ color: '#888', padding: '0.5em', fontSize: '0.9em' }}>Нет доступных групп</div>
-                        )}
+                )}
                       </div>
                     </div>
-                    <div style={{ 'margin-bottom': '1em' }}>
+                  <div style={{ 'margin-bottom': '1em' }}>
                       <label style={{ 'font-weight': 500 }}>Дедлайн (необязательно):</label><br />
                       <input 
                         type="datetime-local" 
@@ -950,7 +950,7 @@ const Tasks: Component = () => {
                         onInput={e => setFormDeadline(e.currentTarget.value)} 
                         style={{ width: '100%', padding: '0.5em', 'border-radius': '8px', border: '1.5px solid #e3eafc' }} 
                       />
-                    </div>
+                  </div>
                     <div style={{ 'margin-bottom': '1em' }}>
                       <label style={{ 'font-weight': 500 }}>Максимальное количество попыток (необязательно):</label><br />
                       <input 
@@ -984,16 +984,16 @@ const Tasks: Component = () => {
                       {(q, idx) => (
                       <div style={{ 'margin-bottom': '0.7em', 'border': '1px solid #e3eafc', 'border-radius': '8px', padding: '0.7em' }}>
                         <div style={{ display: 'flex', gap: '0.5em', marginBottom: '0.5em' }}>
-                          <input 
-                            type="text" 
+                        <input 
+                          type="text" 
                             value={q().question} 
-                            onInput={(e) => {
-                              const arr = formQuestions().map((item, i) => 
-                                i === idx ? { ...item, question: e.currentTarget.value } : item
-                              );
-                              setFormQuestions(arr);
-                            }} 
-                            placeholder={`Вопрос ${idx + 1}`} 
+                          onInput={(e) => {
+                            const arr = formQuestions().map((item, i) => 
+                              i === idx ? { ...item, question: e.currentTarget.value } : item
+                            );
+                            setFormQuestions(arr);
+                          }} 
+                          placeholder={`Вопрос ${idx + 1}`} 
                             style={{ flex: 1, padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
                           />
                           <select 
@@ -1022,7 +1022,7 @@ const Tasks: Component = () => {
                             }} 
                             placeholder="Баллы" 
                             style={{ width: '80px', padding: '0.4em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
-                          />
+                        />
                         </div>
                         {q().type === 'numeric' ? (
                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
@@ -1047,39 +1047,39 @@ const Tasks: Component = () => {
                         ) : (
                           <Index each={q().options}>
                             {(opt, oidx) => (
-                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
-                              <input 
-                                type="text" 
+                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
+                            <input 
+                              type="text" 
                                 value={opt()} 
-                                onInput={(e) => {
-                                  const arr = formQuestions().map((item, i) => {
-                                    if (i === idx) {
-                                      const newOptions = [...item.options];
-                                      newOptions[oidx] = e.currentTarget.value;
-                                      return { ...item, options: newOptions };
-                                    }
-                                    return item;
-                                  });
-                                  setFormQuestions(arr);
-                                }} 
-                                placeholder={`Вариант ${oidx + 1}`} 
-                                style={{ flex: 1, padding: '0.3em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
-                              />
+                              onInput={(e) => {
+                                const arr = formQuestions().map((item, i) => {
+                                  if (i === idx) {
+                                    const newOptions = [...item.options];
+                                    newOptions[oidx] = e.currentTarget.value;
+                                    return { ...item, options: newOptions };
+                                  }
+                                  return item;
+                                });
+                                setFormQuestions(arr);
+                              }} 
+                              placeholder={`Вариант ${oidx + 1}`} 
+                              style={{ flex: 1, padding: '0.3em', border: '1px solid #e3eafc', borderRadius: '6px' }} 
+                            />
                               {q().type === 'single' ? (
                                 <>
-                                  <input 
-                                    type="radio" 
-                                    name={`correct${idx}`} 
+                            <input 
+                              type="radio" 
+                              name={`correct${idx}`} 
                                     checked={q().correct === oidx} 
-                                    onChange={() => {
-                                      const arr = formQuestions().map((item, i) => 
-                                        i === idx ? { ...item, correct: oidx } : item
-                                      );
-                                      setFormQuestions(arr);
-                                    }} 
-                                    style={{ marginLeft: '0.7em' }} 
-                                  />
-                                  <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
+                              onChange={() => {
+                                const arr = formQuestions().map((item, i) => 
+                                  i === idx ? { ...item, correct: oidx } : item
+                                );
+                                setFormQuestions(arr);
+                              }} 
+                              style={{ marginLeft: '0.7em' }} 
+                            />
+                            <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
                                 </>
                               ) : (
                                 <>
@@ -1104,7 +1104,7 @@ const Tasks: Component = () => {
                                   <span style={{ marginLeft: '0.3em', color: '#2563eb', fontSize: '0.95em' }}>Правильный</span>
                                 </>
                               )}
-                            </div>
+                          </div>
                             )}
                           </Index>
                         )}

@@ -1,14 +1,18 @@
-import { type Component, createSignal, onMount, For, Show, createResource } from 'solid-js';
+import { type Component, createSignal, onMount, For, Show } from 'solid-js';
 import { getCurrentUser } from '../utils/api';
-import { getQuizzes } from '../services/quizService';
-import { getQuizUsers, type UserLastAttempt } from '../utils/apiClient';
-import { getAuthData } from '../utils/apiClient';
+import { getUserQuizzes } from '../services/quizService';
+import { getAuthData, type QuizShortResponse } from '../utils/apiClient';
 import Header from '../components/Header';
 
 interface StudentAttempt {
   quizId: string;
   quizTitle: string;
-  lastAttempt: UserLastAttempt['last_attempt'] | null;
+  lastAttempt: {
+    id: string;
+    score: number;
+    started_at: string;
+    ended_at: string | null;
+  } | null;
 }
 
 const Progress: Component = () => {
@@ -47,36 +51,30 @@ const Progress: Component = () => {
         return;
       }
       
-      const currentUserId = authData.user_id;
+      // Получаем квизы пользователя через /users/{user_id}/quizzes
+      const quizzes = await getUserQuizzes();
       
-      // Получаем все квизы
-      const quizzes = await getQuizzes();
-      
-      // Для каждого квиза получаем попытки пользователей
-      const attemptsPromises = quizzes.map(async (quiz) => {
-        try {
-          const usersWithAttempts = await getQuizUsers(quiz.id);
-          // Находим попытки текущего студента
-          const studentAttempt = usersWithAttempts.find(u => u.id === currentUserId);
-          
-          if (studentAttempt) {
-            return {
-              quizId: String(quiz.id),
-              quizTitle: quiz.title,
-              lastAttempt: studentAttempt.last_attempt
-            };
-          }
-          return null;
-        } catch (err) {
-          console.error(`Ошибка загрузки попыток для квиза ${quiz.id}:`, err);
-          return null;
-        }
+      // Преобразуем квизы в формат StudentAttempt
+      // Предполагаем, что QuizShortResponse теперь включает информацию о попытках
+      // Если структура другая, нужно будет обновить интерфейс
+      const attempts: StudentAttempt[] = quizzes.map((quiz: any) => {
+        // Если в ответе есть информация о попытках, используем её
+        // Иначе возвращаем null для lastAttempt
+        const lastAttempt = quiz.last_attempt || null;
+        
+        return {
+          quizId: String(quiz.id),
+          quizTitle: quiz.title,
+          lastAttempt: lastAttempt ? {
+            id: lastAttempt.id,
+            score: lastAttempt.score,
+            started_at: lastAttempt.started_at,
+            ended_at: lastAttempt.ended_at
+          } : null
+        };
       });
       
-      const attempts = await Promise.all(attemptsPromises);
-      const validAttempts = attempts.filter((a): a is StudentAttempt => a !== null);
-      
-      setStudentAttempts(validAttempts);
+      setStudentAttempts(attempts);
     } catch (err) {
       console.error('Ошибка загрузки прогресса:', err);
       setError('Не удалось загрузить прогресс: ' + (err instanceof Error ? err.message : 'Неизвестная ошибка'));

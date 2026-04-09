@@ -136,7 +136,7 @@ const QuizTake: Component = () => {
         answer: answer
       }));
       
-      const response = await finishQuizAttempt(data.attempt.id, answersArray);
+      const response = await finishQuizAttempt(data.attempt.id, answersArray, data.quiz);
       setResultData(response);
       setShowResult(true);
     } catch (err) {

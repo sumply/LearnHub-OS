@@ -1,26 +1,37 @@
-import { defineConfig } from 'vite'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { defineConfig, loadEnv } from 'vite'
 import solid from 'vite-plugin-solid'
 
-export default defineConfig({
-  plugins: [solid()],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://85.239.55.179:8000',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '') // Убираем /api из пути
-      }
+const frontendRoot = path.dirname(fileURLToPath(import.meta.url))
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, frontendRoot, '')
+  const apiTarget = env.VITE_API_URL || 'http://185.152.92.245:8000'
+
+  return {
+    root: frontendRoot,
+    envDir: frontendRoot,
+    plugins: [solid()],
+    server: {
+      proxy: {
+        '/api': {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
+          rewrite: (p) => p.replace(/^\/api/, ''),
+        },
+      },
+      port: 5173,
+      host: true,
     },
-    port: 5173, // Порт по умолчанию для Vite
-    host: true, // Доступен на всех сетевых интерфейсах
-  },
-  publicDir: 'public',
-  build: {
-    rollupOptions: {
-      input: {
-        main: 'index.html'
-      }
-    }
+    publicDir: 'public',
+    build: {
+      rollupOptions: {
+        input: {
+          main: 'index.html',
+        },
+      },
+    },
   }
 })

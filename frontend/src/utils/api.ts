@@ -76,6 +76,7 @@ export interface Quiz {
 
 // Реэкспортируем функции работы с токенами из нового клиента
 export const getAuthToken = apiClient.getAuthToken;
+export const getAccessToken = apiClient.getAccessToken;
 export const setAuthToken = apiClient.setAuthToken;
 export const removeAuthToken = apiClient.removeAuthToken;
 

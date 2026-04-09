@@ -2,7 +2,7 @@ import { createSignal, For, Show, createResource, createMemo } from 'solid-js';
 import Header from '../components/Header';
 import { A } from '@solidjs/router';
 import { getAllUsers, getAllUsersWithRoles } from '../services/userService';
-import { getSubjects, getGroups, createGroup, addStudentsToGroup, createSubject, getGroupStudents } from '../services/subjectGroupService';
+import { getSubjects, getGroups, createGroup, addStudentsToGroup, createSubject } from '../services/subjectGroupService';
 import { createUser } from '../utils/apiClient';
 import * as apiClient from '../utils/apiClient';
 
@@ -73,25 +73,21 @@ const AdminDashboard = () => {
     return groups;
   });
   
-  // Загружаем студентов для каждой группы и создаем маппинг студент -> группа
-  const [studentGroupMap] = createResource(async () => {
+  // Создаем маппинг студент -> группа из данных групп (students уже включены в GroupResponse)
+  const studentGroupMap = createMemo(() => {
     const groupsList = groups();
     if (!groupsList || groupsList.length === 0) return new Map<number | string, apiClient.GroupResponse>();
     
     const map = new Map<number | string, apiClient.GroupResponse>(); // studentId -> GroupResponse
     
-    // Для каждой группы получаем список студентов
-    await Promise.all(groupsList.map(async (group) => {
-      try {
-        const students = await getGroupStudents(group.id);
-        students.forEach(student => {
+    // Для каждой группы используем список студентов из group.students
+    groupsList.forEach((group) => {
+      if (group.students && group.students.length > 0) {
+        group.students.forEach(student => {
           map.set(student.id, group);
         });
-      } catch (error) {
-        // Если endpoint не существует, просто игнорируем ошибку
-        console.warn(`Не удалось загрузить студентов группы ${group.id}:`, error);
       }
-    }));
+    });
     
     return map;
   });

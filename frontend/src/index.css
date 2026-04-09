@@ -118,7 +118,8 @@ button, .nav-btn, .auth-btn, .logout-btn, .quick-btn {
   --header-height: clamp(60px, 5vw + 40px, 100px);
   --header-padding-x: clamp(0.5rem, 1vw + 0.5rem, 2.2rem);
   --header-padding-y: clamp(0.7rem, 0.5vw + 0.5rem, 1.2rem);
-  --logo-size: clamp(32px, 3vw + 24px, 48px);
+  --logo-size: clamp(44px, 5vw + 28px, 72px);
+  --logo-crop-zoom: 1.22;
   --button-padding-x: clamp(0.75rem, 1vw + 0.5rem, 1.5rem);
   --button-padding-y: clamp(0.5rem, 0.5vw + 0.4rem, 0.7rem);
   --button-font-size: clamp(0.875rem, 0.5vw + 0.75rem, 1.1rem);
@@ -288,13 +289,39 @@ body {
   text-decoration: none;
 }
 
-.logo-icon {
+/* Обрезка полей вокруг эмблемы: масштаб внутри overflow */
+.logo-icon-wrap {
   width: var(--logo-size);
   height: var(--logo-size);
   min-width: var(--logo-size);
   min-height: var(--logo-size);
-  color: var(--accent-primary);
   flex-shrink: 0;
+  overflow: hidden;
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  border-radius: clamp(6px, 12%, 14px);
+}
+
+.logo-icon {
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(var(--logo-crop-zoom));
+  transform-origin: center center;
+  display: block;
+}
+
+/* Подложка webp без альфа-канала: смешиваем с фоном шапки */
+[data-theme="light"] .logo-icon {
+  mix-blend-mode: darken;
+}
+
+[data-theme="dark"] .logo-icon {
+  mix-blend-mode: lighten;
 }
 
 .header-right {
@@ -778,9 +805,11 @@ body {
     font-size: 1.2rem !important;
   }
   
-  .logo-icon {
-    width: 28px !important;
-    height: 28px !important;
+  .logo-icon-wrap {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
   
   .nav-btn {

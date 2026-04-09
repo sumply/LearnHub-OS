@@ -1,5 +1,5 @@
 import { type Component, createSignal, For, Show, createResource } from 'solid-js';
-import { getQuizUsers, type UserLastAttempt } from '../utils/apiClient';
+import { getUserQuizzes, getUsers, type UserShort } from '../utils/apiClient';
 import { getCurrentUser } from '../utils/api';
 
 interface QuizStatisticsProps {
@@ -8,18 +8,74 @@ interface QuizStatisticsProps {
   onClose: () => void;
 }
 
+interface UserWithAttempt {
+  id: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  last_attempt: {
+    id: string;
+    score: number;
+    started_at: string;
+    ended_at: string | null;
+  } | null;
+}
+
 const QuizStatistics: Component<QuizStatisticsProps> = (props) => {
   const [error, setError] = createSignal<string | null>(null);
   
   const user = getCurrentUser();
 
-  // Загружаем студентов с их попытками для квиза
+  // Загружаем студентов с их попытками для квиза через /users/{user_id}/quizzes
   const [usersData, { refetch }] = createResource(
     async () => {
       try {
         setError(null);
-        const users = await getQuizUsers(props.quizId);
-        return users;
+        
+        // Получаем всех пользователей
+        const allUsers = await getUsers();
+        
+        // Фильтруем только студентов
+        const students = allUsers.filter(u => u.role === 'student');
+        
+        // Для каждого студента получаем его квизы через /users/{user_id}/quizzes
+        const usersWithAttempts: UserWithAttempt[] = await Promise.all(
+          students.map(async (student) => {
+            try {
+              const quizzes = await getUserQuizzes(String(student.id));
+              
+              // Ищем нужный квиз в списке квизов студента
+              const quiz = quizzes.find((q: any) => String(q.id) === String(props.quizId));
+              
+              // Если квиз найден и есть информация о попытке, используем её
+              const lastAttempt = quiz?.last_attempt || null;
+              
+              return {
+                id: student.id,
+                first_name: student.first_name,
+                last_name: student.last_name,
+                role: student.role,
+                last_attempt: lastAttempt ? {
+                  id: lastAttempt.id,
+                  score: lastAttempt.score,
+                  started_at: lastAttempt.started_at,
+                  ended_at: lastAttempt.ended_at
+                } : null
+              };
+            } catch (err) {
+              console.error(`Ошибка загрузки квизов для студента ${student.id}:`, err);
+              return {
+                id: student.id,
+                first_name: student.first_name,
+                last_name: student.last_name,
+                role: student.role,
+                last_attempt: null
+              };
+            }
+          })
+        );
+        
+        return usersWithAttempts;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Ошибка загрузки статистики';
         setError(errorMessage);

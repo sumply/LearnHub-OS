@@ -37,13 +37,19 @@ const Header: Component = () => {
 
   return (
     <>
-      <header class="header" style={{ background: 'transparent' }}>
+      <header class="header">
         <div class="header-left">
-          <A href="/" class="header-logo" aria-label="На главную" style={{ display: 'flex', 'align-items': 'center', gap: 'clamp(0.3rem, 1vw, 0.7em)', 'text-decoration': 'none' }}>
-            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-            <span style={{ 'font-size': 'var(--font-size-xl)', 'font-weight': 700, color: '#2563eb', 'white-space': 'nowrap', 'letter-spacing': '0.01em', 'line-height': 1 }}>Learn Hub</span>
+          <A href="/" class="header-logo" aria-label="Мир Квизов — на главную" style={{ display: 'flex', 'align-items': 'center', gap: 'clamp(0.3rem, 1vw, 0.7em)', 'text-decoration': 'none' }}>
+            <span class="logo-icon-wrap" aria-hidden="true">
+              <img
+                class="logo-icon"
+                src={theme() === 'dark' ? '/mir_quiz_log1_black.webp' : '/mir_quiz_log1.webp'}
+                alt=""
+                decoding="async"
+                loading="eager"
+              />
+            </span>
+            <span style={{ 'font-size': 'var(--font-size-xl)', 'font-weight': 700, color: '#2563eb', 'white-space': 'nowrap', 'letter-spacing': '0.01em', 'line-height': 1 }}>Мир Квизов</span>
           </A>
         </div>
         

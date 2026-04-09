@@ -26,13 +26,13 @@ const QuizInfo: Component = () => {
       setLoading(true);
       setError(null);
       const quizzes = await getQuizzes();
-      const foundQuiz = quizzes.find(q => String(q.id) === quizId);
-      
+      const foundQuiz = quizzes.find((q) => String(q.id) === quizId);
+
       if (!foundQuiz) {
         setError('Квиз не найден');
         return;
       }
-      
+
       setQuiz(foundQuiz);
     } catch (err) {
       console.error('Ошибка загрузки квиза:', err);
@@ -91,7 +91,7 @@ const QuizInfo: Component = () => {
         <Show when={!loading() && !error() && quiz()}>
           {(() => {
             const quizData = quiz()!;
-            
+
             return (
               <div>
                 {/* Основная карточка квиза */}

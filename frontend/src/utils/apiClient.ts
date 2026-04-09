@@ -1,7 +1,8 @@
 // API клиент для работы с бэкендом
 // Базовый URL API
 // В режиме разработки используем прокси Vite для обхода CORS
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://85.239.55.179:8000');
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://185.152.92.245:8000');
 
 // Флаг для работы без бэкенда (локальная разработка) - отключен
 const LOCAL_DEV_MODE = false;
@@ -37,6 +38,85 @@ export interface LoginResponse {
   access_token: string;
 }
 
+/** Фактические поля ответа POST /auth/login (разные версии бэкенда) */
+export interface LoginApiResponse {
+  id?: string;
+  user_id?: string;
+  role?: string;
+  access_token?: string;
+  /** Частый алиас access_token в ответах API */
+  token?: string;
+  accessToken?: string;
+  refresh_token?: string;
+  /** Наш бэкенд: { jwt: { access_token, refresh_token } | string, user: {...} } */
+  jwt?: string | Record<string, unknown>;
+  user?: { id?: string | number; role?: string };
+}
+
+function pickString(...vals: Array<unknown>): string | null {
+  for (const v of vals) {
+    if (typeof v === 'string' && v.trim() !== '') return v.trim();
+  }
+  return null;
+}
+
+/** Достаёт access token из тела ответа логина / refresh (вложенные форматы учитываются). */
+export function extractAccessTokenFromPayload(data: unknown): string | null {
+  if (typeof data === 'string' && data.trim() !== '') return data.trim();
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+
+  const jwtVal = d.jwt;
+  if (typeof jwtVal === 'string' && jwtVal.trim() !== '') return jwtVal.trim();
+  if (jwtVal && typeof jwtVal === 'object') {
+    const inner = extractAccessTokenFromPayload(jwtVal);
+    if (inner) return inner;
+  }
+
+  const nested = d.data;
+  if (nested && typeof nested === 'object') {
+    const fromData = extractAccessTokenFromPayload(nested);
+    if (fromData) return fromData;
+  }
+
+  return pickString(d.access_token, d.token, d.accessToken, d.access);
+}
+
+function extractRefreshTokenFromPayload(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+
+  const jwtVal = d.jwt;
+  if (jwtVal && typeof jwtVal === 'object') {
+    const inner = extractRefreshTokenFromPayload(jwtVal);
+    if (inner) return inner;
+  }
+
+  const nested = d.data;
+  if (nested && typeof nested === 'object') {
+    const fromData = extractRefreshTokenFromPayload(nested);
+    if (fromData) return fromData;
+  }
+
+  return pickString(d.refresh_token, d.refreshToken, d.refresh);
+}
+
+function isPublicAuthPath(endpoint: string): boolean {
+  return endpoint === '/auth' || endpoint.startsWith('/auth/');
+}
+
+function readJwtPayload(accessToken: string): { sub?: string; user_id?: string; role?: string } | null {
+  try {
+    const part = accessToken.split('.')[1];
+    if (!part) return null;
+    const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(base64);
+    return JSON.parse(json) as { sub?: string; user_id?: string; role?: string };
+  } catch {
+    return null;
+  }
+}
+
 export interface UserShort {
   id: number;
   short_name: string;
@@ -63,7 +143,8 @@ export interface UserCreateRequest {
 export interface GroupResponse {
   id: string; // UUID
   name: string;
-  curator?: UserShort; // Необязательно, так как группа может быть создана без куратора
+  curator: UserShort | null; // Может быть null если куратор не назначен
+  students: UserShort[]; // Массив студентов группы
 }
 
 export interface GroupCreateRequest {
@@ -300,6 +381,257 @@ export interface StartAttemptResponse {
   };
 }
 
+/** ID попытки из ответа POST /attempts (только id). */
+function extractAttemptIdFromCreateResponse(raw: unknown): string | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const readId = (obj: Record<string, unknown>): string | null => {
+    const v = obj.id ?? obj.attempt_id;
+    if (typeof v === 'string' && v.trim() !== '') return v.trim();
+    if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+    return null;
+  };
+  const o = raw as Record<string, unknown>;
+  const direct = readId(o);
+  if (direct) return direct;
+  const att = o.attempt;
+  if (att && typeof att === 'object') {
+    const inner = readId(att as Record<string, unknown>);
+    if (inner) return inner;
+  }
+  const nested = o.data;
+  if (nested && typeof nested === 'object') {
+    const d = nested as Record<string, unknown>;
+    const fromData = readId(d);
+    if (fromData) return fromData;
+    const da = d.attempt;
+    if (da && typeof da === 'object') {
+      return readId(da as Record<string, unknown>);
+    }
+  }
+  return null;
+}
+
+function withNormalizedQuizContent(res: StartAttemptResponse): StartAttemptResponse {
+  const list = res.quiz?.content;
+  if (!Array.isArray(list) || list.length === 0) return res;
+  const content = list.map((item, i) => normalizeContentQuestion(item as unknown, i));
+  return { ...res, quiz: { ...res.quiz, content } };
+}
+
+function normalizeStartAttemptResponse(raw: unknown): StartAttemptResponse {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Пустой ответ при загрузке попытки');
+  }
+  const o = raw as Record<string, unknown>;
+  if ('attempt' in o && 'quiz' in o) {
+    return withNormalizedQuizContent(raw as StartAttemptResponse);
+  }
+  const inner = o.data;
+  if (inner && typeof inner === 'object') {
+    const d = inner as Record<string, unknown>;
+    if ('attempt' in d && 'quiz' in d) {
+      return withNormalizedQuizContent(inner as StartAttemptResponse);
+    }
+  }
+  throw new Error('Некорректный ответ: ожидаются поля attempt и quiz');
+}
+
+function unwrapAttemptObject(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const a = o.attempt;
+  if (a && typeof a === 'object') return a as Record<string, unknown>;
+  const data = o.data;
+  if (data && typeof data === 'object') {
+    const inner = (data as Record<string, unknown>).attempt;
+    if (inner && typeof inner === 'object') return inner as Record<string, unknown>;
+  }
+  return null;
+}
+
+function readQuizIdFromAttempt(attempt: Record<string, unknown>): string | null {
+  return pickString(
+    attempt.quiz_id as string,
+    attempt.quizId as string
+  );
+}
+
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x));
+}
+
+/**
+ * Приводит вопрос к формату UI: бэкенд отдаёт title, options и correct на верхнем уровне,
+ * либо вложенный details (старый формат).
+ */
+function normalizeContentQuestion(item: unknown, index: number): QuizQuestionContent {
+  if (!item || typeof item !== 'object') {
+    throw new Error(`Некорректный вопрос #${index + 1} в квизе`);
+  }
+  const it = item as Record<string, unknown>;
+  const id = String(it.id ?? `q-${index}`);
+  const text = String(it.text ?? it.title ?? '');
+  const score = Number(it.score ?? 0);
+
+  const rawType = it.type;
+  const correctTop = it.correct;
+  const optionsRaw = it.options;
+  const nested =
+    it.details && typeof it.details === 'object' ? (it.details as Record<string, unknown>) : null;
+
+  const hasOptions = Array.isArray(optionsRaw) && optionsRaw.length > 0;
+  const hasNestedOptions = nested && Array.isArray(nested.options) && (nested.options as unknown[]).length > 0;
+
+  let type: QuizQuestionContent['type'];
+  if (rawType === 'multiple' || rawType === 'numeric' || rawType === 'single') {
+    type = rawType;
+  } else if (typeof correctTop === 'number' && !hasOptions && !hasNestedOptions) {
+    type = 'numeric';
+  } else if (Array.isArray(correctTop)) {
+    type = 'multiple';
+  } else if (hasOptions || hasNestedOptions) {
+    type = 'single';
+  } else {
+    type = 'numeric';
+  }
+
+  let details: QuizQuestionDetails;
+
+  if (type === 'numeric') {
+    const c =
+      typeof correctTop === 'number'
+        ? correctTop
+        : nested && typeof nested.correct === 'number'
+          ? nested.correct
+          : Number(correctTop ?? nested?.correct ?? 0);
+    details = { correct: Number.isFinite(c) ? c : 0 };
+  } else if (type === 'multiple') {
+    const options = asStringArray(optionsRaw ?? nested?.options);
+    const correctArr = Array.isArray(correctTop)
+      ? asStringArray(correctTop)
+      : asStringArray(nested?.correct);
+    details = { options, correct: correctArr };
+  } else {
+    const options = asStringArray(optionsRaw ?? nested?.options);
+    let correctStr = '';
+    if (typeof correctTop === 'string') {
+      correctStr = correctTop;
+    } else if (Array.isArray(correctTop) && correctTop.length > 0) {
+      correctStr = String(correctTop[0]);
+    } else if (nested && typeof nested.correct === 'string') {
+      correctStr = nested.correct;
+    }
+    details = { options, correct: correctStr };
+  }
+
+  return { id, text, score, type, details };
+}
+
+/** Догружает квиз для прохождения: GET /quizzes/:id (UUID). */
+async function fetchQuizForTake(quizId: string): Promise<StartAttemptResponse['quiz']> {
+  const qid = quizId.trim();
+  if (!qid) throw new Error('Пустой quiz_id для загрузки квиза');
+
+  const raw = await apiRequest<unknown>(`/quizzes/${encodeURIComponent(qid)}`, {
+    method: 'GET',
+  });
+
+  let quiz: unknown = raw;
+  if (raw && typeof raw === 'object' && 'quiz' in raw) {
+    quiz = (raw as { quiz: unknown }).quiz;
+  }
+
+  if (!quiz || typeof quiz !== 'object') {
+    throw new Error('Пустой ответ GET /quizzes/:id');
+  }
+
+  const o = quiz as Record<string, unknown>;
+  const id = String(o.id ?? qid);
+  const title = String(o.title ?? '');
+  const summary = String(o.summary ?? '');
+  const total_score = Number(o.total_score ?? 0);
+  const deadline = String(o.deadline ?? '');
+  const max_attempts = Number(o.max_attempts ?? 1);
+  const created_at = String(o.created_at ?? deadline);
+
+  const own = o.owner;
+  let owner: StartAttemptResponse['quiz']['owner'] = {
+    id: '',
+    first_name: '',
+    last_name: '',
+    role: 'teacher',
+  };
+  if (own && typeof own === 'object') {
+    const ow = own as Record<string, unknown>;
+    if ('first_name' in ow || 'last_name' in ow) {
+      owner = {
+        id: String(ow.id ?? ''),
+        first_name: String(ow.first_name ?? ''),
+        last_name: String(ow.last_name ?? ''),
+        role: String(ow.role ?? 'teacher'),
+      };
+    } else if ('short_name' in ow) {
+      owner = {
+        id: String(ow.id ?? ''),
+        first_name: String(ow.short_name ?? ''),
+        last_name: '',
+        role: String(ow.role ?? 'teacher'),
+      };
+    }
+  }
+
+  const sub = o.subject;
+  const subject: StartAttemptResponse['quiz']['subject'] = {
+    id: sub && typeof sub === 'object' ? String((sub as Record<string, unknown>).id ?? '') : '',
+    name: sub && typeof sub === 'object' ? String((sub as Record<string, unknown>).name ?? '') : '',
+  };
+
+  let content: QuizQuestionContent[] = [];
+  const contentRaw = o.content;
+  if (Array.isArray(contentRaw) && contentRaw.length > 0) {
+    content = contentRaw.map((item, i) => normalizeContentQuestion(item, i));
+  } else {
+    const questions = o.questions;
+    if (Array.isArray(questions) && questions.length > 0) {
+      content = questions.map((item, i) => normalizeContentQuestion(item, i));
+    }
+  }
+
+  return {
+    id,
+    title,
+    summary,
+    owner,
+    subject,
+    total_score,
+    deadline,
+    max_attempts,
+    created_at,
+    content,
+  };
+}
+
+/** Собирает StartAttemptResponse, если бэкенд отдал только attempt (+ quiz_id). */
+async function mergeAttemptWithFetchedQuiz(raw: unknown, fallbackAttemptId?: string): Promise<StartAttemptResponse> {
+  const attemptObj = unwrapAttemptObject(raw);
+  if (!attemptObj) {
+    throw new Error('Некорректный ответ: нет объекта attempt');
+  }
+  const quizId = readQuizIdFromAttempt(attemptObj);
+  if (!quizId) {
+    throw new Error('В ответе нет quiz и у attempt нет quiz_id — нечего подгрузить');
+  }
+  const quizPart = await fetchQuizForTake(quizId);
+  return withNormalizedQuizContent({
+    attempt: {
+      id: String(attemptObj.id ?? fallbackAttemptId ?? ''),
+      started_at: String(attemptObj.started_at ?? ''),
+    },
+    quiz: quizPart,
+  });
+}
+
 export interface FinishAttemptAnswer {
   id: string; // UUID
   question_id: string; // UUID
@@ -318,6 +650,7 @@ export interface FinishAttemptResponse {
       role: string;
     };
     answers: FinishAttemptAnswer[];
+    /** Итоговые набранные баллы (бэкенд может назвать total_score) */
     score: number;
     started_at: string; // ISO date string
     ended_at: string; // ISO date string
@@ -344,17 +677,305 @@ export interface FinishAttemptResponse {
   };
 }
 
+function normalizeFinishAnswerItem(item: unknown, index: number): FinishAttemptAnswer {
+  if (!item || typeof item !== 'object') {
+    return {
+      id: `answer-${index}`,
+      question_id: '',
+      answer: '',
+      score: 0,
+      is_correct: false,
+    };
+  }
+  const x = item as Record<string, unknown>;
+  const ans = x.answer;
+  const answerVal: string | string[] | number =
+    ans === null || ans === undefined ? '' : (ans as string | string[] | number);
+  const ic = x.is_correct;
+  const rawScore = Number(x.score ?? 0);
+  const isCorrect =
+    ic === true || ic === 'true' || ic === 1 || rawScore > 0;
+  return {
+    id: String(x.id ?? `answer-${index}`),
+    question_id: String(x.question_id ?? ''),
+    answer: answerVal,
+    score: rawScore,
+    is_correct: isCorrect,
+  };
+}
+
+function extractAnswersArray(att: Record<string, unknown>): unknown[] | null {
+  let raw: unknown = att.answers ?? att.Answers;
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(raw)) return null;
+  return raw;
+}
+
+function answersMatchForGrading(
+  q: QuizQuestionContent,
+  user: string | string[] | number
+): boolean {
+  if (q.type === 'numeric') {
+    const c = (q.details as QuizQuestionDetailsNumeric).correct;
+    const u = typeof user === 'number' ? user : parseFloat(String(user).trim().replace(',', '.'));
+    if (Number.isNaN(u)) return false;
+    return Number(u) === Number(c);
+  }
+  if (q.type === 'single') {
+    const c = (q.details as QuizQuestionDetailsSingle).correct;
+    return String(user).trim() === String(c).trim();
+  }
+  const mul = q.details as QuizQuestionDetailsMultiple;
+  const correct = [...mul.correct].map(String).sort();
+  const uArr = (Array.isArray(user) ? user : [user]).map(String).sort();
+  if (uArr.length !== correct.length) return false;
+  return uArr.every((v, idx) => v === correct[idx]);
+}
+
+function buildGradedClientAnswers(
+  clientAnswers: Array<{ question_id: string; answer: string | string[] | number }>,
+  quiz: StartAttemptResponse['quiz']
+): FinishAttemptAnswer[] {
+  return clientAnswers.map((ca, i) => {
+    const q = quiz.content.find((c) => c.id === ca.question_id);
+    const ok = q ? answersMatchForGrading(q, ca.answer) : false;
+    const pts = q && ok ? q.score : 0;
+    return {
+      id: `client-${i}`,
+      question_id: ca.question_id,
+      answer: ca.answer,
+      score: pts,
+      is_correct: ok,
+    };
+  });
+}
+
+/** Ответ GET /attempts/:id с непустым answers (после finish). */
+function getAttemptWithAnswersFromPayload(raw: unknown): Record<string, unknown> | null {
+  const inner = unwrapAttemptObject(raw);
+  if (inner) {
+    const arr = extractAnswersArray(inner);
+    if (arr && arr.length > 0) return inner;
+  }
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    if (o.id != null || o.quiz_id != null) {
+      const arr = extractAnswersArray(o);
+      if (arr && arr.length > 0) return o;
+    }
+  }
+  return null;
+}
+
+async function fetchAttemptDetailAfterFinish(attemptId: string): Promise<unknown | null> {
+  const id = String(attemptId).trim();
+  if (!id) return null;
+  let last: unknown | null = null;
+  const maxTries = 6;
+  for (let i = 0; i < maxTries; i++) {
+    if (i > 0) {
+      await new Promise((r) => setTimeout(r, 180 * i));
+    }
+    try {
+      last = await apiRequest<unknown>(`/attempts/${encodeURIComponent(id)}`, {
+        method: 'GET',
+      });
+      if (getAttemptWithAnswersFromPayload(last)) {
+        return last;
+      }
+    } catch {
+      last = null;
+    }
+  }
+  return last;
+}
+
+/** POST finish часто без answers; подменяем телом GET /attempts/:id. */
+function preferAttemptDetailForFinish(finishRaw: unknown, getRaw: unknown | null): unknown {
+  const det = getAttemptWithAnswersFromPayload(getRaw);
+  if (!det) return finishRaw;
+  if (getRaw && typeof getRaw === 'object' && 'attempt' in getRaw) {
+    return getRaw;
+  }
+  return { attempt: det };
+}
+
+/**
+ * Бэкенд часто отдаёт только { attempt: { ..., total_score } } без quiz и answers —
+ * подставляем квиз с клиента и приводим score/answers.
+ */
+function normalizeFinishAttemptResponse(
+  raw: unknown,
+  ctx: {
+    fallbackQuiz?: StartAttemptResponse['quiz'];
+    clientAnswers?: Array<{ question_id: string; answer: string | string[] | number }>;
+  }
+): FinishAttemptResponse {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Пустой ответ POST .../finish');
+  }
+  let root = raw as Record<string, unknown>;
+  if (root.data && typeof root.data === 'object') {
+    root = root.data as Record<string, unknown>;
+  }
+
+  if (root.attempt && root.quiz && typeof root.quiz === 'object') {
+    const ar = root.attempt as Record<string, unknown>;
+    const scoreFull =
+      typeof ar.score === 'number'
+        ? ar.score
+        : typeof ar.total_score === 'number'
+          ? ar.total_score
+          : 0;
+    const userRawF = ar.user;
+    const userF =
+      userRawF && typeof userRawF === 'object'
+        ? {
+            id: String((userRawF as Record<string, unknown>).id ?? ''),
+            first_name: String((userRawF as Record<string, unknown>).first_name ?? ''),
+            last_name: String((userRawF as Record<string, unknown>).last_name ?? ''),
+            role: String((userRawF as Record<string, unknown>).role ?? 'student'),
+          }
+        : {
+            id: String(ar.user_id ?? ''),
+            first_name: '',
+            last_name: '',
+            role: 'student',
+          };
+    let answersF: FinishAttemptAnswer[] = [];
+    const ansArrF = extractAnswersArray(ar);
+    if (ansArrF && ansArrF.length > 0) {
+      answersF = ansArrF.map((item, i) => normalizeFinishAnswerItem(item, i));
+    } else if (ctx.clientAnswers?.length) {
+      const qGrade = withNormalizedQuizContent({
+        attempt: {
+          id: String(ar.id ?? ''),
+          started_at: String(ar.started_at ?? ''),
+        },
+        quiz: root.quiz as StartAttemptResponse['quiz'],
+      }).quiz;
+      answersF = buildGradedClientAnswers(ctx.clientAnswers, qGrade);
+    }
+    const qz = withNormalizedQuizContent({
+      attempt: {
+        id: String(ar.id ?? ''),
+        started_at: String(ar.started_at ?? ''),
+      },
+      quiz: root.quiz as StartAttemptResponse['quiz'],
+    });
+    return {
+      attempt: {
+        id: String(ar.id ?? ''),
+        user: userF,
+        answers: answersF,
+        score: scoreFull,
+        started_at: String(ar.started_at ?? ''),
+        ended_at: String(ar.ended_at ?? ''),
+      },
+      quiz: qz.quiz,
+    };
+  }
+
+  const att = root.attempt;
+  if (!att || typeof att !== 'object') {
+    throw new Error('В ответе finish нет объекта attempt');
+  }
+  const a = att as Record<string, unknown>;
+
+  const id = String(a.id ?? '');
+  const started_at = String(a.started_at ?? '');
+  const ended_at = String(a.ended_at ?? '');
+  const score =
+    typeof a.score === 'number'
+      ? a.score
+      : typeof a.total_score === 'number'
+        ? a.total_score
+        : Number(a.score ?? a.total_score ?? 0);
+
+  const userRaw = a.user;
+  const user =
+    userRaw && typeof userRaw === 'object'
+      ? {
+          id: String((userRaw as Record<string, unknown>).id ?? ''),
+          first_name: String((userRaw as Record<string, unknown>).first_name ?? ''),
+          last_name: String((userRaw as Record<string, unknown>).last_name ?? ''),
+          role: String((userRaw as Record<string, unknown>).role ?? 'student'),
+        }
+      : {
+          id: String(a.user_id ?? ''),
+          first_name: '',
+          last_name: '',
+          role: 'student',
+        };
+
+  let answers: FinishAttemptAnswer[] = [];
+  const ansArr = extractAnswersArray(a);
+  if (ansArr && ansArr.length > 0) {
+    answers = ansArr.map((item, i) => normalizeFinishAnswerItem(item, i));
+  } else if (ctx.clientAnswers?.length && ctx.fallbackQuiz) {
+    answers = buildGradedClientAnswers(ctx.clientAnswers, ctx.fallbackQuiz);
+  } else if (ctx.clientAnswers?.length) {
+    answers = ctx.clientAnswers.map((ca, i) => ({
+      id: `client-${i}`,
+      question_id: ca.question_id,
+      answer: ca.answer,
+      score: 0,
+      is_correct: false,
+    }));
+  }
+
+  if (!ctx.fallbackQuiz) {
+    throw new Error('Ответ finish без quiz: передайте текущий квиз с клиента');
+  }
+
+  const quiz = withNormalizedQuizContent({
+    attempt: { id, started_at },
+    quiz: ctx.fallbackQuiz,
+  }).quiz;
+
+  return {
+    attempt: {
+      id,
+      user,
+      answers,
+      score,
+      started_at,
+      ended_at,
+    },
+    quiz,
+  };
+}
+
 // Утилиты для работы с авторизацией (user_id и role)
 export interface AuthData {
   user_id: string;
   role: string;
 }
 
+export const getAccessToken = (): string | null => localStorage.getItem('access_token');
+
 export const getAuthData = (): AuthData | null => {
   const userId = localStorage.getItem('user_id');
   const role = localStorage.getItem('user_role');
   if (userId && role) {
     return { user_id: userId, role };
+  }
+  const token = getAccessToken();
+  if (token) {
+    const payload = readJwtPayload(token);
+    const uid = payload?.sub ?? payload?.user_id;
+    if (uid) {
+      return {
+        user_id: String(uid),
+        role: String(payload?.role ?? 'student'),
+      };
+    }
   }
   return null;
 };
@@ -367,20 +988,19 @@ export const setAuthData = (userId: string, role: string): void => {
 export const removeAuthData = (): void => {
   localStorage.removeItem('user_id');
   localStorage.removeItem('user_role');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
 };
 
 export const isAuthenticated = (): boolean => {
-  return !!getAuthData();
+  return !!getAccessToken();
 };
 
 // Обратная совместимость (для старых методов)
-export const getAuthToken = (): string | null => {
-  const authData = getAuthData();
-  return authData ? JSON.stringify(authData) : null;
-};
+export const getAuthToken = (): string | null => getAccessToken();
 
 export const setAuthToken = (token: string): void => {
-  // Игнорируем, так как теперь используем user_id и role
+  localStorage.setItem('access_token', token.trim());
 };
 
 export const removeAuthToken = (): void => {
@@ -388,31 +1008,66 @@ export const removeAuthToken = (): void => {
 };
 
 export const getRefreshToken = (): string | null => {
-  return null; // Больше не используется
+  return localStorage.getItem('refresh_token');
 };
 
 export const setRefreshToken = (token: string): void => {
-  // Игнорируем, так как больше не используется
+  localStorage.setItem('refresh_token', token);
 };
 
 export const removeRefreshToken = (): void => {
-  // Игнорируем, так как больше не используется
+  localStorage.removeItem('refresh_token');
 };
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  const current = localStorage.getItem('refresh_token');
+  if (!current) return false;
+  if (refreshInFlight) return refreshInFlight;
+  const base = API_BASE_URL;
+  if (!base) return false;
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(`${base}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: current }),
+      });
+      if (!res.ok) return false;
+      const data: unknown = await res.json();
+      const access = extractAccessTokenFromPayload(data);
+      const nextRefresh = extractRefreshTokenFromPayload(data);
+      if (access) localStorage.setItem('access_token', access);
+      if (nextRefresh) localStorage.setItem('refresh_token', nextRefresh);
+      return !!access;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
 
 // Базовая функция для запросов
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  _retryAfterRefresh = false
 ): Promise<T> {
   // Локальный режим разработки без бэкенда
   if (LOCAL_DEV_MODE) {
     console.warn(`[API] Локальный режим разработки: запрос ${options.method || 'GET'} ${endpoint} пропущен`);
     // Возвращаем пустые данные в зависимости от типа запроса
     if (endpoint.includes('/auth/login')) {
-      // Мок-данные для логина
       return {
         id: 'mock_user_' + Date.now(),
         role: 'student',
+        access_token: 'dev-mock-access',
+        refresh_token: 'dev-mock-refresh',
       } as T;
     }
     if (endpoint.includes('/users/me')) {
@@ -436,6 +1091,42 @@ async function apiRequest<T>(
     if (endpoint.includes('/quizzes') && !endpoint.includes('/quizzes/')) {
       return { quizzes: [] } as T;
     }
+    const attemptsDetail = /^\/attempts\/([^/]+)$/.exec(endpoint);
+    if (attemptsDetail && (options.method === 'GET' || options.method === undefined)) {
+      const aid = attemptsDetail[1];
+      return {
+        attempt: { id: aid, started_at: new Date().toISOString() },
+        quiz: {
+          id: 'mock-quiz',
+          title: 'Мок-квиз',
+          summary: 'Локальный режим',
+          owner: { id: '1', first_name: 'Препод', last_name: '', role: 'teacher' },
+          subject: { id: '1', name: 'Предмет' },
+          total_score: 10,
+          deadline: new Date().toISOString(),
+          max_attempts: 3,
+          created_at: new Date().toISOString(),
+          content: [],
+        },
+      } as T;
+    }
+    if (endpoint === '/attempts' && options.method === 'POST') {
+      return { id: 'mock-attempt-id' } as T;
+    }
+    const finishMatch = /^\/attempts\/([^/]+)\/finish$/.exec(endpoint);
+    if (finishMatch && options.method === 'POST') {
+      const aid = finishMatch[1];
+      return {
+        attempt: {
+          id: aid,
+          quiz_id: 'mock-quiz',
+          started_at: new Date().toISOString(),
+          ended_at: new Date().toISOString(),
+          total_score: 0,
+          user_id: 'mock-user',
+        },
+      } as T;
+    }
     if (endpoint.includes('/progress')) {
       return { progress: [] } as T;
     }
@@ -458,14 +1149,21 @@ async function apiRequest<T>(
 
   const authData = getAuthData();
   const method = options.method || 'GET';
+  const bearer = localStorage.getItem('access_token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
   };
 
-  // Для GET запросов отправляем user_id и role в заголовках
-  // Для POST/PATCH/PUT - в теле запроса
-  if (authData && method === 'GET') {
+  if (bearer) {
+    headers['Authorization'] = `Bearer ${bearer}`;
+  }
+
+  const skipLegacyUserAuth = isPublicAuthPath(endpoint);
+  const useLegacyUserId = authData && !bearer && !skipLegacyUserAuth;
+
+  // Без JWT: для GET отправляем user_id и role в заголовках (контракт старого бэкенда)
+  if (useLegacyUserId && method === 'GET') {
     headers['X-User-Id'] = authData.user_id;
     headers['X-User-Role'] = authData.role;
   }
@@ -474,9 +1172,12 @@ async function apiRequest<T>(
     // Подготавливаем тело запроса с user_id и role для POST/PATCH/PUT запросов
     let requestBody = options.body;
     
-    // Если это POST/PATCH/PUT и есть данные авторизации, добавляем user_id и role в тело
-    // НО: не перезаписываем role, если он уже есть в теле запроса (например, при создании пользователя)
-    if (authData && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+    // С JWT не подмешиваем user_id в тело — идентификация через Authorization.
+    // Публичные /auth/* не трогаем (иначе в /auth/login попадали старые user_id и ломали бэкенд).
+    if (
+      useLegacyUserId &&
+      (method === 'POST' || method === 'PATCH' || method === 'PUT')
+    ) {
       try {
         const bodyData = requestBody ? JSON.parse(requestBody as string) : {};
         bodyData.user_id = authData.user_id;
@@ -505,10 +1206,11 @@ async function apiRequest<T>(
       })() : undefined;
       console.log(`[API] ${method} ${endpoint}`, {
         hasAuth: !!authData,
+        hasBearer: !!bearer,
         userId: authData?.user_id,
         role: authData?.role,
         url: `${API_BASE_URL}${endpoint}`,
-        body: bodyForLog
+        body: bodyForLog,
       });
     }
     
@@ -522,7 +1224,16 @@ async function apiRequest<T>(
     if (!response.ok) {
       // Если 401 - неавторизован
       if (response.status === 401) {
-        // Очищаем данные авторизации и перенаправляем на логин
+        if (
+          !_retryAfterRefresh &&
+          !isPublicAuthPath(endpoint) &&
+          localStorage.getItem('refresh_token')
+        ) {
+          const refreshed = await tryRefreshAccessToken();
+          if (refreshed) {
+            return apiRequest<T>(endpoint, options, true);
+          }
+        }
         logout();
         throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
       }
@@ -551,7 +1262,9 @@ async function apiRequest<T>(
   } catch (error) {
     // Обработка сетевых ошибок (CORS, таймаут, и т.д.)
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      const backendUrl = import.meta.env.DEV ? 'http://85.239.55.179:8000 (через proxy /api)' : API_BASE_URL;
+      const backendUrl = import.meta.env.DEV
+        ? `${import.meta.env.VITE_API_URL ?? 'см. VITE_API_URL в frontend/.env'} (или прокси /api)`
+        : API_BASE_URL;
       throw new Error(`Не удалось подключиться к серверу. Проверьте, что бэкенд доступен на ${backendUrl}`);
     }
     throw error;
@@ -568,19 +1281,48 @@ export const login = async (credentials: LoginRequest): Promise<{ user_id: strin
     const mockUserId = 'mock_user_' + Date.now();
     const mockRole = 'student';
     setAuthData(mockUserId, mockRole);
+    localStorage.setItem('access_token', 'dev-mock-bearer');
     return { user_id: mockUserId, role: mockRole };
   }
 
-  const response = await apiRequest<{ id: string; role: string }>('/auth/login', {
+  removeAuthData();
+
+  const response = await apiRequest<LoginApiResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
   });
-  
-  // Сохраняем user_id и role из ответа
-  const userId = response.id;
-  const role = response.role;
+
+  const accessToken = extractAccessTokenFromPayload(response);
+  const refreshTok = extractRefreshTokenFromPayload(response);
+  if (accessToken) localStorage.setItem('access_token', accessToken);
+  if (refreshTok) localStorage.setItem('refresh_token', refreshTok);
+
+  let userId = [response.id, response.user_id, response.user?.id]
+    .filter((v) => v != null && String(v).trim() !== '')
+    .map((v) => String(v))[0] ?? '';
+
+  let role = String(response.role ?? response.user?.role ?? '').trim() || 'student';
+
+  if (!userId && accessToken) {
+    const payload = readJwtPayload(accessToken);
+    if (payload) {
+      userId = String(payload.sub ?? payload.user_id ?? '').trim();
+      if (payload.role) role = String(payload.role);
+    }
+  }
+
+  if (!accessToken) {
+    throw new Error(
+      'Сервер не вернул токен авторизации. Ожидаются поля access_token, token или объект jwt в ответе /auth/login'
+    );
+  }
+
+  if (!userId) {
+    throw new Error('Некорректный ответ при входе: нет id пользователя в теле ответа и в JWT');
+  }
+
   setAuthData(userId, role);
-  
+
   return { user_id: userId, role };
 };
 
@@ -598,6 +1340,9 @@ export const getUsers = async (): Promise<UserShort[]> => {
 };
 
 export const getCurrentUser = async (): Promise<UserFull> => {
+  if (!getAccessToken()) {
+    throw new Error('Пользователь не авторизован');
+  }
   const authData = getAuthData();
   if (!authData) {
     throw new Error('Пользователь не авторизован');
@@ -708,24 +1453,66 @@ export const getQuizUsers = async (quizId: string | number): Promise<UserLastAtt
   return response || [];
 };
 
-// Начать попытку прохождения квиза
-export const startQuizAttempt = async (quizId: string | number): Promise<StartAttemptResponse> => {
-  const response = await apiRequest<StartAttemptResponse>(`/quizzes/${quizId}/attempt`, {
-    method: 'POST',
+/** GET /attempts/:id — попытка и квиз (квиз может догружаться GET /quizzes/:quiz_id) */
+export const getAttemptById = async (attemptId: string): Promise<StartAttemptResponse> => {
+  const id = String(attemptId).trim();
+  if (!id) throw new Error('Не указан id попытки');
+  const response = await apiRequest<unknown>(`/attempts/${encodeURIComponent(id)}`, {
+    method: 'GET',
   });
-  return response;
+  try {
+    return normalizeStartAttemptResponse(response);
+  } catch {
+    return mergeAttemptWithFetchedQuiz(response, id);
+  }
+};
+
+/** Создать попытку: POST /attempts { user_id, quiz_id } → id; затем GET /attempts/:id */
+export const startQuizAttempt = async (quizId: string | number): Promise<StartAttemptResponse> => {
+  const authData = getAuthData();
+  if (!authData) {
+    throw new Error('Пользователь не авторизован');
+  }
+  const quiz_id = String(quizId);
+  const user_id = authData.user_id;
+  const created = await apiRequest<unknown>('/attempts', {
+    method: 'POST',
+    body: JSON.stringify({ user_id, quiz_id }),
+  });
+  try {
+    return normalizeStartAttemptResponse(created);
+  } catch {
+    /* нет полного { attempt, quiz } */
+  }
+  try {
+    return await mergeAttemptWithFetchedQuiz(created);
+  } catch {
+    /* нет вложенного attempt с quiz_id — цепочка через id */
+  }
+  const attemptId = extractAttemptIdFromCreateResponse(created);
+  if (!attemptId) {
+    throw new Error('Сервер не вернул id попытки после POST /attempts');
+  }
+  return getAttemptById(attemptId);
 };
 
 // Завершить попытку прохождения квиза
 // Ответы должны быть отправлены отдельно через PATCH /attempts/{attempt_id}/answers/{answer_id}
 // или включены в тело запроса finish (зависит от реализации бэкенда)
-export const finishQuizAttempt = async (attemptId: string, answers?: Array<{ question_id: string; answer: string | string[] | number }>): Promise<FinishAttemptResponse> => {
+export const finishQuizAttempt = async (
+  attemptId: string,
+  answers?: Array<{ question_id: string; answer: string | string[] | number }>,
+  fallbackQuiz?: StartAttemptResponse['quiz']
+): Promise<FinishAttemptResponse> => {
+  const id = String(attemptId).trim();
   const body = answers ? { answers } : undefined;
-  const response = await apiRequest<FinishAttemptResponse>(`/attempts/${attemptId}/finish`, {
+  const finishRaw = await apiRequest<unknown>(`/attempts/${encodeURIComponent(id)}/finish`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
   });
-  return response;
+  const detailRaw = await fetchAttemptDetailAfterFinish(id);
+  const sourceRaw = preferAttemptDetailForFinish(finishRaw, detailRaw);
+  return normalizeFinishAttemptResponse(sourceRaw, { fallbackQuiz, clientAnswers: answers });
 };
 
 // Прогресс
