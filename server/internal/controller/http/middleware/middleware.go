@@ -3,7 +3,6 @@ package middleware
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -71,7 +70,7 @@ func BodyLogger() Middleware {
 				requestBody, _ = io.ReadAll(r.Body)
 			}
 			r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
-			log.Printf("Request: %s %s\nBody: %s\n", r.Method, r.URL.Path, string(requestBody))
+			logger.Debug(r.Context(), "Advanced request", slog.String("body", string(requestBody)))
 			// Оборачиваем ResponseWriter
 			lrw := &loggingResponseWriter{ResponseWriter: w, body: &bytes.Buffer{}}
 
@@ -79,7 +78,7 @@ func BodyLogger() Middleware {
 			next.ServeHTTP(lrw, r)
 
 			// Логируем тело ответа
-			log.Printf("Response: %s\nBody: %s\n", lrw.Header().Get("Status"), lrw.body.String())
+			logger.Debug(r.Context(), "Advanced response", slog.String("body", string(requestBody)))
 		})
 	}
 }

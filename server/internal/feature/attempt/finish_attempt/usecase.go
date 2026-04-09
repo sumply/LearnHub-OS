@@ -44,7 +44,7 @@ func (u *UseCase) FinishAttempt(ctx context.Context, attemptID uuid.UUID, req Re
 
 	answerMap := make(map[uuid.UUID]domain.IAnswer)
 	for _, answer := range attempt.SelectedAnswers {
-		answerMap[answer.ID()] = answer
+		answerMap[answer.QuestionID()] = answer
 	}
 
 	for _, req := range req.Answers {
