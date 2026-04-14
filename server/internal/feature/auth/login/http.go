@@ -1,21 +1,27 @@
 package login
 
 import (
-	"encoding/json"
 	"net/http"
+	"server/internal/pkg/decoder"
 	"server/internal/pkg/http/response"
 	"server/internal/pkg/validator"
+	"server/pkg/logger"
 )
 
 func HTTP(usecase *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var input Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		ctx := r.Context()
+		log := logger.FromCtx(ctx)
+
+		input, err := decoder.JSON[Input](r.Body)
+		if err != nil {
+			response.LogDTOValidateError(ctx, log)
 			response.SendJSONDecodeError(w, err)
 			return
 		}
 
 		if err := validator.V(r.Context(), input); err != nil {
+			response.LogDTOValidateError(ctx, log)
 			response.SendDTOValidateError(w, err)
 			return
 		}
@@ -26,9 +32,6 @@ func HTTP(usecase *UseCase) http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(&output); err != nil {
-			response.SendJSONEncodeError(w, err)
-			return
-		}
+		response.SendOK(w, output)
 	}
 }

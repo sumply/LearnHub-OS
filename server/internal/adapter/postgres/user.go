@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"log/slog"
 	"server/internal/adapter/postgres/sqlc"
 	"server/internal/domain"
 	"server/internal/pkg/repository/filter"
+	"server/pkg/logger"
 
 	"github.com/google/uuid"
 )
@@ -20,8 +22,12 @@ func NewTeacher(p *Postgres) *Teacher {
 }
 
 func (t *Teacher) Get(ctx context.Context, id uuid.UUID) (domain.Teacher, error) {
+	log := logger.FromCtx(ctx)
+	log = log.With(slog.String("id", id.String()))
+
 	row, err := t.sqlc.GetDomainTeacher(ctx, id)
 	if err != nil {
+		log.WarnContext(ctx, "Failed getting row", slog.String("error", err.Error()))
 		return domain.Teacher{}, err
 	}
 
@@ -38,11 +44,15 @@ func (t *Teacher) Get(ctx context.Context, id uuid.UUID) (domain.Teacher, error)
 }
 
 func (t *Teacher) Save(ctx context.Context, teacher domain.Teacher) error {
+	log := logger.FromCtx(ctx)
+	log = log.With(slog.Group("teacher"))
+
 	return t.withQueries(ctx, func(q *sqlc.Queries) error {
 		err := saveDomainUser(ctx, t.Postgres, teacher.User)
 		if err != nil {
 			return err
 		}
+
 		for _, id := range teacher.Groups {
 			err = q.InsertAccountTeacher(ctx, sqlc.InsertAccountTeacherParams{
 				AccountID: teacher.ID,
@@ -52,6 +62,7 @@ func (t *Teacher) Save(ctx context.Context, teacher domain.Teacher) error {
 				return err
 			}
 		}
+
 		return nil
 	})
 }

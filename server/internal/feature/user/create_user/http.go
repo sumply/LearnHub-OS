@@ -9,22 +9,24 @@ import (
 
 func HTTP(uc *UseCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log := logger.FromCtx(r.Context())
+
 		input, err := InputFromRequest(r)
 		if err != nil {
-			logger.Warn(r.Context(), "Failed creating request dto")
+			log.WarnContext(r.Context(), "Failed creating request dto")
 			response.SendDTOValidateError(w, err)
 			return
 		}
 
 		token, ok := usecase.IdentityFromContext(r.Context())
 		if !ok {
+			log.WarnContext(r.Context(), "Failed getting identity from context")
 			response.SendAuthTokenError(w, nil)
 			return
 		}
 
 		output, err := uc.CreateUser(r.Context(), token, input)
 		if err != nil {
-			logger.Error(r.Context(), "Failed sending response dto")
 			response.SendUseCaseError(w, err)
 			return
 		}

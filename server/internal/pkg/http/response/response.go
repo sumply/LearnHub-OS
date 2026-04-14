@@ -1,9 +1,11 @@
 package response
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"server/internal/domain"
 	"server/internal/pkg/encoder"
@@ -112,4 +114,18 @@ func SendCreated(w http.ResponseWriter, body any) {
 func SendOK(w http.ResponseWriter, body any) {
 	w.WriteHeader(http.StatusOK)
 	encoder.JSON(w, body)
+}
+
+func LogDTOValidateError(ctx context.Context, log *slog.Logger) {
+	log.WarnContext(ctx, "Failed creating request dto")
+}
+
+func LogTokenError(ctx context.Context, log *slog.Logger) {
+	log.WarnContext(ctx, "Failed getting identity from context")
+}
+
+func LogParamError(ctx context.Context, log *slog.Logger, p param.IDParam, err error) {
+	msg := fmt.Sprintf("Failed getting %s param", p)
+	errMsg := slog.String("error", err.Error())
+	log.WarnContext(ctx, msg, errMsg)
 }
