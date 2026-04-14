@@ -139,3 +139,75 @@ CREATE TABLE quiz.answer_numeric(
 	answer_id UUID REFERENCES quiz.answer(id) ON DELETE CASCADE NOT NULL,
 	selected_answer FLOAT NOT NULL
 );
+
+CREATE FUNCTION quiz.before_insert_question_details_tg()
+RETURNS TRIGGER AS $$
+DECLARE
+	expected_type quiz.question_type;
+BEGIN
+	expected_type := TG_ARGV[0]::quiz.question_type;
+	
+	IF NOT EXISTS (
+		SELECT 1
+		FROM quiz.question
+		WHERE id = NEW.question_id
+			AND "type" = expected_type
+	) THEN
+		RAISE EXCEPTION 'Question type is not %!', expected_type;
+	END IF;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_insert_question_single
+BEFORE INSERT ON quiz.question_single
+FOR EACH ROW 
+EXECUTE FUNCTION quiz.before_insert_question_details_tg('single');
+
+CREATE TRIGGER before_insert_question_multiple
+BEFORE INSERT ON quiz.question_multiple
+FOR EACH ROW 
+EXECUTE FUNCTION quiz.before_insert_question_details_tg('multiple');
+
+CREATE TRIGGER before_insert_question_numeric
+BEFORE INSERT ON quiz.question_numeric
+FOR EACH ROW 
+EXECUTE FUNCTION quiz.before_insert_question_details_tg('numeric');
+
+
+CREATE FUNCTION quiz.before_insert_answer_details_tg()
+RETURNS TRIGGER AS $$
+DECLARE
+	expected_type quiz.question_type;
+BEGIN
+	expected_type := TG_ARGV[0]::quiz.question_type;
+	
+	IF NOT EXISTS (
+		SELECT 1
+		FROM quiz.question
+		WHERE id = (
+			SELECT question_id
+			FROM quiz.answer
+			WHERE id = NEW.answer_id
+		) AND "type" = expected_type
+	) THEN
+		RAISE EXCEPTION 'Question type is not %!', expected_type;
+	END IF;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_insert_answer_single
+BEFORE INSERT ON quiz.answer_single
+FOR EACH ROW 
+EXECUTE FUNCTION quiz.before_insert_answer_details_tg('single');
+
+CREATE TRIGGER before_insert_answer_multiple
+BEFORE INSERT ON quiz.answer_multiple
+FOR EACH ROW 
+EXECUTE FUNCTION quiz.before_insert_answer_details_tg('multiple');
+
+CREATE TRIGGER before_insert_answer_numeric
+BEFORE INSERT ON quiz.answer_numeric
+FOR EACH ROW 
+EXECUTE FUNCTION quiz.before_insert_answer_details_tg('numeric');
