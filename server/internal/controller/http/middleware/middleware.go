@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"bytes"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,8 +10,6 @@ import (
 	"server/internal/pkg/usecase"
 	"server/pkg/logger"
 	"time"
-
-	"io"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -34,14 +31,14 @@ func CORS() Middleware {
 	})
 }
 
-type loggingResponseWriter struct {
+type ResponseWriterWrapper struct {
 	http.ResponseWriter
-	body *bytes.Buffer
+	status int
 }
 
-func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
-	lrw.body.Write(b) // сохраняем тело
-	return lrw.ResponseWriter.Write(b)
+func (w *ResponseWriterWrapper) WriteHeader(s int) {
+	w.status = s
+	w.ResponseWriter.WriteHeader(s)
 }
 
 func Logger() Middleware {
@@ -56,29 +53,23 @@ func Logger() Middleware {
 				slog.Time("received_time", time.Now().UTC()),
 			))
 			logger.Info(ctx, "Received request")
+
+			startTime := time.Now()
+
 			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
-func BodyLogger() Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var requestBody []byte
-			if r.Body != nil {
-				requestBody, _ = io.ReadAll(r.Body)
+			rw := &ResponseWriterWrapper{
+				ResponseWriter: w,
+				status:         http.StatusOK,
 			}
-			r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
-			logger.Debug(r.Context(), "Advanced request", slog.String("body", string(requestBody)))
-			// Оборачиваем ResponseWriter
-			lrw := &loggingResponseWriter{ResponseWriter: w, body: &bytes.Buffer{}}
 
-			// Вызываем следующий обработчик
-			next.ServeHTTP(lrw, r)
+			next.ServeHTTP(rw, r)
 
-			// Логируем тело ответа
-			logger.Debug(r.Context(), "Advanced response", slog.String("body", string(requestBody)))
+			duration := time.Since(startTime)
+			logger.Info(r.Context(), "Sended response", slog.Group("response",
+				slog.Int("status", rw.status),
+				slog.Int64("duration_ms", duration.Milliseconds()),
+			))
 		})
 	}
 }

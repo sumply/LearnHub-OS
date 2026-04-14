@@ -3,9 +3,11 @@ package create_user
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"server/internal/domain"
 	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
+	"server/pkg/logger"
 
 	"github.com/google/uuid"
 )
@@ -40,12 +42,27 @@ func New(
 }
 
 func (uc *UseCase) CreateUser(ctx context.Context, identity usecase.Identity, input Input) (Output, error) {
+	log := logger.FromCtx(ctx)
+	log = log.With(
+		usecase.IdentityToSlogAttr(identity),
+		slog.Group("input",
+			slog.String("first_name", input.FirstName),
+			slog.String("last_name", input.LastName),
+			slog.String("email", input.Email),
+			slog.String("role", input.Role),
+			slog.String("group_id", input.GroupID.String()),
+			slog.Any("group_ids", input.GroupIDs),
+			slog.Any("subject_id", input.SubjectIDs.Strings()),
+		),
+	)
 	if err := uc.validateAccess(identity); err != nil {
+		log.WarnContext(ctx, "Failed validating access", slog.String("error", err.Error()))
 		return Output{}, err
 	}
 
 	user, err := uc.makeUser(input)
 	if err != nil {
+		log.WarnContext(ctx, "Failed making user", slog.String("error", err.Error()))
 		return Output{}, err
 	}
 

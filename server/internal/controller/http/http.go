@@ -40,7 +40,6 @@ func prepareCommonMiddleware(r chi.Router) {
 	r.Use(
 		middleware.CORS(),
 		middleware.Logger(),
-		middleware.BodyLogger(),
 		middleware.Recoverer(),
 	)
 }

@@ -3,9 +3,11 @@ package update_user
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"server/internal/domain"
 	"server/internal/pkg/repository"
 	"server/internal/pkg/usecase"
+	"server/pkg/logger"
 )
 
 type User interface {
@@ -24,7 +26,18 @@ func New(user User) *UseCase {
 }
 
 func (uc *UseCase) UpdateUser(ctx context.Context, identity usecase.Identity, input Input) error {
+	log := logger.FromCtx(ctx)
+	log = log.With(
+		usecase.IdentityToSlogAttr(identity),
+		slog.Group("input",
+			slog.String("id", input.ID.String()),
+			slog.String("first_name", input.FirstName),
+			slog.String("last_name", input.LastName),
+		),
+	)
+
 	if err := uc.validateAccess(identity, input); err != nil {
+		log.WarnContext(ctx, "Failed validating access", slog.String("error", err.Error()))
 		return err
 	}
 
